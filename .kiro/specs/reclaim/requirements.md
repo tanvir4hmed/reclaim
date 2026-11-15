@@ -4,6 +4,13 @@
 
 Re:Claim is a playable browser horror experience for the Kiroween 2026 Costume Contest. It opens as a polished, cheerful Christmas e-commerce shop. A small white cloth ghost hides behind the shop's objects and now and then flies to a new hiding place. Clicking it is the only trigger that reveals the same shop after a fictional war. The visitor can browse, search, inspect and cart objects in both states. Each featured object has a normal state, a haunted inspection and a distinct consequence when carted. Checkout is a fictional final transaction. The ending returns the visitor to the opening shop with one difference left behind by them.
 
+### Story and intent
+
+- **What the products are:** every item belonged to someone lost in a fictional war. The Christmas sale is a polished resale of the dead's belongings. Each object still carries its owner's last moment (shoes that walked through fire, a watch that stopped, a letter that was never sent, a photo with one person missing).
+- **The name:** "Re:Claim" reads as an email subject ("Re: Claim your offer") and as the owners reclaiming what was taken.
+- **The psychology:** the visitor arrives as a normal holiday shopper. Familiar objects with a second meaning make the visitor recognize the loss themselves; nothing is explained. Every Add to Cart is a small act of taking, and the objects answer back. Checkout makes the visitor pay with part of themselves, and the ending turns them into the next object on the shelf. The visitor is not a victim of the shop; they are its newest stock.
+- **The horror style:** slow, small, deniable wrongness. One anomaly moves while the rest of the shop holds still. Every effect comes from an object's story. No random jump scares.
+
 Under the story, the shop is built from real e-commerce dark patterns (fake countdowns, false scarcity, pre-checked add-ons, confirmshaming). An optional receipt after the ending names them, so the piece also teaches visitors to recognize manipulative shopping tactics during the holiday season.
 
 No real payments, accounts or personal data. All objects, effects and sound are code-rendered or code-generated.
@@ -14,7 +21,11 @@ No real payments, accounts or personal data. All objects, effects and sound are 
 - **Day state**: the Christmas sale before the reveal.
 - **Haunted state**: the same shop after the reveal.
 - **Reveal**: the in-place transformation from Day state to Haunted state.
-- **Ghost**: a small white cloth figure that hides behind objects in the Day state shop and is the only Reveal trigger.
+- **Ghost**: a small white cloth ghost, drawn originally for this project as a homage to Kiro's ghost mascot, that hides behind objects in the Day state and is the only Reveal trigger.
+- **Live object**: a product rendered in real time as a lit 3D object, not a photo, whose condition and motion change in place.
+- **Anomaly**: any unnatural event (a Consequence, a bat landing, the hand crawling, an early sign).
+- **Stage**: the right to show a major Anomaly. Only one major Anomaly holds the Stage at a time.
+- **Lasting mark**: a trace an Anomaly leaves behind (footprints, blood prints, ash, a tilted tag) that stays until the ending.
 - **Hiding spot**: a predefined place behind a shop object (hero decoration, product tile, category tile, header element) where the Ghost can hide.
 - **Storm flicker**: the lightning-like flicker of every light in the shop, with a knock on the screen, caused by hovering or focusing the Ghost.
 - **Featured product**: one of the nine objects with special behavior (shoes, pocket watch, doll, letter, typewriter, mirror, photo frame, cake, telephone).
@@ -114,7 +125,8 @@ No real payments, accounts or personal data. All objects, effects and sound are 
 
 #### Acceptance Criteria
 
-1. WHILE in the Day state, THE Shop SHALL show one Ghost: a small white cloth figure that is mostly hidden behind a Hiding spot, with part of it (an edge of cloth, a peeking face) visible.
+1. WHILE in the Day state, THE Shop SHALL show one Ghost: a small white cloth ghost with a rounded head, a wavy hem and two dark oval eyes, mostly hidden behind a Hiding spot, with part of it (an edge of cloth, a peeking face) visible.
+1a. THE Ghost SHALL be an original drawing that nods to Kiro's ghost mascot; THE Shop SHALL not embed the official Kiro logo file unless permission is confirmed (Rules section 11).
 2. THE Shop SHALL define at least eight Hiding spots across the hero, category tiles, product tiles and header, including spots visible on a 360 px wide screen.
 3. WHILE the visitor is not interacting with the Ghost, THE Ghost SHALL occasionally fly to a different Hiding spot along a soft floating path, with 15 to 40 seconds between flights.
 4. THE Ghost SHALL appear for the first time within 10 seconds of the first load, and SHALL peek out noticeably (lean out, then hide again) at least once every 20 seconds so a first-time visitor can find it.
@@ -157,10 +169,13 @@ No real payments, accounts or personal data. All objects, effects and sound are 
 #### Acceptance Criteria
 
 1. WHILE in the Haunted state, THE Shop SHALL show at least three animated bats that hang upside down from shop edges, unfold their wings, fly across the shop and land at a different perch.
-2. THE Shop SHALL have at most two bats in flight at a time, and bats SHALL never block a control the visitor is using.
-3. WHILE in the Haunted state, an original small hand SHALL occasionally reach in from a screen edge to retrieve a fallen ornament, at most once per 45 seconds.
+2. Now and then, a bat SHALL leave the hero banner, flap down into the product grid, hang upside down from the edge of a product card, and later fly to a different card.
+3. THE Shop SHALL have at most two bats in flight at a time, and bats SHALL never block a control the visitor is using; a bat on a card SHALL take off if the pointer reaches that card's controls.
+3a. Once per Haunted visit, a severed hand SHALL rise from the bottom edge of the screen finger by finger, grip the edge of the page, and pull itself with its fingers toward the product grid.
+3b. WHEN the visitor scrolls, THE hand SHALL be able to move to another part of the page, but the bloody fingerprints and drag marks it left SHALL stay fixed to the page where they fell (Lasting marks in page coordinates).
+3c. Later, THE same hand SHALL occasionally reach in from a screen edge to retrieve a fallen ornament, at most once per 45 seconds.
 4. THE Haunted state SHALL use controlled parallax, delayed reflections (reflective surfaces lag the visitor's pointer by a noticeable delay) and shapes hidden in negative space (figures that appear only in the gaps between objects).
-5. WHILE Reduced motion is on, THE bats SHALL stay perched with small wing movement, the hand SHALL not appear, and parallax SHALL be off.
+5. WHILE Reduced motion is on, THE bats SHALL stay perched with small wing movement, the hand SHALL appear only as its finished prints and drag marks, and parallax SHALL be off.
 
 ### Requirement 12: Featured product rules
 
@@ -169,7 +184,10 @@ No real payments, accounts or personal data. All objects, effects and sound are 
 #### Acceptance Criteria
 
 1. THE Shop SHALL give each Featured product a Day state, a Haunted state, a haunted inspection and a Consequence.
-2. WHEN the visitor adds a Featured product to the cart in the Haunted state, THE Shop SHALL play that product's Consequence.
+2. WHILE in the Haunted state, WHEN the visitor opens a Featured product, THE Shop SHALL show that product's first Anomaly inside the product view.
+3. WHEN the visitor adds a Featured product to the cart in the Haunted state, THE Shop SHALL play that product's Consequence, which SHALL spread beyond the product card into the whole page, and SHALL leave a Lasting mark.
+3a. THE Shop SHALL schedule Anomalies so that only one major Anomaly holds the Stage at a time; WHILE an Anomaly holds the Stage, all other ambient motion (bats, hand, signs) SHALL hold still.
+3b. THE Shop SHALL leave a quiet gap of at least 6 seconds between ambient Anomalies; Consequences triggered by the visitor SHALL take the Stage immediately and pause ambient ones.
 3. A Consequence that leaves a lasting change (a reversed clock, a fly on the UI, a changed envelope) SHALL keep that change until the ending, including across reloads.
 4. WHEN the same product is added again, THE Shop SHALL not replay a lasting Consequence in full, and MAY play a short reminder.
 5. IF a Featured product was carted in the Day state, THEN its Consequence SHALL play the first time the visitor adds or increments it in the Haunted state.
@@ -179,13 +197,15 @@ No real payments, accounts or personal data. All objects, effects and sound are 
 
 1. THE Day shoes SHALL be pristine and unworn.
 2. THE Haunted shoes SHALL be worn, torn and scorched.
-3. WHEN carted in the Haunted state, THE shoes SHALL leave a trail of footprints from the product to the cart icon that ends at the cart and fades over 10 seconds.
+3. WHEN carted in the Haunted state, small footprints SHALL appear one after another, alternating left and right foot, along a path that turns now left, now right, as if someone invisible were walking across the screen, ending at the cart icon.
+4. Older footprints SHALL fade slowly; THE last pair beside the cart SHALL stay as a Lasting mark.
 
 ### Requirement 14: Pocket watch
 
 1. THE Day watch SHALL show the correct local time.
-2. WHEN the visitor opens the watch case in the haunted inspection, THE watch SHALL show time stuttering backward.
-3. WHEN carted in the Haunted state, THE shop clock (Requirement 1.4) SHALL start running in reverse and keep doing so until the ending.
+2. THE Haunted watch SHALL be stopped. WHEN the visitor opens the product, its hands SHALL start moving forward; WHEN the visitor opens the case in the haunted inspection, time SHALL stutter backward.
+3. WHEN carted in the Haunted state, THE watch hands SHALL stop, shudder once, then run backward.
+4. At the same moment, THE shop clock (Requirement 1.4) SHALL start running in reverse and keep doing so until the ending.
 
 ### Requirement 15: Doll
 
@@ -202,18 +222,21 @@ No real payments, accounts or personal data. All objects, effects and sound are 
 ### Requirement 17: Typewriter
 
 1. WHILE in the Haunted state, THE typewriter SHALL type a confession dated tomorrow (the visitor's local date plus one day), one letter at a time.
+1a. For each letter, THE matching key SHALL press down and spring back, and the letter SHALL appear on the paper at the moment the type bar strikes; at each line end the carriage SHALL return and the paper SHALL advance a line.
 2. WHEN carted in the Haunted state, THE last line of the confession SHALL change to describe the action the visitor just took, including the local time (for example "At 11:42 PM I put the typewriter in my cart.").
 
 ### Requirement 18: Mirror
 
 1. THE Day mirror SHALL reflect a soft, warm room.
 2. WHILE in the Haunted state, THE mirror SHALL show a figure standing with its back turned, and its reflection SHALL follow the pointer with a delay.
-3. WHEN carted in the Haunted state, THE figure SHALL turn and look back, and keep looking.
+3. WHEN carted in the Haunted state, a ghostly face SHALL appear deep inside the glass, blurred, then slowly come forward until it is sharp and looking at the visitor, and keep looking.
+4. After that, every reflective surface in the shop (the hero mirror, ornaments) SHALL show a faint copy of the face for a moment when the pointer passes it, as a Lasting mark.
 
 ### Requirement 19: Photo frame
 
 1. THE Day frame SHALL show a family group in a festive pose.
 2. THE Haunted frame SHALL show the same group in the same positions with the person in the middle gone, leaving an obvious gap.
+2a. WHEN the visitor opens the Haunted photo, THE people on both sides of the gap SHALL lean slightly toward the empty spot, as if missing them.
 3. THE same group photo SHALL hang in the hero scene, where it is the frame that tilts in the Day state (Requirement 7).
 4. WHEN carted in the Haunted state, THE others in the photo SHALL shift aside to leave room for one more, in every visible copy of the photo.
 
@@ -225,8 +248,8 @@ No real payments, accounts or personal data. All objects, effects and sound are 
 
 ### Requirement 21: Telephone
 
-1. WHEN the visitor opens the telephone's full product view, THE handset SHALL rattle as it rings.
-2. WHEN carted in the Haunted state, THE cart icon SHALL ring, with a visual ringing animation and an "Answer" control.
+1. WHEN the visitor opens the telephone's full product view, THE handset SHALL rattle as it rings, and the price tag beside it SHALL tremble with each ring.
+2. WHEN carted in the Haunted state, THE cart icon SHALL ring, with a visual ringing animation and an "Answer" control, and the price tags of nearby product cards SHALL tremble with each ring; one tag SHALL stay slightly askew as a Lasting mark.
 3. WHEN the visitor answers, THE Shop SHALL show subtitles of a voice from the other side of the sale, and play the voice only if sound is on.
 4. IF the visitor does not answer within 20 seconds, THEN THE cart SHALL stop ringing and ring again the next time the cart is opened.
 
@@ -292,7 +315,7 @@ No real payments, accounts or personal data. All objects, effects and sound are 
 ### Requirement 27: Performance
 
 1. THE product grid SHALL scroll and animate at 60 fps on a mid-range laptop and stay above 45 fps on a mid-range phone.
-2. THE Shop SHALL keep at most one WebGL context active at a time.
+2. THE Shop SHALL render all Live objects through one shared WebGL canvas (one context) with a separate view per tile, redrawing only views that are visible and changing.
 3. THE initial JavaScript download SHALL be at most 250 KB gzipped, with 3D and inspection code loaded on demand.
 4. THE Shop SHALL pause ambient animation while the tab is hidden.
 5. IF WebGL is unavailable, THEN THE Shop SHALL fall back to 2D renderings with the same story beats.
@@ -300,7 +323,7 @@ No real payments, accounts or personal data. All objects, effects and sound are 
 ### Requirement 28: Privacy, licensing and safety
 
 1. THE Shop SHALL take no real payments and SHALL not collect personal data.
-2. THE Shop SHALL use only code-rendered objects and effects, OFL or similarly licensed self-hosted fonts, and code-generated sound; every third-party asset or library SHALL be listed with its license in `ASSETS.md` or the README.
+2. THE Shop SHALL use Live objects and code-driven effects, self-hosted OFL fonts and code-generated sound. Third-party 3D models, textures or scans MAY be used only under CC0 or a license that allows this use, and each SHALL be listed with source and license in `ASSETS.md`.
 3. THE Shop SHALL load no third-party trackers or analytics.
 4. THE README and the Devpost description SHALL carry a short content note (fictional war, blood, mild horror). THE Shop itself SHALL not show it before the Reveal.
 
@@ -318,3 +341,40 @@ No real payments, accounts or personal data. All objects, effects and sound are 
 4. THE project SHALL include property-based tests for the shop state (for example: the cart is unchanged by the Reveal; only the Ghost can start the Reveal; the cart total always equals the sum of its lines).
 5. THE Kiro write-up SHALL document only Kiro usage that actually happened.
 
+
+### Requirement 31: Live objects instead of images
+
+**User Story:** As a visitor, I want every product to be a real-looking object that lives on the page, so that its change from new to ruined happens in front of me instead of swapping pictures.
+
+#### Acceptance Criteria
+
+1. THE Shop SHALL render every product as a Live object: real-time 3D with physically based materials (metal, glass, leather, paper, fabric, cream), soft lighting and shadows, on a fabric backdrop.
+2. THE Reveal SHALL change each Live object in place through its materials and geometry (burning, tearing, rot, dust, cracks, unstitching), not by swapping one picture for another.
+3. EACH Live object SHALL idle subtly (light moving across it, a slow turn on hover) and SHALL be the surface on which its Anomalies play.
+4. THE Shop SHALL generate its lighting environment in code and SHALL not depend on external CDNs at runtime.
+5. IF a Live object cannot reach a convincing real-looking quality within the schedule, THEN THE Shop MAY use an image or image sequence rendered by us for that object, animated with motion and effects, and the README SHALL say which objects use this fallback.
+6. IF WebGL is unavailable or the device is too slow, THEN THE Shop SHALL show still renders of the same objects with the story beats kept (Requirement 27.5).
+
+### Requirement 32: More object anomalies
+
+**User Story:** As a visitor, I want other objects in the shop to answer back too, so that the whole shop feels haunted and not only the nine featured items.
+
+Each item states its trigger, its visible movement and its Lasting mark. All follow Requirement 12.3a and 12.3b (one Anomaly on Stage, quiet gaps).
+
+#### Acceptance Criteria
+
+1. **Snow globe (hero):** WHEN the visitor drags or shakes it, snow swirls by day; WHILE in the Haunted state ash swirls instead, and the tiny house's window lights for a moment with a figure in it. Lasting mark: a fine dusting of ash on the hero ledge and on the top edge of the cards below.
+2. **Chocolate box:** WHILE in the Haunted state, WHEN the pointer leaves the box after looking at it, one more compartment is empty the next time it is seen, and its "Only N left" badge counts down. Lasting mark: the empty compartments and the badge at "Only 0 left" (false scarcity turned literal).
+3. **Music box:** WHEN opened in the Haunted state, the cylinder turns and the dancer spins, then stops facing the visitor. WHEN carted, every moving thing in the shop holds still for one beat. Lasting mark: its lid stays open on its card.
+4. **Wishlist heart:** WHILE in the Haunted state, WHEN the visitor taps a product's heart, the heart starts to beat. Lasting mark: the header wishlist icon keeps a slow beat that weakens over time.
+5. **Glass ornament:** WHILE in the Haunted state, WHEN the pointer hovers it, its reflection shows the shop behind the visitor with the Ghost standing where the pointer was a moment ago. Lasting mark: a hairline crack across the ornament.
+6. **Candle (haunted hero):** WHEN the pointer moves fast near it, the flame bends away as if someone breathed on it. Lasting mark: wax drips that build up with each disturbance.
+7. **Teddy bear:** WHEN carted in the Haunted state, a seam opens and stuffing falls like snow toward the bottom of the page. Lasting mark: tufts of stuffing caught on the footer.
+8. **Haunted search:** WHILE in the Haunted state, WHEN the visitor searches "home", "mom", "help" or "sorry", a product that was never in the shop appears as the only result (a child's drawing of a house). Lasting mark: it stays in the catalog until the ending.
+9. **Tab away:** WHEN the tab is hidden, the title changes to "Your cart misses you" by day and "Come back…" in the Haunted state, and the favicon changes. THE receipt (Requirement 25) SHALL name this pattern.
+10. **Exit intent:** WHEN the pointer moves fast toward the top of the window on desktop, the Day shop shows a gentle discount plea once per visit; WHILE in the Haunted state it shows "Don't leave us here." THE receipt SHALL name this pattern. It SHALL never block leaving.
+
+### Requirement 33: Postcard and director mode
+
+1. WHEN the ending completes, THE Shop SHALL offer an optional postcard image of the object the player left behind, rendered from the live scene, which the visitor can download or share. It SHALL contain no personal data.
+2. WHERE the URL contains `?director`, THE Shop SHALL show a small panel for recording the demo: reset all state, speed up timers, and jump the Ghost to a chosen Hiding spot. THE panel SHALL never start the Reveal itself; only the Ghost can.

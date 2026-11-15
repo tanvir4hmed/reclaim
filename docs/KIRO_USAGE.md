@@ -10,6 +10,7 @@ Running log for the required "How Kiro was used" write-up. Add an entry whenever
 
 - 2026-11-15: `.kiro/specs/reclaim/requirements.md` drafted by the Kiro IDE agent from Tanvir's written plan, a mockup board and follow-up chat decisions. 30 requirements with EARS-style acceptance criteria.
 - Decisions changed during requirements, before any code: the offer notification trigger was replaced by a hiding cloth Ghost (Tanvir's idea, to fix the risk that judges miss a self-expiring notification); hover on the Ghost causes a storm flicker. Agent added a WCAG 2.3.1 flash limit to that effect, a touch two-tap rule and keyboard access. Sound moved to the last phase.
+- 2026-11-15 (revision 2): story/psychology section added to the spec; the Ghost became an original homage to Kiro's ghost mascot (agent flagged that embedding the official logo may conflict with Rules section 11); photos replaced by real-time 3D "live objects" (Req 31); a one-Anomaly-at-a-time "Stage" rule added for pacing; new consequences for shoes, watch, mirror, typewriter, telephone, photo, bats and a crawling severed hand; ten more anomalies (Req 32) and a postcard + director mode (Req 33).
 
 ## Steering docs
 
