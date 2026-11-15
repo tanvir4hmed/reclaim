@@ -1,0 +1,32 @@
+# IMPORTANT (Kiroween 2026 rules): never ignore the /.kiro directory or any of
+# its sub-folders. Judges must see specs, hooks and steering in the public repo.
+# Ignoring it can disqualify the submission.
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+build/
+out/
+.next/
+.vercel/
+coverage/
+
+# Environment and secrets (keep an .env.example instead)
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
