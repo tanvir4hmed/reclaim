@@ -78,6 +78,9 @@ export interface QueryContext {
   extras: readonly ProductId[];
 }
 
+/** Words that, typed after the Reveal, summon the child's drawing as the only result (Req 32.8). */
+export const HAUNTED_SEARCH = ['home', 'mom', 'help', 'sorry'];
+
 export function isListed(p: ProductMeta, ctx: QueryContext): boolean {
   return !p.hiddenByDay || (ctx.haunted && ctx.extras.includes(p.id));
 }
@@ -88,6 +91,9 @@ export function isListed(p: ProductMeta, ctx: QueryContext): boolean {
  */
 export function runQuery(query: Query, ctx: QueryContext): ProductMeta[] {
   const terms = normalize(query.q).split(/\s+/).filter(Boolean);
+  if (ctx.haunted && ctx.extras.includes('childs-drawing') && terms.length === 1 && HAUNTED_SEARCH.includes(terms[0] ?? '')) {
+    return CATALOG.filter((p) => p.id === 'childs-drawing');
+  }
   const rows = CATALOG.map((p, index) => ({ p, index })).filter(({ p }) => {
     if (!isListed(p, ctx)) return false;
     if (query.categories.length && !query.categories.includes(p.category)) return false;

@@ -5,6 +5,8 @@ import { App } from '../src/App';
 describe('App', () => {
   it('renders the day shop name', () => {
     render(<App />);
-    expect(screen.getByRole('heading', { name: /Reclaim & Co\. Holiday Market/ })).toBeTruthy();
+    expect(screen.getByRole('link', { name: /Reclaim and Co\. Holiday Market, home/ })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: /Gifts for everyone coming home/ })).toBeTruthy();
+    expect(screen.getAllByRole('article').length).toBeGreaterThanOrEqual(18);
   });
 });
