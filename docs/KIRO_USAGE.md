@@ -8,11 +8,13 @@ Running log for the required "How Kiro was used" write-up. Add an entry whenever
 
 ## Spec-driven development
 
-_(spec name, how requirements/design/tasks were structured, what it caught, comparison with vibe coding)_
+- 2026-11-15: `.kiro/specs/reclaim/requirements.md` drafted by the Kiro IDE agent from Tanvir's written plan, a mockup board and follow-up chat decisions. 30 requirements with EARS-style acceptance criteria.
+- Decisions changed during requirements, before any code: the offer notification trigger was replaced by a hiding cloth Ghost (Tanvir's idea, to fix the risk that judges miss a self-expiring notification); hover on the Ghost causes a storm flicker. Agent added a WCAG 2.3.1 flash limit to that effect, a touch two-tap rule and keyboard access. Sound moved to the last phase.
 
 ## Steering docs
 
 - `.kiro/steering/hackathon-rules.md` (always included): keeps every change inside the Kiroween 2026 rules and the Costume Contest goals.
+- `.kiro/steering/design-direction.md` (always included): palettes, composition cues from the mockup, and craft rules (every effect needs a reason, reduced-motion alternatives).
 
 ## Agent hooks
 
