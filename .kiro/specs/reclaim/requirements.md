@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Re:Claim is a playable browser horror experience for the Kiroween 2026 Costume Contest. It opens as a polished, cheerful Christmas e-commerce shop. A small white cloth ghost hides behind the shop's objects and now and then flies to a new hiding place. Clicking it is the only trigger that reveals the same shop after a fictional war. The visitor can browse, search, inspect and cart objects in both states. Each featured object has a normal state, a haunted inspection and a distinct consequence when carted. Checkout is a fictional final transaction. The ending returns the visitor to the opening shop with one difference left behind by them.
+Re:Claim is a playable browser horror experience for the Kiroween 2026 Costume Contest. It opens as a polished, cheerful Christmas e-commerce shop. A small bat has got into the shop; it flies around and perches on the decorations. Hovering it turns the cursor into a reaching hand and the lights flicker like lightning. Catching it is the only trigger that reveals the same shop after a fictional war. The visitor can browse, search, inspect and cart objects in both states. Each featured object has a normal state, a haunted inspection and a distinct consequence when carted. Checkout is a fictional final transaction. The ending returns the visitor to the opening shop with one difference left behind by them.
 
 ### Story and intent
 
@@ -21,16 +21,17 @@ No real payments, accounts or personal data. All objects, effects and sound are 
 - **Day state**: the Christmas sale before the reveal.
 - **Haunted state**: the same shop after the reveal.
 - **Reveal**: the in-place transformation from Day state to Haunted state.
-- **Ghost**: a small white cloth ghost, drawn originally for this project as a homage to Kiro's ghost mascot, that hides behind objects in the Day state and is the only Reveal trigger.
+- **Day bat**: a single small bat that flies around the Day state shop and perches on things; catching it is the only Reveal trigger.
+- **Sheet ghost**: a white cloth ghost, drawn originally for this project as a homage to Kiro's ghost mascot, that appears only in the climax (Requirement 38). THE Shop SHALL not embed the official Kiro logo file unless permission is confirmed (Rules section 11).
 - **Live object**: a product rendered in real time as a lit 3D object, not a photo, whose condition and motion change in place.
 - **Anomaly**: any unnatural event (a Consequence, a bat landing, the hand crawling, an early sign).
 - **Stage**: the right to show a major Anomaly. Only one major Anomaly holds the Stage at a time.
 - **Lasting mark**: a trace an Anomaly leaves behind (footprints, blood prints, ash, a tilted tag) that stays until the ending.
-- **Hiding spot**: a predefined place behind a shop object (hero decoration, product tile, category tile, header element) where the Ghost can hide.
-- **Storm flicker**: the lightning-like flicker of every light in the shop, with a knock on the screen, caused by hovering or focusing the Ghost.
+- **Perch**: a predefined place (hero lights, a card edge, the nav bar, a category tile, the cart icon) where the Day bat can hang.
+- **Storm flicker**: the lightning-like flicker of every light in the shop, with a knock on the screen, caused by hovering or focusing the Day bat.
 - **Featured product**: one of the nine objects with special behavior (shoes, pocket watch, doll, letter, typewriter, mirror, photo frame, cake, telephone).
 - **Consequence**: the distinct effect a featured product causes when added to the cart in the Haunted state.
-- **Echo**: the object left behind by a player. The next visitor's Ghost hides behind it.
+- **Echo**: the object left behind by a player. The next visitor's Day bat perches on it.
 - **Echo service**: a small API that stores the latest Echo so a different visitor can receive it.
 - **Reduced motion**: the user's `prefers-reduced-motion: reduce` setting.
 
@@ -95,6 +96,9 @@ No real payments, accounts or personal data. All objects, effects and sound are 
 3. WHEN the visitor activates Inspect on a Featured product in the Haunted state, THE Shop SHALL show that product's haunted inspection (Requirements 13–21).
 4. THE inspection view SHALL load its detailed rendering on demand, so the product grid does not pay for it.
 5. THE detail and inspection views SHALL be closable with a close button, the Escape key and the browser Back action, returning focus to the element that opened them.
+6. THE product view SHALL open over the shop, with the shop still visible behind it, dimmed and softly blurred.
+7. WHILE in the Haunted state and a product view is open, ghostly events SHALL play in the shop behind it: a sheet-like shape drifting past the shelves, a bat crossing, a lamp going out and coming back, a figure passing through the gap between two cards. They SHALL happen only in the pauses of the product's own Anomaly (Stage rule, Requirement 12).
+8. WHILE in the Day state and a product view is open, at most one early sign (Requirement 7) SHALL show behind it.
 
 ### Requirement 6: Cart
 
@@ -119,35 +123,40 @@ No real payments, accounts or personal data. All objects, effects and sound are 
 3. THE signs SHALL never block or change shopping controls.
 4. WHILE Reduced motion is on, THE signs SHALL use static changes (a dark bulb, a tilted frame) instead of motion.
 
-### Requirement 8: The hiding Ghost
+### Requirement 8: The Day bat
 
-**User Story:** As a visitor, I want to notice a small white cloth ghost hiding in the shop, so that finding it becomes my way into the horror.
-
-#### Acceptance Criteria
-
-1. WHILE in the Day state, THE Shop SHALL show one Ghost: a small white cloth ghost with a rounded head, a wavy hem and two dark oval eyes, mostly hidden behind a Hiding spot, with part of it (an edge of cloth, a peeking face) visible.
-1a. THE Ghost SHALL be an original drawing that nods to Kiro's ghost mascot; THE Shop SHALL not embed the official Kiro logo file unless permission is confirmed (Rules section 11).
-2. THE Shop SHALL define at least eight Hiding spots across the hero, category tiles, product tiles and header, including spots visible on a 360 px wide screen.
-3. WHILE the visitor is not interacting with the Ghost, THE Ghost SHALL occasionally fly to a different Hiding spot along a soft floating path, with 15 to 40 seconds between flights.
-4. THE Ghost SHALL appear for the first time within 10 seconds of the first load, and SHALL peek out noticeably (lean out, then hide again) at least once every 20 seconds so a first-time visitor can find it.
-5. THE Ghost SHALL never cover a product's price, cart button, search field or navigation.
-6. WHEN the visitor clicks or taps the Ghost, THE Shop SHALL start the Reveal (Requirement 10).
-7. THE Ghost SHALL be the only control that starts the Reveal.
-8. THE Ghost SHALL be reachable by keyboard: it SHALL be focusable when visible, have an accessible name that does not spoil the story (for example "Something behind the decorations"), and start the Reveal with Enter or Space.
-9. WHILE Reduced motion is on, THE Ghost SHALL move between Hiding spots with a fade instead of a flight.
-
-### Requirement 9: Storm flicker on hover
-
-**User Story:** As a visitor, I want the shop to react when I get close to the Ghost, so that I feel I found something I should not touch.
+**User Story:** As a visitor, I want to notice a bat that has got into the Christmas shop, so that catching it becomes my way into the horror.
 
 #### Acceptance Criteria
 
-1. WHEN the pointer hovers over the Ghost or the Ghost receives keyboard focus, THE Shop SHALL play a Storm flicker: every light in the shop (holiday bulbs, lantern, star glow, page lighting) flickers like lightning and goes dark for an instant, and the screen gives a single knock (a short jolt as if something hit the glass).
-2. THE Storm flicker SHALL last no more than 1.2 seconds and SHALL flash no more than three times in any one-second period, in line with WCAG 2.3.1.
-3. THE Storm flicker SHALL not repeat until the pointer leaves the Ghost and returns, with at least 3 seconds between flickers.
-4. WHEN the Storm flicker starts, THE Ghost SHALL freeze and look toward the pointer, and SHALL not fly away while hovered.
-5. WHERE the visitor uses touch input, THE first tap on the Ghost SHALL play the Storm flicker and a second tap within 4 seconds SHALL start the Reveal; IF no second tap comes, THEN THE Ghost SHALL hide again.
-6. WHILE Reduced motion is on, THE Storm flicker SHALL be a single soft dim of the lights with no jolt and no flashing.
+1. WHILE in the Day state, THE Shop SHALL show one Day bat: a small, real-looking bat that flies around the whole shop and perches on things (the hero lights, a card edge, the nav bar, a category tile, the cart icon), hanging upside down with its face turned away from the visitor.
+2. THE Shop SHALL define at least eight Perches across the hero, category tiles, product cards and header, including perches visible on a 360 px wide screen, and SHALL place perches along the page so the bat can follow the visitor as they scroll.
+3. WHILE the visitor is not interacting with it, THE Day bat SHALL fly to a different Perch every 15 to 40 seconds with real wing motion.
+4. THE Day bat SHALL first appear within 10 seconds of the first load, and SHALL shift or stretch a wing at least once every 20 seconds so a first-time visitor can find it.
+5. THE Day bat SHALL never cover a product's price, cart button, search field or navigation text.
+6. THE Day bat SHALL be the only control that starts the Reveal.
+7. THE Day bat SHALL be reachable by keyboard: focusable when visible, with an accessible name that does not spoil the story (for example "Something on the lights"), and catchable with Enter or Space.
+8. WHILE Reduced motion is on, THE Day bat SHALL move between Perches with a fade instead of a flight.
+
+### Requirement 9: Hover, the reaching hand, the catch
+
+**User Story:** As a visitor, I want the shop to warn me when I reach for the bat, and the bat to answer when I catch it, so that the Reveal starts with a shock I caused.
+
+#### Acceptance Criteria
+
+1. THE pointer SHALL stay the normal system cursor everywhere except over the Day bat.
+2. WHEN the pointer enters the Day bat, THE cursor SHALL become a reaching hand (code-rendered, original), and THE bat SHALL freeze and not fly away while hovered.
+3. WHILE the bat is hovered, THE Shop SHALL show signs that something is about to happen, building up the longer the hover lasts: a Storm flicker (every light flickers like lightning and goes dark for an instant, with one knock on the screen), the holiday lights dimming, nearby decorations swaying with no wind, the bat's ears twitching, and a faint shape appearing in the negative space between objects.
+4. THE Storm flicker SHALL last no more than 1.2 seconds, SHALL flash no more than three times in any one-second period (WCAG 2.3.1), and SHALL not repeat until the pointer leaves and returns, with at least 3 seconds between flickers.
+5. WHEN the pointer leaves the bat, THE cursor SHALL return to normal, the signs SHALL settle back, and the bat MAY fly to another Perch.
+6. WHEN the visitor clicks the bat, THE hand SHALL close around it.
+7. THEN THE bat SHALL jerk its head around to face the visitor in one sudden, stuttering motion, lunge toward the screen until its spread wings cover the whole viewport, and leave the screen fully dark.
+8. WHILE the screen is dark, ghostly events SHALL happen: faint pairs of eyes open and close, a slow breath fogs the glass from the inside, and fingers trail across the dark. Behind the dark, THE Shop SHALL complete the Reveal (Requirement 10).
+9. THEN the wings SHALL pull away to show the Haunted shop, and the bat SHALL fly off to join the Haunted bats.
+10. THE catch SHALL take no more than 4 seconds, SHALL be the only sudden scare in the Day state, and SHALL never flash.
+11. WHEN the Day bat receives keyboard focus, THE hand and the signs SHALL appear over it as on hover, and Enter or Space SHALL catch it.
+12. WHERE the visitor uses touch input, THE first tap on the bat SHALL show the hand and the signs, and a second tap within 4 seconds SHALL catch it; IF no second tap comes, THEN THE bat SHALL fly to another Perch.
+13. WHILE Reduced motion is on, THE Storm flicker SHALL be a single soft dim, and the catch SHALL be the hand closing, a fade to black, and a fade into the Haunted shop.
 
 ### Requirement 10: The Reveal
 
@@ -262,7 +271,7 @@ No real payments, accounts or personal data. All objects, effects and sound are 
 
 #### Acceptance Criteria
 
-1. WHILE in the Day state, THE checkout SHALL show a normal order summary, and its payment step SHALL say that payments are paused for the holiday rush, with the Ghost hiding on that page, so the order cannot complete before the Reveal.
+1. WHILE in the Day state, THE checkout SHALL show a normal order summary, and its payment step SHALL say that payments are paused for the holiday rush, with the Day bat perched on that page, so the order cannot complete before the Reveal.
 2. WHILE in the Haunted state, THE checkout SHALL offer a fictional choice of payment: time, age, or a memory chosen from a preset list.
 3. THE checkout SHALL not ask for or accept free text, names, emails, addresses, card numbers or any other personal data.
 4. THE checkout SHALL require explicit agreement within the story: an unchecked agreement box with in-story terms and a separate Accept button, disabled until the box is checked.
@@ -279,7 +288,7 @@ No real payments, accounts or personal data. All objects, effects and sound are 
 
 1. WHEN "Your order has been accepted." has shown for about 4 seconds, THE Shop SHALL return to the exact Day state storefront from the opening: default view, empty cart, normal clock, no lasting Consequences.
 2. THE Echo SHALL be the object left behind by the player: the Featured product they added to the cart most recently, shown in the condition the player left it in (for example the envelope addressed to "The next person who opens this").
-3. WHILE the returned storefront is shown, THE Echo SHALL sit in the hero scene and THE Ghost SHALL hide behind it, as the only visible difference from the opening.
+3. WHILE the returned storefront is shown, THE Echo SHALL sit in the hero scene and THE Day bat SHALL perch on it, as the only visible difference from the opening.
 4. THE ending SHALL show no explanatory text; the visual echo carries it.
 5. WHEN the ending has completed, THE footer SHALL offer a small, optional "View receipt" link (Requirement 25).
 
@@ -290,7 +299,7 @@ No real payments, accounts or personal data. All objects, effects and sound are 
 #### Acceptance Criteria
 
 1. WHEN a player completes the ending, THE Shop SHALL send the Echo to the Echo service as a product id and a condition id only.
-2. WHEN a new visitor loads the Shop, THE Shop SHALL fetch the latest Echo left by someone else and place it in the hero scene with the Ghost hiding behind it.
+2. WHEN a new visitor loads the Shop, THE Shop SHALL fetch the latest Echo left by someone else and place it in the hero scene with the Day bat perched on it.
 3. IF the Echo service is unreachable or slow (over 1.5 seconds), THEN THE Shop SHALL fall back to an Echo stored on the device, or to no Echo, without errors visible to the visitor.
 4. THE Echo service SHALL store no IP addresses, user agents, cookies or identifiers, and SHALL accept only known product and condition ids.
 5. THE Echo service SHALL rate-limit writes and reject malformed input.
@@ -308,7 +317,7 @@ No real payments, accounts or personal data. All objects, effects and sound are 
 
 ### Requirement 26: Accessibility
 
-1. THE Shop SHALL make every essential interaction (browse, search, filter, inspect, cart, find and activate the Ghost, every Consequence, checkout, ending) work with a keyboard and on touch screens.
+1. THE Shop SHALL make every essential interaction (browse, search, filter, inspect, cart, find and catch the Day bat, every Consequence, checkout, ending) work with a keyboard and on touch screens.
 2. THE Shop SHALL show a visible focus indicator in both states and keep a logical focus order; modals and drawers SHALL trap focus and restore it on close.
 3. THE Shop SHALL announce cart changes, the Reveal and the order result through an ARIA live region, without spoiling the story before the Reveal.
 4. THE Shop SHALL honor Reduced motion everywhere, as specified per requirement, and provide an in-page motion toggle that overrides it in either direction.
@@ -340,8 +349,8 @@ No real payments, accounts or personal data. All objects, effects and sound are 
 
 1. THE repository SHALL run locally with `docker compose up`, serving the Shop and the Echo service, with the Shop reachable at `http://localhost:8080`.
 2. THE README SHALL explain what Re:Claim is, how to run it with and without Docker, how to run tests, and the content note.
-3. THE project SHALL include automated tests covering: the normal shopping flow (search, category, product detail, cart), the Ghost (hiding, flying, hover flicker, keyboard and touch activation), the Reveal, every Featured product's Consequence, checkout agreement and decline, the ending and the Echo.
-4. THE project SHALL include property-based tests for the shop state (for example: the cart is unchanged by the Reveal; only the Ghost can start the Reveal; the cart total always equals the sum of its lines).
+3. THE project SHALL include automated tests covering: the normal shopping flow (search, category, product detail, cart), the Day bat (perching, flying, hand cursor and hover signs, catch and lunge, keyboard and touch), the Reveal, every Featured product's Consequence, checkout agreement and decline, the ending and the Echo.
+4. THE project SHALL include property-based tests for the shop state (for example: the cart is unchanged by the Reveal; only catching the Day bat can start the Reveal; the cart total always equals the sum of its lines).
 5. THE Kiro write-up SHALL document only Kiro usage that actually happened.
 
 
@@ -370,7 +379,7 @@ Each item states its trigger, its visible movement and its Lasting mark. All fol
 2. **Chocolate box:** WHILE in the Haunted state, WHEN the pointer leaves the box after looking at it, one more compartment is empty the next time it is seen, and its "Only N left" badge counts down. Lasting mark: the empty compartments and the badge at "Only 0 left" (false scarcity turned literal).
 3. **Music box:** WHEN opened in the Haunted state, the cylinder turns and the dancer spins, then stops facing the visitor. WHEN carted, every moving thing in the shop holds still for one beat. Lasting mark: its lid stays open on its card.
 4. **Wishlist heart:** WHILE in the Haunted state, WHEN the visitor taps a product's heart, the heart starts to beat. Lasting mark: the header wishlist icon keeps a slow beat that weakens over time.
-5. **Glass ornament:** WHILE in the Haunted state, WHEN the pointer hovers it, its reflection shows the shop behind the visitor with the Ghost standing where the pointer was a moment ago. Lasting mark: a hairline crack across the ornament.
+5. **Glass ornament:** WHILE in the Haunted state, WHEN the pointer hovers it, its reflection shows the shop behind the visitor with a figure standing where the pointer was a moment ago. Lasting mark: a hairline crack across the ornament.
 6. **Candle (haunted hero):** WHEN the pointer moves fast near it, the flame bends away as if someone breathed on it. Lasting mark: wax drips that build up with each disturbance.
 7. **Teddy bear:** WHEN carted in the Haunted state, a seam opens and stuffing falls like snow toward the bottom of the page. Lasting mark: tufts of stuffing caught on the footer.
 8. **Haunted search:** WHILE in the Haunted state, WHEN the visitor searches "home", "mom", "help" or "sorry", a product that was never in the shop appears as the only result (a child's drawing of a house). Lasting mark: it stays in the catalog until the ending.
@@ -380,7 +389,7 @@ Each item states its trigger, its visible movement and its Lasting mark. All fol
 ### Requirement 33: Postcard and director mode
 
 1. WHEN the ending completes, THE Shop SHALL offer an optional postcard image of the object the player left behind, rendered from the live scene, which the visitor can download or share. It SHALL contain no personal data.
-2. WHERE the URL contains `?director`, THE Shop SHALL show a small panel for recording the demo: reset all state, speed up timers, and jump the Ghost to a chosen Hiding spot. THE panel SHALL never start the Reveal itself; only the Ghost can.
+2. WHERE the URL contains `?director`, THE Shop SHALL show a small panel for recording the demo: reset all state, speed up timers, and move the Day bat to a chosen Perch. THE panel SHALL never start the Reveal itself; only catching the bat can.
 
 ### Requirement 34: Light and power
 
@@ -432,9 +441,9 @@ Each item states its trigger, its visible movement and its Lasting mark. All fol
 3. **The eyes:** in the dark, a pair of faint eyes opens in every product card, one owner per object, and all of them turn to the pointer.
 4. **The dust sheets:** the lights stutter back and every product is now covered by a white dust sheet, the way furniture is covered in an abandoned house. The sheets settle with cloth motion.
 5. **They turn:** the sheets breathe together, then the shape under each sheet slowly turns to face the pointer, one after another.
-6. **The Ghost:** the small cloth Ghost from the start rises to fill the middle of the screen, close and silent. It lifts the hem of its sheet. The lights fail before anything beneath can be seen.
-7. **After:** the lights return; the Ghost's sheet lies empty on the page; the missing person is back in the middle of the group photo, and a new gap has opened at its edge, the size of one more. The sheets slide off the products; every object now faces the visitor. Checkout opens.
-8. Nothing beneath the Ghost's sheet SHALL ever be shown. The empty sheet tells the visitor that the cute ghost was a costume over the missing person.
+6. **The Sheet ghost:** the dust sheet in the middle of the shop rises to a person's height and becomes the Sheet ghost, close and silent, filling the middle of the screen. It lifts the hem of its sheet. The lights fail before anything beneath can be seen.
+7. **After:** the lights return; the Sheet ghost's sheet lies empty on the page; the missing person is back in the middle of the group photo, and a new gap has opened at its edge, the size of one more. The sheets slide off the products; every object now faces the visitor. Checkout opens.
+8. Nothing beneath the Sheet ghost SHALL ever be shown. The empty sheet tells the visitor that the ghost was a costume over the missing person.
 9. THE sequence SHALL not flash more than three times per second, SHALL keep the Escape key and a visible "Skip" control working, and WHILE Reduced motion is on SHALL play as a series of slow fades between the same beats.
 
 ### Requirement 39: Additional products (Tier A)

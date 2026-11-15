@@ -8,8 +8,8 @@ Horror escalates because of the visitor's own actions, not a timer. Every item c
 
 | Act | Entered by | What changes |
 | --- | --- | --- |
-| 0. Open | first load | A perfect, slightly too perfect Christmas shop. Every review 5 stars, every item "Only 1 left". Rare deniable signs. The Ghost hides. |
-| 1. After hours | clicking the Ghost | Same shop, after the war. Quiet decay. Bats, dust, still air. Objects wrong but mostly still. |
+| 0. Open | first load | A perfect, slightly too perfect Christmas shop. Every review 5 stars, every item "Only 1 left". Rare deniable signs. A small bat flies around and perches on the decorations. |
+| 1. After hours | catching the Day bat | Same shop, after the war. Quiet decay. Bats, dust, still air. Objects wrong but mostly still. |
 | 2. Inventory | Weight ≥ 2 | The shop starts to act on its own: a second cursor follows yours, the support chat starts typing, "Recently viewed" fills with things you never viewed. |
 | 3. Closing time | Weight ≥ 5 or opening checkout | Lights fail one by one, shelves empty except for what you hold, the hand crawls, the phone rings, the storage descent opens. |
 | 4. Final sale | checkout accepted | Tremor, silence, "Your order has been accepted.", return to the opening shop, echo. |
@@ -34,7 +34,7 @@ Each one is an everyday Christmas object with a second meaning. Format: second m
 3. **Valve radio.** Plays carols by day. · Haunted inspection → the dial turns by itself, subtitles read a broadcast that lists names. Cart → every product title in the grid becomes a name for three seconds (a roll call), then returns. Mark: one card keeps its name.
 4. **Instant camera.** Takes a holiday photo. · Haunted inspection → it flashes (a single safe flash) and the print develops over 10 seconds, showing the shop's aisles with people standing in the empty spaces. Cart → the hero picture slowly develops into the same photo. Mark: the developed print pinned to the hero.
 5. **Unopened gift.** "To: Dad". · Haunted → the tag's sender is burned away. Inspection → the ribbon tightens as if the box breathes. Cart → the cart grows heavy: the cart icon sags and the drawer opens tilted. Mark: the sagging cart icon.
-6. **Child's mittens (pair).** · Haunted → only one mitten is left. Cart → the other mitten appears somewhere else in the shop, hiding like the Ghost, and must be found. Mark: once found, it sits beside the cart.
+6. **Child's mittens (pair).** · Haunted → only one mitten is left. Cart → the other mitten appears somewhere else in the shop, hiding the way the Day bat perches, and must be found. Mark: once found, it sits beside the cart.
 
 **Tier B (if time allows):**
 
@@ -72,4 +72,4 @@ We escalate dread, not gore. Blood stays at stains and prints, with no wounds or
 
 ## 7. Scope honesty
 
-Tier A of the new products plus the nine featured gives fifteen special objects. With live 3D objects that is the upper limit for 19 days. Build order: shop → Ghost → reveal → featured nine → acts and navigation → Tier A → Tier B → sound.
+Tier A of the new products plus the nine featured gives fifteen special objects. With live 3D objects that is the upper limit for 19 days. Build order: shop → Day bat and catch → reveal → featured nine → acts and navigation → Tier A → Tier B → sound.
