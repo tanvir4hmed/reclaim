@@ -102,6 +102,22 @@ IDE / CLI / Web / Crew (and how they differed), custom agents, agent hooks, spec
 
 Each entrant (each team member, individually) can request a one-time 4,000 credits through the Credit Request Form on the Resources tab, by Dec 1, 2026 12:00 PT. You need the correct Kiro user ID (or AWS account ID); a wrong ID may be rejected. Allow 48 business hours. Codes must be redeemed by Dec 4 and redeemed credits expire Dec 31, 2026 23:59 PT. No extra credits beyond this.
 
+Redeeming the code (from the FAQ):
+
+1. Have a Kiro account and be logged in before opening the redemption URL.
+2. Open the URL and look for "Kiroupon successfully redeemed!".
+3. If you see an error, it often worked anyway: log out, wait a few minutes, log back in.
+4. Check https://kiro.dev/account/usage. Credits show up within 1–2 minutes.
+
+## FAQ points (from the Overview/FAQ, pasted 2026-11-15)
+
+- Kiro is mandatory, and the `/.kiro` directory must be at the repo root.
+- One category per project only (ours: Costume Contest), plus any bonus prizes we qualify for.
+- Open source libraries and code are fine if we follow their licenses and build on top of them.
+- A working app URL is required. Test credentials go in the judges-only form field.
+- Status: Tanvir is registered for Kiroween 2026 on Devpost.
+- Optional to-dos from the Devpost dashboard: join the Discord, read the Kiro docs and guides, the "Build a game with Kiro in 30 minutes" session.
+
 ## Prizes: payment notes
 
 - Team prizes go to the Representative, who splits them.
