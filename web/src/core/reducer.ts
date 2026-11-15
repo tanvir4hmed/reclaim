@@ -194,8 +194,12 @@ function applyEvent(state: StoryState, event: StoryEvent, cues: Cue[]): StorySta
 
     case 'MARK_ADDED': {
       if (state.phase === 'day' || state.phase === 'accepted') return state;
-      if (state.marks.some((m) => m.id === event.mark.id)) return state;
-      const marks = [...state.marks, event.mark];
+      const m = event.mark;
+      if (![m.x, m.y, m.rotation, m.scale].every(Number.isFinite)) return state;
+      if (state.marks.some((x) => x.id === m.id)) return state;
+      // `+ 0` turns -0 into 0, so marks survive a JSON round trip unchanged (found by a property test).
+      const mark = { ...m, x: m.x + 0, y: m.y + 0, rotation: m.rotation + 0, scale: m.scale + 0 };
+      const marks = [...state.marks, mark];
       return { ...state, marks: marks.length > MAX_MARKS ? marks.slice(-MAX_MARKS) : marks };
     }
 

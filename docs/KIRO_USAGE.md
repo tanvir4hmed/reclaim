@@ -37,6 +37,8 @@ _(which requirements, what it caught)_
 
 - 2026-11-15, task 2.3: the first version of the property tests passed, which looked fine. The agent added a coverage test that samples the event generator and counts how many runs reach each story phase. It showed only 55 of 1000 random runs ever reached the Haunted state, so the properties about checkout, acceptance and the ending were almost never exercised. The generator was rewritten to mix random events with scripted visitor actions (catch the bat, buy a few items, go through checkout). With that change, the coverage test enforces minimum counts, and all properties still hold. Lesson for the write-up: a green property test is not evidence on its own; measure what the generator reaches.
 
+- 2026-11-15, task 3: the persistence round-trip property failed once on a random seed: a Lasting mark with rotation `-0` came back from JSON as `0`, so the loaded state was not equal to the saved one. A unit test would never have tried `-0`. The agent wrote two regression tests, confirmed they fail without the fix, then made the reducer normalize `-0` and reject non-finite mark coordinates. The new contrast test on the design tokens also failed for the haunted button outline (1.6:1 against cards); a dedicated outline colour was added so both palettes pass WCAG AA.
+
 ## Kiro powers
 
 _(which powers, what they added)_
