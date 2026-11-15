@@ -16,6 +16,8 @@ Every change must keep the project eligible. Full notes: `docs/KIROWEEN_RULES.md
 - Do not commit secrets. Use environment variables and keep an `.env.example` with placeholder values.
 - Only use assets (images, fonts, sounds, music) that we made ourselves or that have a license allowing reuse. Record each third-party asset and its license in `ASSETS.md`. No third-party trademarks or copyrighted music.
 - All user-facing text, docs and the submission must be in English.
+- Only use third-party APIs, SDKs and datasets whose terms allow this use. Note each one and its terms in the README.
+- The deployed app must run consistently, behave as shown in the demo, and stay free and unrestricted for judges until Jan 29, 2027. Prefer hosting that will not sleep, expire or hit quota before then.
 
 ## Costume Contest focus
 

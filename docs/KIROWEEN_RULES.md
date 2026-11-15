@@ -6,7 +6,9 @@ Sources (read 2026-11-15):
 - Official Rules summary (AWS Japan blog, translated from the official English pages as of 2026-10-31): https://aws.amazon.com/jp/blogs/news/kiroween-2026/
 - Kiroween 2025 gallery (past winners): https://kiroween-2025.devpost.com/project-gallery
 
-Devpost blocked automated reads of the Rules, Resources, FAQ, Updates and Discussions tabs (HTTP 403). Read https://kiroween.devpost.com/rules yourself before submitting. The official English rules always win over these notes.
+- Official Rules full text (pasted by Tanvir on 2026-11-15 from https://kiroween.devpost.com/rules)
+
+Resources, FAQ, Updates and Discussions tabs were not readable by the agent (HTTP 403). If the Official Rules conflict with anything else (website, form, these notes), the Official Rules win. Rules can be amended; recheck the Rules page before submitting.
 
 ## Key dates (Pacific Time → Bangladesh time, UTC+6)
 
@@ -28,6 +30,19 @@ No extensions. Submissions cannot be edited after the deadline.
 - Frameworks, libraries and starter templates are fine. Other pre-existing code must be disclosed.
 - Judges can disqualify a project if Kiro usage is insufficient.
 - Some Kiro features or models may be unavailable in some regions; checking is the entrant's responsibility.
+- The project must not be built with funding, a contract or a commercial license from AWS or Devpost.
+- Multiple submissions are allowed only if each is substantially different.
+
+## Project rules from the Official Rules (section 4)
+
+- **Functionality:** must install and run consistently on its intended platform, and work as shown in the video and description.
+- **Third-party SDKs, APIs, data:** we must be authorized to use them under their terms and licenses.
+- **Ownership and IP:** original work, solely owned by us, not infringing anyone's copyright, trademark, patent, contract or privacy rights. Paid technical help is allowed if the work and ideas remain ours. Open source use is fine if we follow its license and build on top of it.
+- **Testing access:** the working app must be free to use with no restriction for the Sponsor, Devpost and Judges **until the Judging Period ends (Jan 29, 2027)**. Keep the deployment live until then. Private apps need credentials in the private form field.
+- Judges may skip testing and score only from the description, images and video. The video and screenshots must carry the project on their own.
+- Non-standard hardware may need physical access on request. Desktop, phone or tablet apps avoid this.
+- No viruses, spyware or other malicious code in the submission.
+- **After the deadline:** no changes to the submission, except removals Devpost allows (infringing material, personal data). Save drafts early.
 
 ## Category: Costume Contest
 
@@ -55,8 +70,9 @@ One category per project. A project can win one Overall Prize **or** one Categor
 
 ## Judging
 
+Judging may use expert panels, peer review and automated AI-driven analysis.
 Stage 1 is pass/fail: fits the theme and uses Kiro.
-Stage 2 scores five criteria, each out of 10, each worth 20%:
+Stage 2 scores five equally weighted criteria, each out of 10 (20%). Ties are re-scored from scratch on a 20-point scale per criterion.
 
 | Criterion | What judges look for |
 | --- | --- |
@@ -77,14 +93,21 @@ IDE / CLI / Web / Crew (and how they differed), custom agents, agent hooks, spec
 | Best Student Project: Costume Contest | $1,500 + 1-yr Kiro Pro Max | All members are students; LinkedIn, student email, year/degree, school |
 | Best Demo | $1,000 | Automatic: highest Presentation score among the top 10% |
 | Bonus Blog Prize | 2,000 Kiro credits (100 winners) | Public post on a third-party blog during the Submission Period, stating it was written for Kiroween 2026 |
-| Social Blitz Prize | 3-month Kiro Pro+ (5 winners) | Social post starting with `#KiroweenHackathon26`: favorite thing about Kiro and how it changed your approach |
-| Best Kiro Crew App | $1,000 | A Kiro Crew app repo + description |
+| Social Blitz Prize | 3-month Kiro Pro+ (5 winners) | Post must **begin** with `#KiroweenHackathon26`: favorite thing about Kiro and how it changed your approach. Judged on original (not AI-written) thoughts, insights and image/video quality. Social profile must match submission details |
+| Best Kiro Crew App | $1,000 | A newly built Kiro Crew app repo + description; same GitHub account as the main submission; picked from the top 50 by usefulness and innovation |
 | Best Startup Project | $10,000 | Founder; LinkedIn + startup website |
 | Best Ghost of Kiroween Past | $2,000 | Registered for Kiroween 2025 |
 
 ## Free Kiro credits
 
-Registered participants can request 4,000 credits through the form on the Resources tab, by Dec 1, 2026 12:00 PT. You need your Kiro user ID (or AWS account ID). Codes arrive within 48 business hours, must be redeemed by Dec 4, and expire Dec 31, 2026 23:59 PT. One request per person.
+Each entrant (each team member, individually) can request a one-time 4,000 credits through the Credit Request Form on the Resources tab, by Dec 1, 2026 12:00 PT. You need the correct Kiro user ID (or AWS account ID); a wrong ID may be rejected. Allow 48 business hours. Codes must be redeemed by Dec 4 and redeemed credits expire Dec 31, 2026 23:59 PT. No extra credits beyond this.
+
+## Prizes: payment notes
+
+- Team prizes go to the Representative, who splits them.
+- Winners must return an affidavit and tax forms within 10 business days. Non-US residents (Bangladesh) fill out **W-8BEN**. Missing forms means losing the prize.
+- Winners pay wire and currency fees and their own local taxes; tax may be withheld.
+- By entering, you let AWS and Devpost use the submission, your name and likeness for promotion for 3 years.
 
 ## Help
 
