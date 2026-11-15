@@ -1,6 +1,6 @@
 # Re:Claim creative direction (proposal, 2026-11-15)
 
-Status: proposed by the agent, pending Tanvir's approval. Once approved, the parts we keep move into `.kiro/specs/reclaim/requirements.md`.
+Status: approved by Tanvir on 2026-11-15. Referenced from `.kiro/specs/reclaim/requirements.md` (Requirements 34–40).
 
 ## 1. The engine: the more you take, the more the shop wakes
 

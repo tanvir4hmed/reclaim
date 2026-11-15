@@ -169,6 +169,8 @@ No real payments, accounts or personal data. All objects, effects and sound are 
 #### Acceptance Criteria
 
 1. WHILE in the Haunted state, THE Shop SHALL show at least three animated bats that hang upside down from shop edges, unfold their wings, fly across the shop and land at a different perch.
+1a. Bats SHALL fly only in darkness (during a Brownout below half light or a Blackout, Requirement 34). WHILE the lights are up, they hang still with wings wrapped.
+1b. WHILE it is dark, a bat's eyes SHALL glow now and then for one or two seconds.
 2. Now and then, a bat SHALL leave the hero banner, flap down into the product grid, hang upside down from the edge of a product card, and later fly to a different card.
 3. THE Shop SHALL have at most two bats in flight at a time, and bats SHALL never block a control the visitor is using; a bat on a card SHALL take off if the pointer reaches that card's controls.
 3a. Once per Haunted visit, a severed hand SHALL rise from the bottom edge of the screen finger by finger, grip the edge of the page, and pull itself with its fingers toward the product grid.
@@ -229,6 +231,7 @@ No real payments, accounts or personal data. All objects, effects and sound are 
 
 1. THE Day mirror SHALL reflect a soft, warm room.
 2. WHILE in the Haunted state, THE mirror SHALL show a figure standing with its back turned, and its reflection SHALL follow the pointer with a delay.
+2a. WHEN the lights dip (Requirement 34), the figure SHALL turn its head a little toward the visitor, and turn back before the light fully returns.
 3. WHEN carted in the Haunted state, a ghostly face SHALL appear deep inside the glass, blurred, then slowly come forward until it is sharp and looking at the visitor, and keep looking.
 4. After that, every reflective surface in the shop (the hero mirror, ornaments) SHALL show a faint copy of the face for a moment when the pointer passes it, as a Lasting mark.
 
@@ -378,3 +381,66 @@ Each item states its trigger, its visible movement and its Lasting mark. All fol
 
 1. WHEN the ending completes, THE Shop SHALL offer an optional postcard image of the object the player left behind, rendered from the live scene, which the visitor can download or share. It SHALL contain no personal data.
 2. WHERE the URL contains `?director`, THE Shop SHALL show a small panel for recording the demo: reset all state, speed up timers, and jump the Ghost to a chosen Hiding spot. THE panel SHALL never start the Reveal itself; only the Ghost can.
+
+### Requirement 34: Light and power
+
+**User Story:** As a visitor, I want the shop's light to feel alive and unreliable, so that darkness itself becomes something to fear.
+
+#### Acceptance Criteria
+
+1. THE Shop SHALL have one shared light level for its electric lights (holiday bulbs, lamps, glowing UI, page lighting) and separate flames (candles, the lantern) that burn on their own.
+2. WHILE in the Haunted state, THE Shop SHALL have **Brownouts**: the electric light sags to between 30% and 70% over about a second with a faint flicker, holds, then recovers.
+3. WHILE in the Haunted state, THE Shop SHALL have short **Blackouts** of up to 3 seconds in which only flames, glowing eyes and the cart remain lit; the lights SHALL return in uneven steps, like a failing supply.
+4. Candles SHALL gutter, go out and relight on their own; a candle that goes out SHALL leave a thin rising thread of smoke.
+5. Brownouts and Blackouts SHALL follow the Stage rule, grow more frequent with Weight (Requirement 37), and never happen while the visitor is typing or in checkout.
+6. Text and controls SHALL stay readable and operable during Brownouts; a Blackout SHALL never hide a control for more than 3 seconds.
+7. WHILE Reduced motion is on, light changes SHALL be slow fades without flicker.
+8. WHILE in the Day state, the only light anomaly SHALL be the single bulb that goes out (Requirement 7).
+
+### Requirement 35: Every object has a quirk
+
+**User Story:** As a visitor, I want every object to have something slightly wrong about it, so that I never fully trust anything in the shop.
+
+#### Acceptance Criteria
+
+1. WHILE in the Haunted state, EVERY product SHALL have at least one small idle quirk, triggered by darkness, by being unwatched (Requirement 36) or by the pointer coming near.
+2. THE quirks SHALL include at least: shoe laces that retie themselves; a watch chain swaying with no wind; a doll that blinks only when unwatched; a wax seal that glows faintly in the dark; a typewriter key that presses itself once; a photo in which one person's eyes follow the pointer; a cake candle that relights after a Blackout; a telephone handset that lifts a few millimetres as if someone is listening; snow in the globe that falls upward when unwatched; a teddy bear whose head follows the cart icon; a camera lens iris that tightens like a pupil when the pointer comes near; a gift ribbon that has untied itself the next time it is seen.
+3. A quirk SHALL be small: it SHALL not move the object out of its card or cover any control.
+4. At most one quirk SHALL be in motion within the visible viewport at a time.
+
+### Requirement 36: Things move when you are not looking
+
+1. THE Shop SHALL estimate attention without a camera: an area of about 250 px around the pointer counts as watched; anything scrolled out of view, any time the tab is hidden or the window loses focus, and any time with no input for 20 seconds counts as unwatched.
+2. Unwatched objects MAY change pose or place a little (turn toward the visitor, shift one slot, people in the photo stand closer); the change SHALL stop the instant the object becomes watched, so the visitor sees the result, never the motion.
+3. THE Shop SHALL not use the camera, microphone or any other sensor for this.
+
+### Requirement 37: Weight and acts
+
+1. THE Shop SHALL keep a hidden Weight: the number of distinct products carted in the Haunted state.
+2. THE Shop SHALL move through acts by Weight: Act 1 "After hours" at the Reveal; Act 2 "Inventory" at Weight 2; Act 3 "Closing time" at Weight 5 or when the visitor opens checkout in the Haunted state.
+3. EACH act SHALL raise the frequency and size of ambient Anomalies, Brownouts and quirks, while keeping the Stage rule.
+4. Removing items SHALL not lower the act; what was taken stays taken.
+
+### Requirement 38: Closing time (the climax)
+
+**User Story:** As a visitor, I want one moment that is far more frightening than everything before, so that the checkout that follows feels inevitable.
+
+#### Acceptance Criteria
+
+1. WHEN the visitor first opens checkout in the Haunted state, THE Shop SHALL play "Closing time" once, before checkout appears, lasting 20 to 30 seconds.
+2. **The power fails:** a long Brownout, the hum of failing lights, candles guttering, then a Blackout.
+3. **The eyes:** in the dark, a pair of faint eyes opens in every product card, one owner per object, and all of them turn to the pointer.
+4. **The dust sheets:** the lights stutter back and every product is now covered by a white dust sheet, the way furniture is covered in an abandoned house. The sheets settle with cloth motion.
+5. **They turn:** the sheets breathe together, then the shape under each sheet slowly turns to face the pointer, one after another.
+6. **The Ghost:** the small cloth Ghost from the start rises to fill the middle of the screen, close and silent. It lifts the hem of its sheet. The lights fail before anything beneath can be seen.
+7. **After:** the lights return; the Ghost's sheet lies empty on the page; the missing person is back in the middle of the group photo, and a new gap has opened at its edge, the size of one more. The sheets slide off the products; every object now faces the visitor. Checkout opens.
+8. Nothing beneath the Ghost's sheet SHALL ever be shown. The empty sheet tells the visitor that the cute ghost was a costume over the missing person.
+9. THE sequence SHALL not flash more than three times per second, SHALL keep the Escape key and a visible "Skip" control working, and WHILE Reduced motion is on SHALL play as a series of slow fades between the same beats.
+
+### Requirement 39: Additional products (Tier A)
+
+THE Shop SHALL include the six Tier A products from `docs/CREATIVE_DIRECTION.md` section 3 (advent calendar, tin soldier, valve radio, instant camera, unopened gift, child's mittens), each with a Day state, Haunted state, haunted inspection, Consequence and Lasting mark as described there. Tier B products are built only if time allows.
+
+### Requirement 40: Navigation that turns
+
+THE Shop SHALL implement the navigation changes in `docs/CREATIVE_DIRECTION.md` section 5 (renamed menu, growing breadcrumbs, the storage descent, lying "Recently viewed", "Previous owners", reviews dated tomorrow, "1 person is standing behind you", sneak into basket with "Leave her here?", the account and order history, the typing support chat with preset replies, hidden text revealed by selection), and the design changes in section 4 (wear and scorch marks where the pointer lingered, room-lit haunted state, drifting letters, too-perfect day shop). Browser Back and leaving the site SHALL always work.
