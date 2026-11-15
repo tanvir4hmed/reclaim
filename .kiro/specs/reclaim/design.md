@@ -21,7 +21,7 @@ Design goals, in priority order: the story beats always work (on every device, w
 | Post-processing | `postprocessing` (inspection canvas only) | AO, bloom, depth of field where it matters, without slowing the grid |
 | Animation | GSAP (timelines) + CSS | Precise multi-step sequences (catch and lunge, closing time), free for this use |
 | State | Pure reducer + a tiny subscription store (Zustand) | Testable core, selective re-renders |
-| Echo service | Node + Fastify + SQLite (`better-sqlite3`) | Tiny, one file database, easy in Docker |
+| Echo service | Node + Fastify + built-in `node:sqlite` | Tiny, one file database, easy in Docker |
 | Tests | Vitest, fast-check, Playwright | Unit, property-based and end-to-end, with Playwright's clock control |
 | Serving | nginx in Docker, Compose for both services | `docker compose up` gives the full site on port 8080 |
 

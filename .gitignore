@@ -19,6 +19,13 @@ coverage/
 .env.*
 !.env.example
 
+# Local data and test output
+api/data/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
 # Logs
 *.log
 npm-debug.log*

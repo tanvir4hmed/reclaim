@@ -2,15 +2,16 @@
 
 Build order follows `docs/CREATIVE_DIRECTION.md` section 7. Each task is small enough to finish and verify on its own. Tasks marked `*` are optional and done only if time allows.
 
-- [ ] 1. Project setup
-  - [ ] 1.1 Scaffold `web/` (Vite, React, TypeScript strict, ESLint, Prettier) and `api/` (Fastify, TypeScript), with pinned versions
+- [-] 1. Project setup
+  - [x] 1.1 Scaffold `web/` (Vite, React, TypeScript strict, ESLint, Prettier) and `api/` (Fastify, TypeScript), with pinned versions
     - Add `code-conventions.md` steering file
     - _Requirements: 30.1_
-  - [ ] 1.2 Test tooling: Vitest + fast-check in `web/` and `api/`, Playwright in `e2e/` (desktop and 390 px phone projects, reduced-motion project)
+  - [x] 1.2 Test tooling: Vitest + fast-check in `web/` and `api/`, Playwright in `e2e/` (desktop and 390 px phone projects, reduced-motion project)
     - _Requirements: 30.3, 30.4_
-  - [ ] 1.3 Docker: `web` (build, then nginx on 8080 proxying `/api`), `api` (Fastify on 3000, SQLite volume), `docker-compose.yml`; README run instructions
+  - [-] 1.3 Docker: `web` (build, then nginx on 8080 proxying `/api`), `api` (Fastify on 3000, SQLite volume), `docker-compose.yml`; README run instructions
+    - Files written; `docker compose up` not yet run because Docker Desktop is not installed on the dev machine
     - _Requirements: 30.1, 30.2_
-  - [ ] 1.4 Create `ASSETS.md`; self-host two OFL fonts (serif display, sans UI) and record them
+  - [x] 1.4 Create `ASSETS.md`; self-host two OFL fonts (serif display, sans UI) and record them
     - _Requirements: 28.2_
 
 - [ ] 2. State core

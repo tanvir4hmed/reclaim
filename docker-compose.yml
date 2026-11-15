@@ -1,0 +1,19 @@
+services:
+  web:
+    build: ./web
+    ports:
+      - "8080:8080"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  api:
+    build: ./api
+    environment:
+      LOG_LEVEL: warn
+    volumes:
+      - echo-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  echo-data:

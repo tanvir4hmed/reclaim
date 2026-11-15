@@ -294,6 +294,8 @@ No real payments, accounts or personal data. All objects, effects and sound are 
 
 ### Requirement 24: Shared Echo for the next real visitor
 
+Implementation note: storage uses Node's built-in `node:sqlite` (see design, Echo service).
+
 **User Story:** As a visitor, I want to find what the previous player left behind, so that the shop feels like it remembers.
 
 #### Acceptance Criteria

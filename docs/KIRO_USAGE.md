@@ -20,6 +20,9 @@ Running log for the required "How Kiro was used" write-up. Add an entry whenever
 - `.kiro/steering/hackathon-rules.md` (always included): keeps every change inside the Kiroween 2026 rules and the Costume Contest goals.
 - `.kiro/steering/design-direction.md` (always included): palettes, composition cues from the mockup, and craft rules (every effect needs a reason, reduced-motion alternatives).
 
+- 2026-11-15: `.kiro/specs/reclaim/tasks.md` written: 12 groups, 79 tasks, each linked to requirement numbers, with a quality gate (task 4.5) where Tanvir approves the first live object before the pipeline is used for the rest.
+- 2026-11-15, task 1 (setup): before installing anything, the agent searched the web and found that Node 20 on the dev machine had reached end of life on 2026-04-30; Tanvir upgraded to Node 26 LTS. During the API install, npm 11 blocked `better-sqlite3`'s native install script. Instead of approving a native build, the agent switched the Echo service to Node's built-in `node:sqlite`, which also removes a native build from the Docker image. The agent also turned off Fastify's default request logs because they include client IP addresses (Requirement 24.4).
+
 ## Agent hooks
 
 _(hook name, trigger, what it automates, effect on the workflow)_
