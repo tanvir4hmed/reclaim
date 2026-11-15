@@ -327,7 +327,7 @@ No real payments, accounts or personal data. All objects, effects and sound are 
 ### Requirement 27: Performance
 
 1. THE product grid SHALL scroll and animate at 60 fps on a mid-range laptop and stay above 45 fps on a mid-range phone.
-2. THE Shop SHALL render all Live objects through one shared WebGL canvas (one context) with a separate view per tile, redrawing only views that are visible and changing.
+2. THE Shop SHALL render all Live objects in the shop through one shared WebGL canvas with a separate view per tile, redrawing only views that are visible and changing. A second WebGL context MAY exist only while a product view is open, for the inspection.
 3. THE initial JavaScript download SHALL be at most 250 KB gzipped, with 3D and inspection code loaded on demand.
 4. THE Shop SHALL pause ambient animation while the tab is hidden.
 5. IF WebGL is unavailable, THEN THE Shop SHALL fall back to 2D renderings with the same story beats.
