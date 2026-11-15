@@ -14,12 +14,13 @@ Build order follows `docs/CREATIVE_DIRECTION.md` section 7. Each task is small e
   - [x] 1.4 Create `ASSETS.md`; self-host two OFL fonts (serif display, sans UI) and record them
     - _Requirements: 28.2_
 
-- [ ] 2. State core
-  - [ ] 2.1 Types, initial state, reducer for phase, cart, Weight, act, marks, clock, extras, echo, settings
+- [x] 2. State core
+  - [x] 2.1 Types, initial state, reducer for phase, cart, Weight, act, marks, clock, extras, echo, settings
     - _Requirements: 6, 10.2, 12.3, 12.4, 22.4, 23.1, 37_
-  - [ ] 2.2 Persistence to `localStorage` (`reclaim:v1`) with version check
+  - [x] 2.2 Persistence to `localStorage` (`reclaim:v1`) with version check
     - _Requirements: 6.3, 10.5, 12.3_
-  - [ ] 2.3 Property tests for the reducer invariants listed in design (cart unchanged by Reveal, only `BAT_CAUGHT` leaves day, totals, monotonic Weight/act, consequence once, agreement, reset, persistence round trip)
+  - [x] 2.3 Property tests for the reducer invariants listed in design (cart unchanged by Reveal, only `BAT_CAUGHT` leaves day, monotonic Weight/act, consequence once, agreement, reset, persistence round trip)
+    - The cart-total property moves to task 3.3, where prices exist
     - _Requirements: 30.4_
 
 - [ ] 3. Day storefront (DOM only, placeholder boxes where objects go)
