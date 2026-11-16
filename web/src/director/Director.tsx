@@ -11,6 +11,12 @@ import { stormPattern } from './flash';
 import { onStage, playLight } from './runtime';
 import { acceptedSequence, closingSequence, revealSequence } from './sequences';
 
+/**
+ * Visitor Consequences queue up rather than being dropped: two quick Add to Carts play one
+ * after the other, each on the Stage alone (found by the e2e test: the second was lost).
+ */
+let visitorQueue: Promise<unknown> = Promise.resolve();
+
 /** Wires story cues to sequences and runs the ambient loops (design: The Director). */
 export function Director() {
   const navigate = useNavigate();
@@ -27,7 +33,10 @@ export function Director() {
       onCues((cues) => {
         for (const c of cues) {
           if (c.type === 'reveal') void revealSequence();
-          else if (c.type === 'consequence') void onStage(`c-${c.id}`, 'major', true, () => playConsequence(c.id));
+          else if (c.type === 'consequence') {
+            const id = c.id;
+            visitorQueue = visitorQueue.then(() => onStage(`c-${id}`, 'major', true, () => playConsequence(id))).catch(() => {});
+          }
           else if (c.type === 'reminder') void playReminder(c.id);
           else if (c.type === 'closing') void closingSequence();
           else if (c.type === 'accepted') void acceptedSequence();

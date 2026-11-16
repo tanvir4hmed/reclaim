@@ -1,5 +1,6 @@
 import { Link } from 'react-router';
 import { hasEnded } from '../fx/ended';
+import { FooterSoldiers, HiddenMitten } from '../fx/Extras';
 import { dispatch, useHaunted, useStory } from '../store';
 
 export function Footer() {
@@ -9,6 +10,8 @@ export function Footer() {
   const hasEchoed = useStory((s) => s.story.phase === 'day' && s.story.echo !== null) && hasEnded();
   return (
     <footer className="site-footer" data-perch="footer">
+      <FooterSoldiers />
+      <HiddenMitten />
       <div className="footer-inner">
         <p className="footer-brand">Reclaim &amp; Co. Holiday Market</p>
         <p className="muted">{haunted ? 'Open until the last one leaves.' : 'Open every day until Christmas Eve.'}</p>

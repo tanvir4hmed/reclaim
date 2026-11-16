@@ -5,6 +5,13 @@ import { nav } from './bridge';
 import { footprintPath, seeded } from './footprints';
 import { pageCenter, playLight, reducedMotion, wait } from './runtime';
 
+const cartedAt: Partial<Record<ProductId, number>> = {};
+
+/** When a product's Consequence last played this session (the typewriter's last line). */
+export function cartedTime(id: ProductId): number | null {
+  return cartedAt[id] ?? null;
+}
+
 let markSeq = 0;
 function mark(kind: string, x: number, y: number, rotation = 0, scale = 1, product: ProductId | null = null) {
   markSeq += 1;
@@ -38,11 +45,11 @@ async function shoes() {
   } else {
     fx().set({ prints });
   }
-  await wait(Math.min(9000, prints.length * 220) + 1500);
+  // Hold the Stage only while the walker is walking; the prints fade on their own afterwards.
+  await wait(Math.min(6000, prints.length * 220) + 600);
   const last = prints.slice(-2);
   for (const p of last) mark(p.foot === 'left' ? 'footprint' : 'footprint-r', p.x, p.y, p.angle, 1, 'shoes');
-  await wait(8000);
-  fx().set({ prints: [] });
+  void wait(9000).then(() => fx().set({ prints: [] }));
 }
 
 async function telephone() {
@@ -108,6 +115,7 @@ const CONSEQUENCES: Partial<Record<ProductId, () => Promise<void>>> = {
 };
 
 export async function playConsequence(id: ProductId): Promise<void> {
+  cartedAt[id] = Date.now();
   const run = CONSEQUENCES[id];
   fx().set({ playing: id });
   try {

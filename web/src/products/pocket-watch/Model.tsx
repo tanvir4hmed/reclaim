@@ -2,6 +2,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { M } from '../../gl/materials';
+import { useFx } from '../../fx/fxStore';
 import { useHaunted, useStory } from '../../store';
 
 /** Stopped at 4:17 in the Haunted state (copy: "It stopped at 4:17"). */
@@ -33,6 +34,7 @@ export default function PocketWatch({ open = false }: { open?: boolean }) {
   const minute = useRef<THREE.Mesh>(null);
   const second = useRef<THREE.Mesh>(null);
   const time = useWatchTime(open);
+  const shudder = useFx((s) => s.flags['watch-shudder'] !== undefined);
   const chain = useMemo(() => {
     const pts = [
       new THREE.Vector3(0, 0.78, 0),
@@ -58,6 +60,8 @@ export default function PocketWatch({ open = false }: { open?: boolean }) {
     if (second.current) second.current.rotation.z = -((s % 60) / 60) * Math.PI * 2;
     if (minute.current) minute.current.rotation.z = -(((s / 60) % 60) / 60) * Math.PI * 2;
     if (hour.current) hour.current.rotation.z = -(((s / 3600) % 12) / 12) * Math.PI * 2;
+    // Carted: the hands stop and shudder once before running backward (Req 14.3).
+    if (shudder && minute.current) minute.current.rotation.z += Math.sin(performance.now() / 18) * 0.08;
   });
 
   return (

@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router';
 import type { ProductMeta } from '../products/catalog';
+import { useFx } from '../fx/fxStore';
 import { useHaunted, useUi } from '../store';
 import { addToCart } from './cartActions';
 import { discountPercent, priceLabel, money } from './format';
 import { CartIcon, HeartIcon } from './icons';
 import { ObjectBox } from './ObjectBox';
 import { Stepper } from './Stepper';
+import { LetterOpen, useRollCallName } from '../fx/Extras';
+import { CATALOG } from '../products/catalog';
 
 export function Rating({ p }: { p: ProductMeta }) {
   return (
@@ -28,9 +31,11 @@ export function ProductCard({ p }: { p: ProductMeta }) {
   const copy = haunted ? p.haunted : p.day;
   const off = discountPercent(p);
   const titleId = `title-${p.id}`;
+  const rollName = useRollCallName(p.id, CATALOG.indexOf(p));
+  const playing = useFx((s) => s.playing === p.id || s.flags[`remind-${p.id}`] !== undefined);
 
   return (
-    <article className="card" data-product={p.id} data-perch={`card-${p.id}`} aria-labelledby={titleId}>
+    <article className={`card${playing ? ' is-playing' : ''}`} data-product={p.id} data-perch={`card-${p.id}`} aria-labelledby={titleId}>
       <Link
         to={`/product/${p.id}${location.search}`}
         state={{ background: location }}
@@ -57,10 +62,11 @@ export function ProductCard({ p }: { p: ProductMeta }) {
       <div className="card-body">
         <h3 className="card-title" id={titleId}>
           <Link to={`/product/${p.id}${location.search}`} state={{ background: location }}>
-            {copy.name}
+            {rollName ?? copy.name}
           </Link>
         </h3>
         <p className="card-blurb">{copy.blurb}</p>
+        {p.id === 'letter' && <LetterOpen />}
         <div className="card-meta">
           <Rating p={p} />
           {!haunted && p.day.stock !== undefined && <span className="stock">Only {p.day.stock} left</span>}

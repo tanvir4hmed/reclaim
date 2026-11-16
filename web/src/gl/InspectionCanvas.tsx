@@ -34,7 +34,7 @@ export default function InspectionCanvas({ id, inspecting = false }: { id: Produ
         <SceneEnv />
         <Studio distance={inspecting ? 2.2 : 2.8} fov={32} />
         <Suspense fallback={null}>
-          <Model open={inspecting} />
+          <Model open />
         </Suspense>
         <Shadow />
         {haunted && inspecting && <HauntedInspection id={id} />}

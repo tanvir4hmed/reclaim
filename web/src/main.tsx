@@ -6,6 +6,7 @@ import './styles/hero.css';
 import './styles/shop.css';
 import './styles/panels.css';
 import './styles/fx.css';
+import './styles/extras.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';

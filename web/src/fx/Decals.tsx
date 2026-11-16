@@ -28,6 +28,7 @@ const SHAPES: Record<string, (rot: number) => ReactElement> = {
   ash: () => <ellipse cx="0" cy="0" rx="40" ry="3" opacity="0.5" />,
   wax: () => <path d="M-4 0 q2 8 0 14 q4 -2 4 -14 z" />,
   stuffing: () => <circle r="5" opacity="0.85" />,
+  mitten: () => <path d="M-8 10 C-10 -4 -6 -12 0 -12 C6 -12 9 -6 8 2 L12 -2 C14 0 13 4 10 6 L8 10 Z" />,
 };
 
 /** Lasting marks in page coordinates, so they stay where they fell when the page scrolls (Req 11.3b). */

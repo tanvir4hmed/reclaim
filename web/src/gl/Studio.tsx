@@ -6,7 +6,7 @@ import { useHaunted } from '../store';
  * Per-view light rig (design: Lighting and look). Warm key and rim by day; cold, low key
  * after the Reveal. The electric part follows `mains` (Requirement 34).
  */
-export function Studio({ distance = 3.1, fov = 34 }: { distance?: number; fov?: number }) {
+export function Studio({ distance = 3.6, fov = 34 }: { distance?: number; fov?: number }) {
   const haunted = useHaunted();
   const mains = useFx((s) => s.mains);
   const k = haunted ? 0.55 * mains : 1;

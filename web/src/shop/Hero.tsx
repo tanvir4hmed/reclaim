@@ -1,10 +1,17 @@
 import { useHaunted } from '../store';
 import { scrollToGrid } from './Header';
+import { HeroEcho } from '../fx/Extras';
+import { useStory } from '../store';
+import { useFx } from '../fx/fxStore';
 
 const BULBS = 14;
 
 /** The family photo that hangs in the hero; the same photo is the photo-frame product (Req 19.3). */
 function GroupPhoto({ haunted }: { haunted: boolean }) {
+  const closing = useStory((s) => s.story.closingPlayed);
+  const spread = useStory((s) => s.story.played['photo-frame'] === true);
+  const developed = useStory((s) => s.story.played['instant-camera'] === true) && haunted;
+  const flash = useFx((s) => s.flags['camera-flash'] !== undefined);
   // Five figures, the middle one missing after the Reveal (Req 19.2).
   const figures = [0, 1, 2, 3, 4];
   return (
@@ -12,8 +19,10 @@ function GroupPhoto({ haunted }: { haunted: boolean }) {
       <svg viewBox="0 0 120 84" width="100%" height="100%">
         <rect x="0" y="0" width="120" height="84" fill={haunted ? '#2a2620' : '#efe2c9'} />
         {figures.map((i) => {
-          if (haunted && i === 2) return null;
-          const x = 14 + i * 23;
+          if (haunted && !closing && i === 2) return null;
+          if (closing && i === 4) return null;
+          const side = i < 2 ? -1 : i > 2 ? 1 : 0;
+          const x = 14 + i * 23 + (haunted && spread ? side * 4 : 0) - (haunted && !spread && !closing ? side * 2 : 0);
           const tall = i === 2 ? 1 : i % 2 ? 0.86 : 0.94;
           return (
             <g key={i} transform={`translate(${x} ${84 - 70 * tall})`} opacity={haunted ? 0.75 : 1}>
@@ -22,7 +31,15 @@ function GroupPhoto({ haunted }: { haunted: boolean }) {
             </g>
           );
         })}
+        {developed &&
+          [30, 70, 100].map((x) => (
+            <g key={x} opacity={0.35} transform={`translate(${x} 30)`}>
+              <circle cx="0" cy="8" r="5" fill="#cfc7b8" />
+              <path d="M-7 54 Q-8 18 0 16 Q8 18 7 54Z" fill="#cfc7b8" />
+            </g>
+          ))}
       </svg>
+      {flash && <span className="photo-flash" />}
     </div>
   );
 }
@@ -44,7 +61,9 @@ export function Hero() {
           <div className="globe-house" />
         </div>
         <div className="hero-gifts" />
-        <div className="hero-echo" data-echo-slot />
+        <div className="hero-echo" data-echo-slot>
+          <HeroEcho />
+        </div>
       </div>
       <div className="hero-copy">
         <p className="eyebrow">{haunted ? 'Unclaimed since the war' : 'Christmas Homecoming Sale'}</p>

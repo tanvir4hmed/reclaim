@@ -5,12 +5,15 @@ const port = 5173;
 export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
+  // Live 3D in every card is heavy; two workers keep the dev server and GPU emulation responsive.
+  workers: process.env.CI ? 1 : 2,
+  timeout: 60_000,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: `http://localhost:${port}`,
-    trace: 'retain-on-failure',
+    trace: 'off',
   },
   projects: [
     {
