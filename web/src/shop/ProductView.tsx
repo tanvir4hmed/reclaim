@@ -11,6 +11,8 @@ import { ObjectBox } from './ObjectBox';
 import { Rating } from './ProductCard';
 import { Stepper } from './Stepper';
 import { LargeView } from './Inspection';
+import { currentSearch } from './useQuery';
+import { HauntedProductNotes } from '../fx/Haunts';
 
 const VIEWS = ['Front', 'Side', 'Detail', 'Box'] as const;
 
@@ -39,7 +41,7 @@ export function ProductView() {
   const off = discountPercent(p);
   // With a shop page behind us, Back closes; on a direct visit, go to the shop instead of leaving.
   const fromShop = Boolean((location.state as { background?: unknown } | null)?.background);
-  const close = () => (fromShop ? navigate(-1) : navigate({ pathname: '/', search: location.search }));
+  const close = () => (fromShop ? navigate(-1) : navigate({ pathname: '/', search: currentSearch() }));
 
   return (
     <Dialog open onClose={close} labelledBy="pv-title" className="product-view" testId="product-view">
@@ -100,6 +102,7 @@ export function ProductView() {
               <HeartIcon filled={wished} />
             </button>
           </div>
+          <HauntedProductNotes id={p.id} />
           <ul className="services">
             <li>
               <TruckIcon /> {haunted ? 'Delivery: never' : 'Free delivery by Christmas Eve'}

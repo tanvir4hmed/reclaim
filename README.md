@@ -7,7 +7,51 @@ Re:Claim opens as a cheerful Christmas shop, Reclaim & Co. Holiday Market. A sma
 
 **Content note:** fictional war, blood stains, mild psychological horror, brief darkness effects. No flashing faster than three times per second. Reduced motion is supported.
 
-_Status: in development. Features are added task by task from `.kiro/specs/reclaim/tasks.md`._
+## What works now
+
+- **The Day shop:** search, categories, price filter, sort, grid and list view (all kept in the URL), product view with a turnable live object, cart drawer, and a checkout whose payments are "paused for the holiday rush".
+- **Live objects:** all 22 products are real-time 3D, built in code. The same objects burn, tear, rot, dust and age in place through one shared decay shader when the shop turns.
+- **The Day bat:** it hangs from the decorations and flies between perches. Over it the cursor becomes a reaching hand and the lights flicker like lightning. Catch it (click, Enter, or two taps) and it jerks round, lunges, covers the screen with its wings, and the shop turns in the dark.
+- **The haunted shop:** palette, copy, menu and logo change. Bats fly only in darkness, with glowing eyes. Brownouts and blackouts come and go. A severed hand crawls up once and leaves prints that stay where they fell.
+- **Consequences:**
+  - shoes leave a walking trail to the cart
+  - the watch and the shop clock run backward
+  - the doll's eyes turn to the photo
+  - the letter's "Sorry." stains and the envelope is readdressed
+  - the typewriter types tomorrow's confession, key by key
+  - a face rises in the mirror
+  - the photo makes room for one more
+  - the cake's fly moves onto the search field
+  - the cart rings and you can answer it
+  - Tier A products have their own: soldiers march off the footer, a radio roll call, a camera print, a lost mitten you can find, doors slamming
+- **Closing time, checkout and the ending:** dust sheets, eyes, the sheet ghost, and a payment of time, age or a memory. One tremor, "Your order has been accepted.", and the opening shop returns with what you left behind. A receipt then lists the dark patterns the shop used.
+- **Echo service:** the next visitor sees what the previous player left, with no identifiers stored.
+
+## Status
+
+Built and verified so far:
+
+- 60 web unit and property tests
+- 7 API tests
+- 25 end-to-end tests on desktop, a 390 px phone and reduced motion
+- `docker compose up` checked by hand
+
+Still open (tracked in `.kiro/specs/reclaim/tasks.md`):
+
+- the storage descent behind "Load more"
+- "Leave her here?" when removing a sneaked item
+- account and order history
+- scorch marks where the pointer lingered
+- objects moving while unwatched (only the truffle box does it so far)
+- haunted inspections for products other than the watch
+- Tier B products
+- the postcard and the director panel (`?director` only speeds up timers)
+- a measured performance pass
+- sound
+- public hosting
+- the demo video
+
+**Fallback:** without WebGL2, or with `?nogl`, the cards show the product name on velvet instead of a live object. Pre-rendered stills are not built yet.
 
 ## Links
 

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router';
+import { currentSearch } from './useQuery';
 import type { ProductMeta } from '../products/catalog';
 import { useFx } from '../fx/fxStore';
 import { useHaunted, useUi } from '../store';
@@ -9,6 +10,7 @@ import { CartIcon, HeartIcon } from './icons';
 import { ObjectBox } from './ObjectBox';
 import { Stepper } from './Stepper';
 import { LetterOpen, useRollCallName } from '../fx/Extras';
+import { useChocolateCountdown } from '../fx/Haunts';
 import { CATALOG } from '../products/catalog';
 
 export function Rating({ p }: { p: ProductMeta }) {
@@ -32,12 +34,13 @@ export function ProductCard({ p }: { p: ProductMeta }) {
   const off = discountPercent(p);
   const titleId = `title-${p.id}`;
   const rollName = useRollCallName(p.id, CATALOG.indexOf(p));
+  const choc = useChocolateCountdown(p.id);
   const playing = useFx((s) => s.playing === p.id || s.flags[`remind-${p.id}`] !== undefined);
 
   return (
-    <article className={`card${playing ? ' is-playing' : ''}`} data-product={p.id} data-perch={`card-${p.id}`} aria-labelledby={titleId}>
+    <article className={`card${playing ? ' is-playing' : ''}`} data-product={p.id} data-perch={`card-${p.id}`} aria-labelledby={titleId} onPointerLeave={choc.onLeave}>
       <Link
-        to={`/product/${p.id}${location.search}`}
+        to={`/product/${p.id}${currentSearch()}`}
         state={{ background: location }}
         className="card-media"
         tabIndex={-1}
@@ -61,7 +64,7 @@ export function ProductCard({ p }: { p: ProductMeta }) {
       </button>
       <div className="card-body">
         <h3 className="card-title" id={titleId}>
-          <Link to={`/product/${p.id}${location.search}`} state={{ background: location }}>
+          <Link to={`/product/${p.id}${currentSearch()}`} state={{ background: location }}>
             {rollName ?? copy.name}
           </Link>
         </h3>
@@ -70,6 +73,7 @@ export function ProductCard({ p }: { p: ProductMeta }) {
         <div className="card-meta">
           <Rating p={p} />
           {!haunted && p.day.stock !== undefined && <span className="stock">Only {p.day.stock} left</span>}
+          {choc.left !== null && <span className="stock" data-testid="choc-left">Only {choc.left} left</span>}
         </div>
         <p className="price">
           <span className="price-now" data-price-tag>

@@ -1,4 +1,4 @@
-import { useRef, type FormEvent, type KeyboardEvent } from 'react';
+import { useEffect, useRef, type FormEvent, type KeyboardEvent } from 'react';
 import { CATEGORIES } from '../products/catalog';
 import { isHauntedPhase } from '../core';
 import { dispatch, useHaunted, useStory, useUi } from '../store';
@@ -24,17 +24,23 @@ function SearchBox() {
   const haunted = useHaunted();
   const [query, update] = useShopQuery();
   const input = useRef<HTMLInputElement>(null);
-  const text = query.q;
+  // Uncontrolled: fast typing must never be overwritten by a lagging URL (found by e2e).
+  // When the URL changes from elsewhere (Clear filters, Back), mirror it into the field.
+  useEffect(() => {
+    const el = input.current;
+    if (el && el.value.trim() !== query.q.trim()) el.value = query.q;
+  }, [query.q]);
 
   function submit(e: FormEvent) {
     e.preventDefault();
-    update({ q: text.trim() });
+    update({ q: (input.current?.value ?? '').trim() });
     scrollToGrid();
   }
 
   function onKey(e: KeyboardEvent<HTMLInputElement>) {
-    if (e.key === 'Escape' && text) {
+    if (e.key === 'Escape' && e.currentTarget.value) {
       e.preventDefault();
+      e.currentTarget.value = '';
       update({ q: '' });
     }
   }
@@ -49,7 +55,7 @@ function SearchBox() {
         ref={input}
         id="site-search"
         type="search"
-        value={text}
+        defaultValue={query.q}
         autoComplete="off"
         placeholder={haunted ? 'What are you looking for?' : 'Search gifts, toys, sweets…'}
         onChange={(e) => onSearchInput(e.target.value, update)}

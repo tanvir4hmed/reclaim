@@ -80,7 +80,8 @@ export function DayBat() {
     e.preventDefault();
     const now = performance.now();
     // Touch: first tap shows the hand and the signs, a second tap within 4 s catches (Req 9.12).
-    if (hover && now - tapAt.current < 4000) {
+    // Read the store, not the render closure: a quick second tap can arrive before React re-renders (found by e2e).
+    if (useFx.getState().batHover && now - tapAt.current < 4000) {
       catchBat();
     } else {
       tapAt.current = now;

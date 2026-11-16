@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Run story-core property tests on save",
+      "trigger": "PostFileSave",
+      "description": "When a file in web/src/core or the Director's pure modules is saved, run the related unit and property tests so invariants (cart unchanged by the Reveal, flash limit, Stage rule) are checked immediately.",
+      "matcher": "web[\\\\/]src[\\\\/](core|director[\\\\/](flash|stage|footprints))",
+      "action": {
+        "type": "command",
+        "command": "cd web && npx vitest run tests/core tests/director --reporter=dot",
+        "timeout": 120
+      }
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Log Kiro usage after each spec task",
+      "trigger": "PostTaskExec",
+      "description": "After a spec task finishes, remind the agent to record what Kiro feature mattered in docs/KIRO_USAGE.md, which feeds the required write-up.",
+      "action": {
+        "type": "agent",
+        "prompt": "A spec task just finished. If any Kiro feature (spec, steering, hook, MCP, property test, power, agent) changed the outcome, add a short dated entry to docs/KIRO_USAGE.md: what happened, why it mattered, concrete result. Record only what actually happened."
+      }
+    }
+  ]
+}

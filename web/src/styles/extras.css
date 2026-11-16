@@ -183,3 +183,74 @@
 [data-roll-call] .card-title {
   font-style: italic;
 }
+
+.pv-notes {
+  display: grid;
+  gap: 4px;
+  font-size: 14px;
+}
+
+.review {
+  margin: 0;
+}
+
+.hidden-ink {
+  margin: 0;
+  color: transparent;
+  user-select: text;
+}
+
+.hidden-ink::selection {
+  color: #c2414b;
+  background: rgb(0 0 0 / 0.6);
+}
+
+.chat {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 30;
+  display: grid;
+  justify-items: end;
+  gap: 10px;
+}
+
+.chat-bubble {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--berry);
+  color: var(--berry-ink);
+  font-size: 22px;
+  font-weight: 700;
+  box-shadow: var(--shadow);
+}
+
+.chat-panel {
+  width: min(300px, 86vw);
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
+
+.chat-panel p {
+  margin: 0 0 8px;
+}
+
+.chat-from {
+  font-weight: 700;
+}
+
+.typing {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.chat-replies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}

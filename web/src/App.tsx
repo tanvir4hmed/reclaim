@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes, useLocation, type Location } from 'react-
 import { Director } from './director/Director';
 import { FxLayer } from './fx/FxLayer';
 import { Receipt } from './fx/Receipt';
+import { SupportChat } from './fx/Haunts';
 import { hasWebGL2 } from './gl/webgl';
 import { CartDrawer } from './shop/CartDrawer';
 import { CategoryTiles } from './shop/CategoryTiles';
@@ -52,6 +53,7 @@ function Routed() {
       <Footer />
       <CartDrawer />
       <LiveRegion />
+      <SupportChat />
       <FxLayer />
       <Director />
       {hasWebGL2() && (

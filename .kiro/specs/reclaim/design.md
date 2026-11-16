@@ -339,6 +339,13 @@ Only what actually happens gets recorded in `docs/KIRO_USAGE.md`.
 - **Hooks:** candidates are running related unit and property tests when `src/core` or `src/director` files are saved; checking that every new file under `public/models` has an `ASSETS.md` entry; a reminder to log Kiro usage after each finished task.
 - **MCP:** candidate is a Playwright or browser MCP server so the agent can look at the running shop and check visual changes.
 
+## Decisions made during implementation
+
+- **Bats, the reaching hand, the crawling hand and the fly are SVG in the DOM, not 3D models.** They need hit proxies, focus and page-coordinate placement anyway, and SVG keeps them crisp and cheap on phones. The 3D canvas is kept for the products.
+- **Small products share files** (`products/small/Models.tsx`, `products/small/TierA.tsx`) instead of one folder each, to keep 13 short procedural models readable side by side.
+- **The product view always uses the inspection canvas** for its large object (not only while inspecting), because the native dialog sits in the top layer above the shop canvas.
+- **The shop query lives in a synchronous store mirrored to the URL with replaceState**, after async router navigations raced with fast typing.
+
 ## Risks and mitigations
 
 | Risk | Mitigation |

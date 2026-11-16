@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Check new assets are listed in ASSETS.md",
+      "trigger": "PostFileCreate",
+      "description": "When a file is created under web/public, remind the agent that the Kiroween rules require every third-party asset to have a source and license entry in ASSETS.md before it is committed.",
+      "matcher": "web[\\\\/]public[\\\\/]",
+      "action": {
+        "type": "agent",
+        "prompt": "A file was added under web/public. Before committing, add it to ASSETS.md with its source URL and license (CC0 or a license that allows this use). If you made it yourself in code, say so. Kiroween rules: no third-party trademarks or copyrighted material without permission."
+      }
+    }
+  ]
+}

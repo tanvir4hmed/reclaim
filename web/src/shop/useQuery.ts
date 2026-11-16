@@ -1,16 +1,40 @@
-import { useCallback, useMemo } from 'react';
-import { useSearchParams } from 'react-router';
+import { create } from 'zustand';
 import { parseQuery, toSearchParams, type Query } from './query';
 
-/** The shop view lives in the URL so reloads and shared links keep it (Requirement 4.6). */
+function fromUrl(): Query {
+  return parseQuery(new URLSearchParams(typeof window === 'undefined' ? '' : window.location.search));
+}
+
+/**
+ * The shop view (search, filters, sort, view) lives in one store and is mirrored into the URL
+ * with replaceState (Requirement 4.6). Writes are synchronous, so fast typing and an Escape
+ * right after can never land out of order (found by e2e: async router navigations raced).
+ */
+const useQueryStore = create<{ query: Query }>(() => ({ query: fromUrl() }));
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('popstate', () => useQueryStore.setState({ query: fromUrl() }));
+}
+
+export function updateQuery(patch: Partial<Query>) {
+  const query = { ...useQueryStore.getState().query, ...patch };
+  useQueryStore.setState({ query });
+  const search = toSearchParams(query).toString();
+  const { pathname, hash } = window.location;
+  window.history.replaceState(window.history.state, '', `${pathname}${search ? `?${search}` : ''}${hash}`);
+}
+
+/** Re-reads the URL, e.g. after the router navigated to a link that carries a query. */
+export function syncQueryFromUrl() {
+  useQueryStore.setState({ query: fromUrl() });
+}
+
+export function currentSearch(): string {
+  const s = toSearchParams(useQueryStore.getState().query).toString();
+  return s ? `?${s}` : '';
+}
+
 export function useShopQuery(): [Query, (patch: Partial<Query>) => void] {
-  const [params, setParams] = useSearchParams();
-  const query = useMemo(() => parseQuery(params), [params]);
-  const update = useCallback(
-    (patch: Partial<Query>) => {
-      setParams((prev) => toSearchParams({ ...parseQuery(prev), ...patch }), { replace: true });
-    },
-    [setParams],
-  );
-  return [query, update];
+  const query = useQueryStore((s) => s.query);
+  return [query, updateQuery];
 }

@@ -23,10 +23,6 @@ Running log for the required "How Kiro was used" write-up. Add an entry whenever
 - 2026-11-15: `.kiro/specs/reclaim/tasks.md` written: 12 groups, 79 tasks, each linked to requirement numbers, with a quality gate (task 4.5) where Tanvir approves the first live object before the pipeline is used for the rest.
 - 2026-11-15, task 1 (setup): before installing anything, the agent searched the web and found that Node 20 on the dev machine had reached end of life on 2026-04-30; Tanvir upgraded to Node 26 LTS. During the API install, npm 11 blocked `better-sqlite3`'s native install script. Instead of approving a native build, the agent switched the Echo service to Node's built-in `node:sqlite`, which also removes a native build from the Docker image. The agent also turned off Fastify's default request logs because they include client IP addresses (Requirement 24.4).
 
-## Agent hooks
-
-_(hook name, trigger, what it automates, effect on the workflow)_
-
 ## MCP
 
 _(server, what it enabled that would otherwise be hard)_
@@ -38,6 +34,23 @@ _(which requirements, what it caught)_
 - 2026-11-15, task 2.3: the first version of the property tests passed, which looked fine. The agent added a coverage test that samples the event generator and counts how many runs reach each story phase. It showed only 55 of 1000 random runs ever reached the Haunted state, so the properties about checkout, acceptance and the ending were almost never exercised. The generator was rewritten to mix random events with scripted visitor actions (catch the bat, buy a few items, go through checkout). With that change, the coverage test enforces minimum counts, and all properties still hold. Lesson for the write-up: a green property test is not evidence on its own; measure what the generator reaches.
 
 - 2026-11-15, task 3: the persistence round-trip property failed once on a random seed: a Lasting mark with rotation `-0` came back from JSON as `0`, so the loaded state was not equal to the saved one. A unit test would never have tried `-0`. The agent wrote two regression tests, confirmed they fail without the fix, then made the reducer normalize `-0` and reject non-finite mark coordinates. The new contrast test on the design tokens also failed for the haunted button outline (1.6:1 against cards); a dedicated outline colour was added so both palettes pass WCAG AA.
+
+- 2026-11-16, tasks 3–12 (single long agent session in Kiro IDE, Tanvir granted blanket execution permission). Findings that changed the code:
+  - **Quality gate by screenshot:** the agent drove Playwright to screenshot the Day shop, the product view and the haunted grid, then looked at the images itself. That showed the pocket watch rendering well, and the doll dress washing out pink, the shoes too flat and the typewriter over-dusted. Materials and framing were tuned from the screenshots.
+  - **WebGL context limits found while designing:** native `<dialog>` lives in the browser's top layer, so no canvas can paint above it. The inspection therefore uses its own canvas, and environment maps are set per scene, because a PMREM texture cannot be shared across WebGL contexts.
+  - **The API allowlist property test failed:** Fastify's default JSON validation silently strips unknown fields and accepts the request. AJV was set to reject them.
+  - **e2e found three real bugs:**
+    1. A second quick Add to Cart lost its Consequence, because the Stage refused it. Visitor Consequences now queue.
+    2. Fast typing followed by Escape raced async router navigations. The shop query moved to a synchronous store mirrored with `replaceState`.
+    3. A quick second tap on the bat read stale React state. The tap handler now reads the store.
+  - **React Compiler lint rules (react-hooks 7):** they flagged refs written during render, setState in effects, `Math.random` in render and hook-value mutation. Each was refactored rather than silenced.
+
+## Agent hooks
+
+- `.kiro/hooks/core-property-tests.json` (PostFileSave on `web/src/core` and the Director's pure modules): runs the core and Director property tests on save.
+- `.kiro/hooks/assets-license-guard.json` (PostFileCreate under `web/public`): reminds the agent to add source and license to `ASSETS.md` before committing.
+- `.kiro/hooks/kiro-usage-log.json` (PostTaskExec): prompts a log entry here after each spec task.
+- These were created on 2026-11-16 and take effect from the next session. They have not run yet at the time of writing.
 
 ## Kiro powers
 
