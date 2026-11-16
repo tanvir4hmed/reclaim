@@ -78,6 +78,10 @@ cd api && npm install && npm run dev      # Echo service on :3000
 cd web && npm install && npm run dev      # Shop on http://localhost:5173 (proxies /api)
 ```
 
+## Deploy
+
+Pushes to `main` are tested and deployed to EC2 by GitHub Actions through AWS Systems Manager. Setup and the GitHub variables are in [deploy/README.md](deploy/README.md).
+
 ## Tests
 
 ```sh
