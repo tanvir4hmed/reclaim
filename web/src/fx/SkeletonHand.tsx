@@ -13,11 +13,15 @@ function Bone({ x1, y1, x2, y2, w }: { x1: number; y1: number; x2: number; y2: n
   );
 }
 
+/** Drawn at 34×46 px, smaller than the bat. The index fingertip (25, 5 in the viewBox) is the hotspot. */
+const HOT_X = 12;
+const HOT_Y = 2;
+
 export function SkeletonHand({ x, y, closed = false }: { x: number; y: number; closed?: boolean }) {
   return (
     <svg
       className={`skeleton-hand${closed ? ' closed' : ''}`}
-      style={{ left: x - 25, top: y - 3 }}
+      style={{ left: x - HOT_X, top: y - HOT_Y }}
       viewBox="0 0 70 96"
       aria-hidden="true"
       data-testid="skeleton-hand"

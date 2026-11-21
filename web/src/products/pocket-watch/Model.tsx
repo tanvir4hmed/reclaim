@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { M } from '../../gl/materials';
 import { useFx } from '../../fx/fxStore';
 import { useHaunted, useStory } from '../../store';
+import { reducedMotion } from '../../director/runtime';
 
 /** Stopped at 4:17 in the Haunted state (copy: "It stopped at 4:17"). */
 const STOPPED = { h: 4, m: 17, s: 0 };
@@ -17,15 +18,19 @@ function useWatchTime(open: boolean) {
     const id = setInterval(() => invalidate(), 1000);
     return () => clearInterval(id);
   }, [invalidate]);
-  return () => {
+  return (dt: number) => {
     if (!haunted) {
       const d = new Date();
       return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
     }
-    // Haunted: stopped, until opened (forward) or carted (backward) (Req 14.2–14.3).
-    if (reverse) t.current -= 1 / 60;
-    else if (open) t.current += 1 / 60;
-    return t.current;
+    // Haunted: it ticks backward, one stiff second at a time, from 4:17; opened it runs
+    // forward; carted it races backward (Req 14.2–14.3).
+    const step = Math.min(dt, 0.1);
+    if (open && !reverse) t.current += step;
+    else if (reverse) t.current -= step * 4;
+    else t.current -= step;
+    // Second hand jumps in whole seconds, like a real escapement.
+    return reverse ? t.current : Math.ceil(t.current);
   };
 }
 
@@ -55,8 +60,8 @@ export default function PocketWatch({ open = false }: { open?: boolean }) {
     [],
   );
 
-  useFrame(() => {
-    const s = time();
+  useFrame((_, dt) => {
+    const s = time(reducedMotion() ? 0 : dt);
     if (second.current) second.current.rotation.z = -((s % 60) / 60) * Math.PI * 2;
     if (minute.current) minute.current.rotation.z = -(((s / 60) % 60) / 60) * Math.PI * 2;
     if (hour.current) hour.current.rotation.z = -(((s / 3600) % 12) / 12) * Math.PI * 2;

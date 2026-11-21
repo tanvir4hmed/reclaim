@@ -35,5 +35,25 @@ test.describe('visual capture', () => {
     await page.locator('#shop').scrollIntoViewIfNeeded();
     await page.waitForTimeout(800);
     await page.screenshot({ path: name('7-haunted-grid') });
+    // The bear and the pumpkin beside it.
+    await page.getByTestId('add-teddy-bear').scrollIntoViewIfNeeded();
+    await page.waitForTimeout(1200);
+    await page.screenshot({ path: name('8-pumpkin') });
+    // Checkout to the end: the scare after Accept.
+    await page.getByTestId('add-letter').scrollIntoViewIfNeeded();
+    await page.getByTestId('add-letter').click();
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: name('9-note') });
+    await page.getByTestId('cart-icon').click();
+    await page.getByTestId('checkout').click();
+    await page.getByTestId('skip-closing').click();
+    await page.getByRole('radio', { name: 'Your first snow' }).check();
+    await page.getByTestId('agree').check();
+    await page.getByTestId('accept').click();
+    await page.getByTestId('scare').waitFor({ timeout: 5000 });
+    for (let i = 0; i < 6; i++) {
+      await page.screenshot({ path: name(`10-scare-${i}`), type: 'jpeg', quality: 60, scale: 'css' });
+      await page.waitForTimeout(150);
+    }
   });
 });

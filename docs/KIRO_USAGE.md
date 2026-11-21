@@ -51,6 +51,7 @@ _(which requirements, what it caught)_
   - **Flaky e2e diagnosed instead of retried:** catches failed only in full runs. A probe test showed the Reveal completes in about 2.5 s on its own; with two parallel workers, software WebGL starved the timers. The suite now runs one worker, and if the Reveal ever stalls, the failure message reports the lunge step and saved phase.
   - **New e2e coverage:** the "Added to your cart" toast, and the "greedy" refusal past the stock limit, by day and after the Reveal.
   - **Sub-agents:** while the agent's shell was busy with a long Playwright run, it delegated polling of the log and screenshot files to a sub-agent limited to file reads.
+- 2026-11-22, second feedback round from Tanvir's reference images (bat in flight and hanging, a haunted hero, a found-footage scare). The agent redrew the bat (torn red-lit wings, wrapped-wing cocoon, head that turns to follow the pointer with burning eyes), painted the haunted hero's ruined world on a canvas in code (red moon, smoke, gothic ruins, Ferris wheel, rubble, embers, an XMAS → HALLOWEEN sign), added idle haunted life to every product, a jack-o'-lantern beside the bear, inline cart confirmations instead of a popup, and the jump scare after Accept. Screenshot review drove fixes the agent would not have caught from code: the pumpkin's carved face was buried under the rind's ribs, its spill light washed the rind out, and the scare's hair strands read as prison bars.
 
 ## Agent hooks
 

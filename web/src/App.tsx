@@ -12,7 +12,6 @@ import { Footer } from './shop/Footer';
 import { Header } from './shop/Header';
 import { Hero } from './shop/Hero';
 import { LiveRegion } from './shop/LiveRegion';
-import { CartToast } from './shop/Toast';
 import { ProductGrid } from './shop/ProductGrid';
 import { ProductViewRoute } from './shop/ProductView';
 import { SaleClock } from './shop/SaleClock';
@@ -54,7 +53,6 @@ function Routed() {
       <Footer />
       <CartDrawer />
       <LiveRegion />
-      <CartToast />
       <SupportChat />
       <FxLayer />
       <Director />

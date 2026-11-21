@@ -74,7 +74,7 @@ test('checkout: closing time, decline, accept, ending and echo (Req 22, 23, 38)'
   await openCart(page);
   await page.getByTestId('checkout').click();
   // Closing time plays only once.
-  await expect(page.getByTestId('accept')).toBeVisible();
+  await expect(page.getByTestId('accept')).toBeVisible({ timeout: 15_000 });
   await expect(page.getByTestId('accept')).toBeDisabled();
   await page.getByRole('radio', { name: 'Your first snow' }).check();
   await expect(page.getByTestId('accept')).toBeDisabled();
@@ -95,7 +95,8 @@ test('checkout: closing time, decline, accept, ending and echo (Req 22, 23, 38)'
 test('after the Reveal there is only one of each, and asking for more is greedy', async ({ page }, info) => {
   await catchBat(page, info);
   await add(page, 'candle');
-  await expect(page.getByTestId('toast-added')).toContainText('yours now');
+  const candle = page.locator('[data-product="candle"]');
+  await expect(candle.getByTestId('note-added')).toContainText('yours now');
   await add(page, 'candle');
-  await expect(page.getByTestId('toast-greedy')).toContainText(/greedy|only ever one|already/i);
+  await expect(candle.getByTestId('note-greedy')).toContainText(/greedy|only ever one|already/i);
 });

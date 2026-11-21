@@ -5,6 +5,7 @@ import type * as THREE from 'three';
 import type { ProductId } from '../core/ids';
 import { MODELS } from '../products/models';
 import { glBus } from './bus';
+import { HauntedMotion } from './HauntedMotion';
 import { SceneEnv } from './env';
 import { Shadow } from './Shadow';
 import { Studio } from './Studio';
@@ -44,7 +45,9 @@ export function LiveView({ id, className }: { id: ProductId; className?: string 
         <Studio />
         <Suspense fallback={null}>
           <Turntable hover={hover}>
-            <Model />
+            <HauntedMotion id={id}>
+              <Model />
+            </HauntedMotion>
           </Turntable>
         </Suspense>
         <Shadow />

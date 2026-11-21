@@ -9,6 +9,7 @@ import { discountPercent, priceLabel, money } from './format';
 import { CartIcon, HeartIcon } from './icons';
 import { ObjectBox } from './ObjectBox';
 import { Stepper } from './Stepper';
+import { CartNoteLine } from './Toast';
 import { LetterOpen, useRollCallName } from '../fx/Extras';
 import { useChocolateCountdown } from '../fx/Haunts';
 import { CATALOG } from '../products/catalog';
@@ -102,6 +103,7 @@ export function ProductCard({ p }: { p: ProductMeta }) {
             <span className="btn-cart-text">Add</span>
           </button>
         </div>
+        <CartNoteLine id={p.id} haunted={haunted} />
       </div>
     </article>
   );

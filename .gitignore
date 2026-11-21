@@ -25,6 +25,8 @@ test-results/
 playwright-report/
 blob-report/
 playwright/.cache/
+# Scratch files from local agent runs and screenshot captures
+.tmp-*
 
 # Logs
 *.log

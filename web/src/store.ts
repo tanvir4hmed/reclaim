@@ -68,12 +68,12 @@ export function useHaunted(): boolean {
   return useStory((s) => isHauntedPhase(s.story.phase) || s.story.phase === 'accepted');
 }
 
-export interface Toast {
+/** The line under a product's Add button after it was pressed (no popups, Req 6.1). */
+export interface CartNote {
   id: number;
   kind: 'added' | 'greedy';
-  title: string;
-  body: string;
-  product: string | null;
+  text: string;
+  product: string;
 }
 
 interface UiStore {
@@ -81,25 +81,25 @@ interface UiStore {
   filtersOpen: boolean;
   announcement: string;
   wishlist: string[];
-  toast: Toast | null;
+  note: CartNote | null;
   setCartOpen: (open: boolean) => void;
   setFiltersOpen: (open: boolean) => void;
   announce: (text: string) => void;
   toggleWish: (id: string) => void;
-  showToast: (t: Omit<Toast, 'id'>) => void;
-  hideToast: () => void;
+  showNote: (t: Omit<CartNote, 'id'>) => void;
+  hideNote: () => void;
 }
 
-let toastSeq = 0;
+let noteSeq = 0;
 
 export const useUi = create<UiStore>((set) => ({
   cartOpen: false,
   filtersOpen: false,
   announcement: '',
   wishlist: [],
-  toast: null,
-  showToast: (t) => set({ toast: { ...t, id: ++toastSeq } }),
-  hideToast: () => set({ toast: null }),
+  note: null,
+  showNote: (t) => set({ note: { ...t, id: ++noteSeq } }),
+  hideNote: () => set({ note: null }),
   setCartOpen: (cartOpen) => set({ cartOpen }),
   setFiltersOpen: (filtersOpen) => set({ filtersOpen }),
   // Clearing first makes screen readers repeat identical messages.

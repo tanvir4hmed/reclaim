@@ -2,17 +2,17 @@ import gsap from 'gsap';
 import { useEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
 import { reducedMotion, wait } from '../director/runtime';
 import { dispatch, useStory } from '../store';
-import { BatSvg } from './BatSvg';
+import { BatSvg, HANG_ASPECT } from './BatSvg';
 import { useFx } from './fxStore';
 import { nearbyPerches, perchSpot, type PerchSpot } from './perches';
 import { SkeletonHand } from './SkeletonHand';
 
 /** Rendered size of the Day bat (the SVG keeps its 244:152 aspect). */
-export const BAT_W = 112;
+export const BAT_W = 96;
 const BAT_H = Math.round((BAT_W * 152) / 244);
 /** Hanging, wings wrapped: a tall, narrow shape. */
-const HANG_W = 78;
-const HANG_H = Math.round((HANG_W * 136) / 92);
+const HANG_W = 58;
+const HANG_H = Math.round(HANG_W * HANG_ASPECT);
 
 /**
  * The Day bat (Requirements 8, 9). It hangs face-away from a perch; now and then it turns its
@@ -31,6 +31,7 @@ export function DayBat() {
   const tapAt = useRef(0);
   const ref = useRef<HTMLButtonElement>(null);
   const spotRef = useRef<PerchSpot | null>(null);
+  const pointer = useRef<{ x: number; y: number } | null>(null);
 
   // Re-measure the perch on layout changes (not during a flight: the flight moves the bat itself).
   useEffect(() => {
@@ -52,17 +53,18 @@ export function DayBat() {
     };
   }, [perch]);
 
-  // Now and then the head turns to the screen and the eyes light up (a horror beat, not a scare).
+  // Every few seconds it wakes: the eyes open and burn red and the head turns to find the
+  // pointer, then they close again. Short gaps, short looks: often, never constant.
   useEffect(() => {
     if (phase !== 'day') return;
     let alive = true;
     void (async () => {
-      await wait(4000);
+      await wait(2500);
       while (alive) {
-        await wait(7000 + Math.random() * 9000);
+        await wait(2500 + Math.random() * 3500);
         if (!alive || useFx.getState().batFlying || useFx.getState().batHover) continue;
         setLooking(true);
-        await wait(2200 + Math.random() * 1200);
+        await wait(1800 + Math.random() * 1400);
         setLooking(false);
       }
     })();
@@ -70,6 +72,41 @@ export function DayBat() {
       alive = false;
     };
   }, [phase]);
+
+  // While awake (or reached for), the head follows the pointer; asleep it hangs straight.
+  const awake = looking || hover;
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (!awake) {
+      el.style.setProperty('--lx', '0');
+      el.style.setProperty('--ly', '0');
+      return;
+    }
+    const aim = (px: number, py: number) => {
+      const r = el.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height * 0.8;
+      const lx = Math.max(-1, Math.min(1, (px - cx) / 260));
+      const ly = Math.max(-1, Math.min(1, (py - cy) / 260));
+      el.style.setProperty('--lx', lx.toFixed(3));
+      el.style.setProperty('--ly', ly.toFixed(3));
+    };
+    const last = pointer.current;
+    if (last) aim(last.x, last.y);
+    const onMove = (e: PointerEvent) => aim(e.clientX, e.clientY);
+    window.addEventListener('pointermove', onMove);
+    return () => window.removeEventListener('pointermove', onMove);
+  }, [awake, spot]);
+
+  // Remember where the pointer is even while asleep, so the first look goes straight to it.
+  useEffect(() => {
+    const onMove = (e: PointerEvent) => {
+      pointer.current = { x: e.clientX, y: e.clientY };
+    };
+    window.addEventListener('pointermove', onMove, { passive: true });
+    return () => window.removeEventListener('pointermove', onMove);
+  }, []);
 
   // Fly to a new perch every 15–40 s along a smooth arc (Req 8.3), staying near the visitor (Req 8.2).
   useEffect(() => {
@@ -138,8 +175,8 @@ export function DayBat() {
     }
   }
 
-  const facing = hover || looking ? 'toward' : 'away';
-  const glow = hover || looking;
+  const facing = awake ? 'toward' : 'away';
+  const glow = awake;
 
   return (
     <>
@@ -173,7 +210,8 @@ export function DayBat() {
           catchBat(x, y);
         }}
       >
-        <BatSvg pose={flying ? 'fly' : 'hang'} facing={flying ? 'away' : facing} eyes={glow} mouth={hover ? 'snarl' : 'open'} />
+        {/* Hanging: reached for, it opens its eyes and its mouth a little; otherwise lips shut over the fangs. */}
+        <BatSvg pose={flying ? 'fly' : 'hang'} facing={flying ? 'toward' : facing} eyes={flying || glow} mouth={flying ? 'snarl' : hover ? 'open' : 'closed'} />
       </button>
       {hand && <SkeletonHand x={hand.x} y={hand.y} />}
     </>

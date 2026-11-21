@@ -28,21 +28,16 @@ const HAUNTED_GREEDY = [
   'Greedy. They only owned one.',
 ];
 
-function greedy(name: string, haunted: boolean) {
+function greedy(id: ProductId, name: string, haunted: boolean) {
   const lines = haunted ? HAUNTED_GREEDY : DAY_GREEDY;
-  const body = lines[Math.floor(Math.random() * lines.length)] ?? lines[0] ?? '';
-  useUi.getState().showToast({
-    kind: 'greedy',
-    title: haunted ? 'No more.' : `Sold out: ${name}`,
-    body,
-    product: null,
-  });
-  useUi.getState().announce(`${haunted ? 'No more.' : 'No more in stock.'} ${body}`);
+  const text = lines[Math.floor(Math.random() * lines.length)] ?? lines[0] ?? '';
+  useUi.getState().showNote({ kind: 'greedy', text, product: id });
+  useUi.getState().announce(`${haunted ? 'No more.' : `No more ${name} in stock.`} ${text}`);
 }
 
 /**
- * Adds to the cart within the stock limit, then confirms it with a toast and the live region
- * (Requirement 6.1). Asking for more than exists gets a "greedy" message instead.
+ * Adds to the cart within the stock limit, then confirms it in a line under the Add button and
+ * in the live region (Requirement 6.1). Asking for more than exists gets a "greedy" line instead.
  */
 export function addToCart(id: ProductId, qty = 1) {
   const haunted = isHaunted();
@@ -50,18 +45,21 @@ export function addToCart(id: ProductId, qty = 1) {
   const name = haunted ? p.haunted.name : p.day.name;
   const have = useStory.getState().story.cart[id] ?? 0;
   const room = Math.max(0, limitFor(id, haunted) - have);
-  if (room === 0) return greedy(name, haunted);
+  if (room === 0) return greedy(id, name, haunted);
   const add = Math.min(qty, room);
   dispatch({ type: 'ADD_TO_CART', id, qty: add });
   const n = cartCount(useStory.getState().story.cart);
-  useUi.getState().showToast({
-    kind: 'added',
-    title: haunted ? 'It’s yours now.' : 'Added to your cart',
-    body: `${add} × ${name}`,
-    product: id,
-  });
+  const total = useStory.getState().story.cart[id] ?? add;
+  if (add < qty) {
+    greedy(id, name, haunted);
+  } else {
+    useUi.getState().showNote({
+      kind: 'added',
+      text: haunted ? 'It’s yours now.' : `${add} added. ${total} in your cart.`,
+      product: id,
+    });
+  }
   useUi.getState().announce(`Added ${add} × ${name} to your cart. ${n} ${n === 1 ? 'item' : 'items'} in cart.`);
-  if (add < qty) setTimeout(() => greedy(name, haunted), 1600);
 }
 
 /** Changes a cart line's quantity, refusing to go past the limit. */
@@ -69,7 +67,7 @@ export function setCartQty(id: ProductId, qty: number) {
   const haunted = isHaunted();
   if (qty > limitFor(id, haunted)) {
     const p = productById(id);
-    return greedy(haunted ? p.haunted.name : p.day.name, haunted);
+    return greedy(id, haunted ? p.haunted.name : p.day.name, haunted);
   }
   dispatch({ type: 'SET_QTY', id, qty });
 }

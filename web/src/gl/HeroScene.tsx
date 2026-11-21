@@ -4,13 +4,12 @@ import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFx } from '../fx/fxStore';
 import PhotoFrame from '../products/photo-frame/Model';
-import { SnowGlobe } from '../products/small/Models';
+import { SnowGlobe, TeddyBear } from '../products/small/Models';
 import { UnopenedGift } from '../products/small/TierA';
 import { useHaunted } from '../store';
 import { mat } from './decay';
 import { SceneEnv } from './env';
 import { M } from './materials';
-import { Ruins } from './Ruins';
 import { Shadow } from './Shadow';
 
 const needles = () =>
@@ -44,14 +43,15 @@ function Tree({ haunted }: { haunted: boolean }) {
         );
       })}
       {bulbs.map((b, i) => {
-        // After the Reveal most bulbs are dead; a few still glow, one flickers with the mains.
-        const alive = !haunted || i % 9 === 0;
+        // After the Reveal most bulbs are dead; the survivors burn blood red with the mains.
+        const alive = !haunted || i % 4 === 0;
+        const c = haunted ? '#ff2a14' : b.c;
         return (
           <mesh key={i} position={b.p}>
             <sphereGeometry args={[0.035, 10, 8]} />
             <meshStandardMaterial
-              color={alive ? b.c : '#2a2622'}
-              emissive={alive ? b.c : '#000000'}
+              color={alive ? c : '#2a2622'}
+              emissive={alive ? c : '#000000'}
               emissiveIntensity={alive ? (haunted ? 1.2 * mains : 2.4) : 0}
               roughness={0.3}
             />
@@ -142,8 +142,8 @@ function HeroContent() {
       <ambientLight intensity={haunted ? 0.08 : 0.35} color={haunted ? '#7d8fb8' : '#ffe8cf'} />
       <directionalLight position={[-3, 4, 4]} intensity={(haunted ? 0.6 : 2.2) * (haunted ? mains : 1)} color={haunted ? '#9fb3dd' : '#ffe2b5'} />
       <directionalLight position={[4, 2, -2]} intensity={haunted ? 0.5 : 1.1} color={haunted ? '#4d5f8e' : '#ffc78f'} />
-      {/* After the Reveal the wall behind the still life is gone: the ruined street shows through. */}
-      {haunted && <Ruins wide={wide} />}
+      {/* After the Reveal the ruined street (shop/world/HauntedWorld) shows behind; fire light from the right. */}
+      {haunted && <pointLight position={[3, -0.5, 2]} intensity={6} distance={9} color="#ff5a24" />}
       {/* Right half of the banner; the copy sits on the left. */}
       <group position={wide ? [Math.min(2.6, aspect * 0.78), 0.1, 0] : [0.1, -1.1, 0]} scale={wide ? 0.82 : 0.55}>
         <group position={[0.2, 0.15, -0.6]} scale={0.95}>
@@ -161,9 +161,17 @@ function HeroContent() {
         <group position={[2.0, -0.8, 0.8]} scale={0.6}>
           <SnowGlobe />
         </group>
-        <group position={[2.1, 1.05, -1]} scale={0.62} rotation-z={haunted ? -0.07 : 0}>
-          <PhotoFrame glass={false} />
-        </group>
+        {/* By day the family photo hangs on the wall; after the war there is no wall, and the
+            bear sits abandoned in the snow at the foot of the tree. */}
+        {haunted ? (
+          <group position={[-0.9, -0.95, 1.2]} scale={0.55} rotation={[0, 0.5, 0.25]}>
+            <TeddyBear />
+          </group>
+        ) : (
+          <group position={[2.1, 1.05, -1]} scale={0.62}>
+            <PhotoFrame glass={false} />
+          </group>
+        )}
         <group position-y={-1.4}>
           <Shadow y={0} scale={5} />
         </group>

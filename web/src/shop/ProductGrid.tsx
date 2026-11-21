@@ -1,4 +1,6 @@
-import { useMemo } from 'react';
+import { Fragment, useMemo } from 'react';
+import { PumpkinView } from '../gl/Pumpkin';
+import { hasWebGL2 } from '../gl/webgl';
 import { useHaunted, useStory, useUi } from '../store';
 import { Dialog } from './Dialog';
 import { Filters } from './Filters';
@@ -65,9 +67,17 @@ export function ProductGrid() {
         ) : (
           <ul className={`grid grid-${query.view}`} data-testid="product-grid">
             {rows.map((p) => (
-              <li key={p.id}>
-                <ProductCard p={p} />
-              </li>
+              <Fragment key={p.id}>
+                <li>
+                  <ProductCard p={p} />
+                </li>
+                {/* After the Reveal a candle burns in a pumpkin beside the bear. Not a product. */}
+                {haunted && p.id === 'teddy-bear' && query.view === 'grid' && hasWebGL2() && (
+                  <li className="grid-pumpkin" aria-hidden="true" data-testid="pumpkin">
+                    <PumpkinView />
+                  </li>
+                )}
+              </Fragment>
             ))}
           </ul>
         )}

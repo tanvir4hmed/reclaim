@@ -255,79 +255,15 @@
   gap: 6px;
 }
 
-.cart-toast {
-  position: fixed;
-  top: 96px;
-  right: 20px;
-  z-index: 40;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: min(380px, calc(100vw - 24px));
-  padding: 12px 12px 12px 14px;
+/* The pumpkin beside the bear after the Reveal: an empty grid cell, lit from inside. */
+.grid-pumpkin {
+  position: relative;
+  min-height: 300px;
   border-radius: 14px;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-left: 4px solid #2f7a45;
-  box-shadow: 0 18px 40px rgb(40 20 10 / 0.25);
-  animation: toastIn 0.35s var(--ease);
+  background: radial-gradient(ellipse at 50% 78%, rgb(255 110 30 / 0.16), transparent 60%);
 }
 
-.cart-toast-greedy {
-  border-left-color: var(--sale);
-}
-
-[data-state='haunted'] .cart-toast {
-  border-left-color: #8a1a22;
-  box-shadow: 0 18px 50px rgb(0 0 0 / 0.6);
-}
-
-@keyframes toastIn {
-  from { transform: translateY(-12px); opacity: 0; }
-}
-
-.cart-toast-text {
-  flex: 1;
-  min-width: 0;
-}
-
-.cart-toast-text p {
-  margin: 0;
-}
-
-.cart-toast-title {
-  font-weight: 700;
-}
-
-.cart-toast-body {
-  font-size: 13px;
-  color: var(--muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.cart-toast-mark {
-  width: 40px;
-  height: 40px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--sale);
-  color: var(--sale-ink);
-  font-weight: 800;
-  flex: none;
-}
-
-.cart-toast-view {
-  padding: 7px 12px;
-  font-size: 13px;
-  white-space: nowrap;
-}
-
-@media (max-width: 640px) {
-  .cart-toast {
-    top: auto;
-    bottom: 84px;
-    right: 12px;
-  }
+.pumpkin-view {
+  position: absolute;
+  inset: 0;
 }

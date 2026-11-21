@@ -1,0 +1,108 @@
+/* The haunted hero world: painted ruins behind the 3D still life (shop/world/HauntedWorld). */
+.haunted-world {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.world-paint {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Fires behind the ruins: soft glows that breathe unevenly. */
+.world-fire {
+  position: absolute;
+  bottom: 18%;
+  width: 34%;
+  height: 34%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 80%, rgb(255 110 30 / 0.45), rgb(200 50 20 / 0.12) 50%, transparent 70%);
+  mix-blend-mode: screen;
+  animation: fireBreath 3.1s ease-in-out infinite;
+}
+
+.world-fire-a { left: 40%; }
+.world-fire-b { left: 70%; width: 26%; animation-duration: 2.3s; animation-delay: -1s; }
+
+@keyframes fireBreath {
+  0%, 100% { opacity: 0.75; transform: scale(1, 1); }
+  30% { opacity: 1; transform: scale(1.04, 1.1); }
+  60% { opacity: 0.6; transform: scale(0.98, 0.95); }
+}
+
+/* Smoke drifting slowly across, over the city and under the moon. */
+.world-smoke {
+  position: absolute;
+  inset: -10% -40% 30% -10%;
+  background:
+    radial-gradient(40% 30% at 30% 40%, rgb(40 24 24 / 0.55), transparent 70%),
+    radial-gradient(35% 25% at 70% 30%, rgb(30 20 22 / 0.5), transparent 70%),
+    radial-gradient(30% 22% at 50% 60%, rgb(60 22 18 / 0.35), transparent 70%);
+  filter: blur(14px);
+  animation: smokeDrift 38s linear infinite;
+}
+
+@keyframes smokeDrift {
+  to { transform: translateX(-25%); }
+}
+
+.world-embers span {
+  position: absolute;
+  bottom: 8%;
+  border-radius: 50%;
+  background: #ff8a3a;
+  box-shadow: 0 0 6px 2px rgb(255 120 40 / 0.6);
+  opacity: 0;
+  animation-name: ember;
+  animation-timing-function: ease-out;
+  animation-iteration-count: infinite;
+}
+
+@keyframes ember {
+  0% { opacity: 0; transform: translate(0, 0); }
+  10% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--drift, 0), -320px); }
+}
+
+.world-sign {
+  position: absolute;
+  left: 38%;
+  bottom: 6%;
+  width: clamp(150px, 17vw, 240px);
+  filter: drop-shadow(0 8px 10px rgb(0 0 0 / 0.6));
+}
+
+/* Darken the left side so the hero copy stays readable over the world (WCAG AA). */
+.world-scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgb(6 4 5 / 0.9) 0%, rgb(6 4 5 / 0.7) 28%, rgb(6 4 5 / 0.1) 50%, transparent 60%),
+    linear-gradient(0deg, rgb(4 2 2 / 0.6), transparent 30%);
+}
+
+@media (max-width: 860px) {
+  .world-sign { left: auto; right: 4%; bottom: 3%; width: 130px; }
+  .world-scrim {
+    background: linear-gradient(180deg, rgb(6 4 5 / 0.85) 0%, rgb(6 4 5 / 0.55) 45%, transparent 70%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .world-fire,
+  .world-smoke,
+  .world-embers span {
+    animation: none;
+  }
+  .world-embers { display: none; }
+}
+
+[data-state='haunted'] .hero[data-live='true'],
+[data-state='haunted'] .hero {
+  background: #0a0606;
+}

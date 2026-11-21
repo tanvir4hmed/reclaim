@@ -5,6 +5,7 @@ import { HeroScene } from '../gl/HeroScene';
 import { hasWebGL2 } from '../gl/webgl';
 import { useStory } from '../store';
 import { useFx } from '../fx/fxStore';
+import { HauntedWorld } from './world/HauntedWorld';
 
 const BULBS = 14;
 
@@ -50,6 +51,7 @@ export function Hero() {
   const haunted = useHaunted();
   return (
     <section className="hero" aria-labelledby="hero-title" data-live={hasWebGL2()}>
+      {haunted && <HauntedWorld />}
       <div className="hero-scene" aria-hidden="true">
         {hasWebGL2() && <HeroScene />}
         <ul className="bulbs">

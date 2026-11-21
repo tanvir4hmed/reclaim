@@ -1,0 +1,44 @@
+/* The line under Add to cart (Requirement 6.1): confirmation, greedy refusal, or "you have it". */
+.cart-note {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+.cart-note-added {
+  color: #2f7a45;
+  font-weight: 600;
+  animation: noteIn 0.3s var(--ease);
+}
+
+.cart-note-greedy {
+  color: var(--sale);
+  font-weight: 600;
+  animation: noteIn 0.3s var(--ease), noteShake 0.4s steps(4) 0.05s;
+}
+
+[data-state='haunted'] .cart-note-added {
+  color: #c9a96a;
+}
+
+[data-state='haunted'] .cart-note-greedy {
+  color: #e0626a;
+  font-style: italic;
+}
+
+@keyframes noteIn {
+  from { opacity: 0; transform: translateY(-4px); }
+}
+
+@keyframes noteShake {
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cart-note-added,
+  .cart-note-greedy {
+    animation: none;
+  }
+}

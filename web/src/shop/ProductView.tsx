@@ -10,6 +10,7 @@ import { CloseIcon, EyeIcon, GiftIcon, HeartIcon, ShieldIcon, TruckIcon } from '
 import { ObjectBox } from './ObjectBox';
 import { Rating } from './ProductCard';
 import { Stepper } from './Stepper';
+import { CartNoteLine } from './Toast';
 import { LargeView } from './Inspection';
 import { currentSearch } from './useQuery';
 import { HauntedProductNotes } from '../fx/Haunts';
@@ -94,6 +95,7 @@ export function ProductView() {
           >
             {haunted ? 'Take it' : 'Add to cart'}
           </button>
+          <CartNoteLine id={p.id} haunted={haunted} />
           <div className="pv-row">
             <button type="button" className="btn btn-outline btn-grow" data-testid="pv-inspect" aria-pressed={inspecting} onClick={() => setInspecting((v) => !v)}>
               <EyeIcon /> {inspecting ? 'Stop inspecting' : 'Inspect'}
