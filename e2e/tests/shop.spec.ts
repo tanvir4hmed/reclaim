@@ -59,3 +59,13 @@ test('works by keyboard alone: search, open a product, add it', async ({ page },
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('cart-icon')).toHaveAccessibleName(/1 item/);
 });
+
+test('Add to cart is confirmed, and stock limits answer back (Req 6.1)', async ({ page }) => {
+  await add(page, 'candle');
+  await expect(page.getByTestId('toast-added')).toContainText('Added to your cart');
+  // The pocket watch says "Only 1 left": a second one is refused.
+  await add(page, 'pocket-watch');
+  await add(page, 'pocket-watch');
+  await expect(page.getByTestId('toast-greedy')).toBeVisible();
+  await expect(page.getByTestId('cart-icon')).toHaveAccessibleName(/2 items/);
+});

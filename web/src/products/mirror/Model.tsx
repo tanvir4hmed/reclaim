@@ -20,35 +20,62 @@ function drawReflection(g: CanvasRenderingContext2D, w: number, h: number, haunt
     g.fillRect(w * 0.18, h * 0.2, w * 0.25, h * 0.32);
     return;
   }
-  // The figure, back turned (Req 18.2). `head` turns it a little toward the visitor.
-  g.fillStyle = 'rgba(8,8,10,0.85)';
+  // A woman's shadow, back turned, only half there (Req 18.2). Soft edges, long hair,
+  // narrow shoulders, a long dress; `head` turns her face a little toward the visitor.
+  const cx = w * 0.5 + head * w * 0.02;
+  const fog = g.createRadialGradient(cx, h * 0.5, 4, cx, h * 0.55, w * 0.6);
+  fog.addColorStop(0, 'rgba(70,80,105,0.35)');
+  fog.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = fog;
+  g.fillRect(0, 0, w, h);
+  const strength = 0.55 + face * 0.4;
+  g.save();
+  g.filter = `blur(${Math.round(7 - face * 5)}px)`;
+  g.globalAlpha = strength;
+  g.fillStyle = '#050506';
   g.beginPath();
-  g.moveTo(w * 0.28, h);
-  g.quadraticCurveTo(w * 0.3, h * 0.55, w * 0.5, h * 0.52);
-  g.quadraticCurveTo(w * 0.7, h * 0.55, w * 0.72, h);
+  // dress, flaring to the floor
+  g.moveTo(cx - w * 0.1, h * 0.52);
+  g.bezierCurveTo(cx - w * 0.16, h * 0.72, cx - w * 0.26, h * 0.9, cx - w * 0.3, h * 1.02);
+  g.lineTo(cx + w * 0.3, h * 1.02);
+  g.bezierCurveTo(cx + w * 0.26, h * 0.9, cx + w * 0.16, h * 0.72, cx + w * 0.1, h * 0.52);
+  // shoulders and neck
+  g.bezierCurveTo(cx + w * 0.14, h * 0.46, cx + w * 0.12, h * 0.4, cx + w * 0.05, h * 0.38);
+  g.lineTo(cx - w * 0.05, h * 0.38);
+  g.bezierCurveTo(cx - w * 0.12, h * 0.4, cx - w * 0.14, h * 0.46, cx - w * 0.1, h * 0.52);
+  g.fill();
+  // head, tilted a little; long hair falling over the shoulders
+  g.beginPath();
+  g.ellipse(cx, h * 0.3, w * 0.075, h * 0.07, head * 0.15, 0, Math.PI * 2);
   g.fill();
   g.beginPath();
-  g.ellipse(w * 0.5 + head * w * 0.03, h * 0.42, w * 0.11, h * 0.11, 0, 0, Math.PI * 2);
+  g.moveTo(cx - w * 0.08, h * 0.28);
+  g.bezierCurveTo(cx - w * 0.13, h * 0.38, cx - w * 0.1, h * 0.5, cx - w * 0.12, h * 0.6);
+  g.lineTo(cx + w * 0.12, h * 0.6);
+  g.bezierCurveTo(cx + w * 0.1, h * 0.5, cx + w * 0.13, h * 0.38, cx + w * 0.08, h * 0.28);
   g.fill();
+  g.restore();
   if (face > 0) {
-    // The face rising out of the glass: blurred, then sharp (Req 18.3).
+    // She has come forward and is looking out: no face, just two pale glints in the dark (Req 18.3).
     g.save();
-    g.filter = `blur(${Math.round((1 - face) * 10)}px)`;
-    g.globalAlpha = 0.2 + face * 0.75;
-    const s = 0.6 + face * 0.6;
-    g.fillStyle = '#d9d3c7';
-    g.beginPath();
-    g.ellipse(w * 0.5, h * 0.42, w * 0.12 * s, h * 0.14 * s, 0, 0, Math.PI * 2);
-    g.fill();
-    g.fillStyle = '#0b0b0d';
-    for (const dx of [-0.045, 0.045]) {
+    g.filter = 'blur(1.2px)';
+    g.globalAlpha = Math.min(1, face * 1.1);
+    g.fillStyle = '#cfd6e6';
+    for (const dx of [-0.028, 0.028]) {
       g.beginPath();
-      g.ellipse(w * (0.5 + dx * s), h * 0.4, w * 0.022 * s, h * 0.03 * s, 0, 0, Math.PI * 2);
+      g.ellipse(cx + w * dx, h * 0.3, w * 0.011, h * 0.006, 0, 0, Math.PI * 2);
       g.fill();
     }
-    g.fillRect(w * (0.5 - 0.03 * s), h * (0.47 + 0.02 * s), w * 0.06 * s, h * 0.01);
     g.restore();
   }
+  // Old silvering: dark speckles and a tarnished rim over everything.
+  g.fillStyle = 'rgba(20,18,16,0.35)';
+  for (let i = 0; i < 140; i++) g.fillRect((i * 73) % w, (i * 151) % h, 1 + (i % 3), 1);
+  const rim = g.createRadialGradient(w / 2, h / 2, w * 0.25, w / 2, h / 2, w * 0.75);
+  rim.addColorStop(0, 'rgba(0,0,0,0)');
+  rim.addColorStop(1, 'rgba(10,9,8,0.75)');
+  g.fillStyle = rim;
+  g.fillRect(0, 0, w, h);
 }
 
 /** Gilded hall mirror with a delayed, occupied reflection (Requirement 18). */

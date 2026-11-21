@@ -1,6 +1,8 @@
 import { useHaunted } from '../store';
 import { scrollToGrid } from './Header';
 import { HeroEcho } from '../fx/Extras';
+import { HeroScene } from '../gl/HeroScene';
+import { hasWebGL2 } from '../gl/webgl';
 import { useStory } from '../store';
 import { useFx } from '../fx/fxStore';
 
@@ -47,8 +49,9 @@ function GroupPhoto({ haunted }: { haunted: boolean }) {
 export function Hero() {
   const haunted = useHaunted();
   return (
-    <section className="hero" aria-labelledby="hero-title">
+    <section className="hero" aria-labelledby="hero-title" data-live={hasWebGL2()}>
       <div className="hero-scene" aria-hidden="true">
+        {hasWebGL2() && <HeroScene />}
         <ul className="bulbs">
           {Array.from({ length: BULBS }, (_, i) => (
             <li key={i} className="bulb" data-bulb={i} style={{ ['--i' as string]: i }} />

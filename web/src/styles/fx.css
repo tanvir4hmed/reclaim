@@ -61,23 +61,23 @@
 .day-bat,
 .haunted-bat {
   position: absolute;
-  width: 64px;
-  height: 40px;
   padding: 0;
   border: 0;
   background: none;
-  transition: left 1.1s cubic-bezier(0.5, -0.4, 0.4, 1.4), top 1.1s cubic-bezier(0.3, -0.8, 0.6, 1.2);
 }
 
 .haunted-bat {
-  width: 52px;
-  height: 32px;
+  width: 54px;
+  height: 80px;
   pointer-events: none;
+  transition: left 1.6s cubic-bezier(0.45, 0, 0.3, 1), top 1.6s cubic-bezier(0.3, -0.6, 0.5, 1.2);
 }
 
 .day-bat {
   cursor: none;
   z-index: 5;
+  /* A thin warm rim from the shop lights, so the dark silhouette reads on the red hero. */
+  filter: drop-shadow(0 0 1px rgb(255 226 190 / 0.55)) drop-shadow(0 6px 6px rgb(0 0 0 / 0.35));
 }
 
 .day-bat:focus-visible {
@@ -90,82 +90,188 @@
   overflow: visible;
 }
 
-.bat-hang {
+.bat .membrane {
+  stroke: #0b0706;
+  stroke-width: 0.8;
+}
+
+.bat .veins {
+  fill: none;
+  stroke: #6b4234;
+  stroke-opacity: 0.45;
+  stroke-width: 0.7;
+}
+
+.bat .bone-wing {
+  fill: none;
+  stroke: #120c0a;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+
+.bat .bone-wing.thin {
+  stroke-width: 1.2;
+}
+
+.bat .joint {
+  fill: #1a1210;
+}
+
+.bat .claw {
+  fill: none;
+  stroke: #cbbfa8;
+  stroke-width: 1.1;
+  stroke-linecap: round;
+}
+
+.bat .leg {
+  fill: none;
+  stroke: #120c0a;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+/* Hanging: drawn upright, flipped so the feet grip the perch. */
+.bat-hang .bat-rig {
   transform: rotate(180deg);
-  transform-origin: 50% 0;
-}
-
-.bat-hang .wing {
-  transform: scaleX(0.28);
-  transform-box: fill-box;
-}
-
-.bat-hang .wing-left {
-  transform-origin: right center;
-}
-
-.bat-hang .wing-right {
-  transform-origin: left center;
-}
-
-.bat-hang {
-  animation: batBreath 4s ease-in-out infinite;
+  transform-origin: 0 0;
+  animation: batBreath 4.5s ease-in-out infinite;
 }
 
 @keyframes batBreath {
-  50% { transform: rotate(180deg) scaleY(1.04); }
+  50% { transform: rotate(180deg) scale(1.012, 1.03); }
 }
 
-.is-hovered .bat-hang {
-  animation: none;
+/* Sway a little on the perch, like a real roosting bat. */
+.day-bat:not(.is-flying) .bat-hang {
+  animation: roostSway 6s ease-in-out infinite;
+  transform-origin: 50% 0;
 }
 
-.is-hovered .bat-ears {
-  animation: twitch 0.6s steps(2) infinite;
+@keyframes roostSway {
+  50% { transform: rotate(2.5deg); }
+}
+
+/* The head turns to the screen: a quick, slightly stuttered turn. */
+.bat-toward .bat-head {
+  animation: headTurn 0.38s steps(4) both;
+  transform-box: fill-box;
+  transform-origin: 50% 80%;
+}
+
+@keyframes headTurn {
+  from { transform: rotate(-28deg) scaleX(0.4); }
+  to { transform: none; }
+}
+
+.bat-ear {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+.is-hovered .bat-ear,
+.is-looking .bat-ear {
+  animation: twitch 0.5s steps(2) infinite;
 }
 
 @keyframes twitch {
-  50% { transform: rotate(6deg); }
+  50% { transform: rotate(7deg); }
 }
 
-.bat-fly .wing {
-  transform-box: fill-box;
-  animation: flap 0.18s ease-in-out infinite alternate;
+/* The mouth is alive: the jaw drops and closes; snarling it shows the fangs wide. */
+.bat-mouth .bat-jaw,
+.bat-mouth .fang,
+.bat-mouth .throat {
+  transform-box: view-box;
 }
 
-.bat-fly .wing-left {
-  transform-origin: right center;
+.mouth-open .bat-jaw,
+.mouth-open .throat {
+  animation: jaw 3.4s ease-in-out infinite;
 }
 
-.bat-fly .wing-right {
-  transform-origin: left center;
+.mouth-snarl .bat-jaw,
+.mouth-snarl .throat {
+  animation: jawSnarl 0.9s ease-in-out infinite;
 }
 
-@keyframes flap {
-  from { transform: scaleY(1) rotate(-12deg); }
-  to { transform: scaleY(-0.45) rotate(10deg); }
+@keyframes jaw {
+  0%, 60%, 100% { transform: translateY(0); }
+  70%, 82% { transform: translateY(3px); }
 }
 
-.bat-eye {
-  fill: #2a1a14;
+@keyframes jawSnarl {
+  0%, 100% { transform: translateY(2.2px); }
+  50% { transform: translateY(4.6px); }
 }
 
 .bat-eye.glow {
-  fill: #ffb347;
-  filter: drop-shadow(0 0 3px #ff7a1a);
+  animation: eyeFlare 1.8s ease-in-out infinite;
 }
 
-.reaching-hand {
+@keyframes eyeFlare {
+  50% { opacity: 0.78; }
+}
+
+/* Flying: wings beat from the shoulder, the body bobs, the whole bat banks into turns. */
+.bat-fly .wing {
+  transform-box: view-box;
+  transform-origin: 0 -6px;
+  animation: flap 0.24s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+}
+
+.bat-fly .wing-left {
+  animation-name: flapL;
+}
+
+.bat-fly .wing-right {
+  animation-name: flapR;
+}
+
+@keyframes flapL {
+  from { transform: rotate(-16deg) scaleY(1.05); }
+  to { transform: rotate(34deg) scaleY(0.55) scaleX(0.92); }
+}
+
+@keyframes flapR {
+  from { transform: rotate(16deg) scaleY(1.05); }
+  to { transform: rotate(-34deg) scaleY(0.55) scaleX(0.92); }
+}
+
+.bat-fly .bat-body {
+  animation: bob 0.24s ease-in-out infinite alternate;
+}
+
+@keyframes bob {
+  to { transform: translateY(4px); }
+}
+
+.day-bat.is-flying {
+  transform: rotate(var(--bank, 0deg));
+}
+
+.skeleton-hand {
   position: fixed;
-  z-index: 60;
-  width: 42px;
-  height: 52px;
+  z-index: 75;
+  width: 54px;
+  height: 74px;
   pointer-events: none;
-  transition: transform 0.2s;
+  filter: drop-shadow(0 3px 3px rgb(0 0 0 / 0.45));
+  transform-origin: 36% 4%;
+  animation: handReach 0.25s ease-out;
 }
 
-.reaching-hand.closed {
-  transform: scale(0.85, 0.7);
+@keyframes handReach {
+  from { transform: translateY(8px) scale(0.9); opacity: 0; }
+}
+
+.skeleton-hand.closed {
+  animation: handGrab 0.18s cubic-bezier(0.5, 0, 0.8, 1.6) both;
+}
+
+@keyframes handGrab {
+  from { transform: scale(1.12) rotate(-6deg); }
+  to { transform: scale(1) rotate(0deg); }
 }
 
 .darkness {
@@ -184,46 +290,57 @@
   pointer-events: none;
 }
 
+.lunge-shade {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: 0;
+}
+
 .lunge-bat {
   position: absolute;
-  left: 50%;
-  top: 45%;
-  width: 120px;
-  height: 80px;
-  transform: translate(-50%, -50%);
-  transition: transform 0.5s cubic-bezier(0.7, 0, 0.9, 0.4);
+  left: 0;
+  top: 0;
+  aspect-ratio: 244 / 152;
+  margin-left: calc(var(--w, 0px) * -0.5);
+  translate: -50% -50%;
+  will-change: transform;
 }
 
-.lunge-turn .lunge-bat {
-  animation: jerk 0.48s steps(3);
+.lunge-grab .lunge-bat {
+  animation: caughtShake 0.42s steps(6);
 }
 
-@keyframes jerk {
-  33% { transform: translate(-50%, -50%) rotate(-14deg); }
-  66% { transform: translate(-48%, -52%) rotate(9deg) scale(1.08); }
+@keyframes caughtShake {
+  50% { rotate: 6deg; }
 }
 
-.lunge-lunge .lunge-bat {
-  transform: translate(-50%, -50%) scale(18);
+.lunge-turn .lunge-bat .bat-rig {
+  /* Head jerks round: the hanging bat swings upright to face the visitor. */
+  animation: jerkUp 0.5s cubic-bezier(0.6, -0.4, 0.4, 1.4) both;
 }
 
-.lunge-dark,
-.lunge-release {
-  background: #000;
+@keyframes jerkUp {
+  from { transform: rotate(180deg); }
+  to { transform: none; }
+}
+
+.lunge-dark .lunge-shade,
+.lunge-release .lunge-shade {
+  opacity: 1;
 }
 
 .lunge-dark .lunge-bat,
 .lunge-release .lunge-bat {
-  transform: translate(-50%, -50%) scale(24);
-  opacity: 0.9;
+  display: none;
 }
 
 .lunge-release {
-  animation: release 0.65s ease-out forwards;
+  animation: release 0.55s ease-out forwards;
 }
 
 @keyframes release {
-  to { opacity: 0; transform: scale(1.4); }
+  to { opacity: 0; }
 }
 
 .dark-events {
@@ -444,7 +561,7 @@
   top: 52%;
   width: min(46vw, 360px);
   transform: translate(-50%, -50%);
-  animation: ghostRise 3.5s ease-out both;
+  animation: ghostRise 1.3s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 @keyframes ghostRise {
@@ -452,7 +569,6 @@
 }
 
 .ghost-cloth {
-  fill: #f4f1ea;
   stroke: #c9c1b2;
   stroke-width: 1;
 }
@@ -462,7 +578,7 @@
 }
 
 .sheet-ghost:not(.empty) .ghost-cloth {
-  animation: hemLift 4s ease-in 1s both;
+  animation: hemLift 2.2s ease-in 0.5s both;
 }
 
 @keyframes hemLift {

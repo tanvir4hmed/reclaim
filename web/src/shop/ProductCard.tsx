@@ -4,7 +4,7 @@ import { currentSearch } from './useQuery';
 import type { ProductMeta } from '../products/catalog';
 import { useFx } from '../fx/fxStore';
 import { useHaunted, useUi } from '../store';
-import { addToCart } from './cartActions';
+import { addToCart, limitFor } from './cartActions';
 import { discountPercent, priceLabel, money } from './format';
 import { CartIcon, HeartIcon } from './icons';
 import { ObjectBox } from './ObjectBox';
@@ -87,7 +87,7 @@ export function ProductCard({ p }: { p: ProductMeta }) {
           )}
         </p>
         <div className="card-actions">
-          <Stepper value={qty} onChange={setQty} label={`Quantity for ${copy.name}`} />
+          <Stepper value={qty} onChange={setQty} label={`Quantity for ${copy.name}`} max={limitFor(p.id, haunted)} />
           <button
             type="button"
             className="btn btn-primary btn-cart"

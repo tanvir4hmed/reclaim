@@ -6,6 +6,7 @@ import { CartIcon, CloseIcon, TrashIcon } from './icons';
 import { ObjectBox } from './ObjectBox';
 import { cartLines, cartTotal } from './query';
 import { Stepper } from './Stepper';
+import { limitFor, setCartQty } from './cartActions';
 import { CallPanel } from '../fx/CallPanel';
 
 export function CartDrawer() {
@@ -48,7 +49,7 @@ export function CartDrawer() {
                   <div className="cart-line-info">
                     <p className="cart-line-name">{name}</p>
                     <p className="cart-line-price">{haunted ? p.haunted.price : totalLabel(p.day.price, false)}</p>
-                    <Stepper value={qty} onChange={(n) => dispatch({ type: 'SET_QTY', id: p.id, qty: n })} label={`Quantity for ${name}`} />
+                    <Stepper value={qty} onChange={(n) => setCartQty(p.id, n)} label={`Quantity for ${name}`} max={limitFor(p.id, haunted)} />
                   </div>
                   <button
                     type="button"

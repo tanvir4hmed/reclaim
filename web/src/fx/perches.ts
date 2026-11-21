@@ -12,7 +12,9 @@ export function perchSpot(id: string, seed = 0.5): PerchSpot | null {
   const r = el.getBoundingClientRect();
   if (r.width === 0 && r.height === 0) return null;
   // Hang from the top edge, inset so the bat never covers prices or buttons at the sides.
-  const x = r.left + window.scrollX + r.width * (0.2 + 0.6 * seed);
+  // Category tiles centre their icon and text, so a bat there hangs from a corner instead.
+  const frac = id.startsWith('tile-') ? (seed < 0.5 ? 0.1 : 0.9) : 0.2 + 0.6 * seed;
+  const x = r.left + window.scrollX + r.width * frac;
   const y = r.top + window.scrollY + 2;
   return { id, x, y };
 }

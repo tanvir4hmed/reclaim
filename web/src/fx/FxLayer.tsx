@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { skipClosing } from '../director/sequences';
+import { BatDefs } from './BatSvg';
 import { ClosingTime } from './ClosingTime';
 import { CrawlingHand } from './CrawlingHand';
 import { DayBat } from './DayBat';
@@ -16,6 +17,7 @@ export function FxLayer() {
   const onSkip = useCallback(() => skipClosing(), []);
   return (
     <>
+      <BatDefs />
       <div className="page-layer" aria-hidden={false}>
         <Decals />
         <HauntedBats />

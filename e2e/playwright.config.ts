@@ -5,8 +5,10 @@ const port = 5173;
 export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
-  // Live 3D in every card is heavy; two workers keep the dev server and GPU emulation responsive.
-  workers: process.env.CI ? 1 : 2,
+  // Headless Chromium renders the live 3D in software (SwiftShader). With the 3D hero and the
+  // generated surface textures, two parallel pages starve each other's timers and the Reveal
+  // misses its deadline, so run one page at a time everywhere.
+  workers: process.env.PW_WORKERS ? Number(process.env.PW_WORKERS) : 1,
   timeout: 60_000,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,

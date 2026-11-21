@@ -13,6 +13,10 @@ interface FxStore {
   batPerch: string;
   batFlying: boolean;
   batHover: boolean;
+  /** Where the bat was when caught (viewport px) and its width; the lunge starts there. */
+  catchFrom: { x: number; y: number; w: number } | null;
+  /** Where the skeletal hand closed. */
+  catchHand: { x: number; y: number } | null;
   /** Early sign currently showing in the Day state. */
   sign: 'none' | 'bulb' | 'tilt' | 'shadow';
   prints: Print[];
@@ -37,6 +41,8 @@ export const useFx = create<FxStore>((set) => ({
   batPerch: 'hero-lantern',
   batFlying: false,
   batHover: false,
+  catchFrom: null,
+  catchHand: null,
   sign: 'none',
   prints: [],
   cartRinging: false,

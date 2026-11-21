@@ -1,9 +1,11 @@
 import { drawGroup, useCanvasTexture } from '../../gl/canvasTex';
 import { M } from '../../gl/materials';
 import { useHaunted, useStory } from '../../store';
+import type { ModelProps } from '../models';
 
 /** Same group, same pose; the middle one gone after the Reveal; room made for one more (Req 19). */
-export default function PhotoFrame() {
+/** `glass` off in the hero, where the pane read as a white sheet in the dark. */
+export default function PhotoFrame({ glass = true }: ModelProps & { glass?: boolean }) {
   const haunted = useHaunted();
   const played = useStory((s) => s.story.played['photo-frame'] === true);
   const closing = useStory((s) => s.story.closingPlayed);
@@ -32,9 +34,11 @@ export default function PhotoFrame() {
         <planeGeometry args={[1.32, 0.98]} />
         <meshStandardMaterial map={tex} roughness={0.35} />
       </mesh>
-      <mesh material={M.glass()} position-z={0.075}>
-        <planeGeometry args={[1.34, 1]} />
-      </mesh>
+      {glass && (
+        <mesh material={M.glass()} position-z={0.075}>
+          <planeGeometry args={[1.34, 1]} />
+        </mesh>
+      )}
       <mesh material={M.woodLight()} position={[0, -0.4, -0.3]} rotation-x={0.5}>
         <boxGeometry args={[0.2, 0.9, 0.04]} />
       </mesh>

@@ -20,11 +20,23 @@ export async function catchBat(page: Page, info: TestInfo, via: 'pointer' | 'key
     await bat.tap();
   } else {
     await bat.hover();
-    await expect(page.locator('.reaching-hand')).toBeVisible();
+    await expect(page.getByTestId('skeleton-hand')).toBeVisible();
     await bat.click();
   }
-  await expect(page.locator('html')).toHaveAttribute('data-state', 'haunted', { timeout: 10_000 });
-  await expect(page.getByTestId('lunge')).toHaveCount(0, { timeout: 10_000 });
+  // The Reveal takes under 4 s on a real GPU; software WebGL in CI is far slower.
+  try {
+    await expect(page.locator('html')).toHaveAttribute('data-state', 'haunted', { timeout: 20_000 });
+  } catch (e) {
+    const why = await page.evaluate(() => ({
+      lunge: document.querySelector('[data-testid="lunge"]')?.className ?? 'none',
+      bat: !!document.querySelector('[data-testid="day-bat"]'),
+      phase: localStorage.getItem('reclaim:v1')?.match(/"phase":"(\w+)"/)?.[1] ?? 'unsaved',
+      dialog: document.querySelector('dialog[open]')?.getAttribute('aria-label') ?? document.querySelector('dialog[open]')?.id ?? 'none',
+      hidden: document.hidden,
+    }));
+    throw new Error(`Reveal did not finish: ${JSON.stringify(why)}\n${String(e)}`);
+  }
+  await expect(page.getByTestId('lunge')).toHaveCount(0, { timeout: 15_000 });
 }
 
 export async function add(page: Page, id: string) {

@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router';
 import { isProductId } from '../core/ids';
 import { categoryById, productById } from '../products/catalog';
 import { useHaunted, useUi } from '../store';
-import { addToCart } from './cartActions';
+import { addToCart, limitFor } from './cartActions';
 import { Dialog } from './Dialog';
 import { discountPercent, money, priceLabel } from './format';
 import { CloseIcon, EyeIcon, GiftIcon, HeartIcon, ShieldIcon, TruckIcon } from './icons';
@@ -82,7 +82,7 @@ export function ProductView() {
           </p>
           {!haunted && p.day.stock !== undefined && <p className="stock">Only {p.day.stock} left. 9 people have this in their basket.</p>}
           {haunted && <p className="stock">1 person is standing behind you.</p>}
-          <Stepper value={qty} onChange={setQty} label="Quantity" />
+          <Stepper value={qty} onChange={setQty} label="Quantity" max={limitFor(p.id, haunted)} />
           <button
             type="button"
             className="btn btn-primary btn-block"

@@ -45,6 +45,13 @@ _(which requirements, what it caught)_
     3. A quick second tap on the bat read stale React state. The tap handler now reads the store.
   - **React Compiler lint rules (react-hooks 7):** they flagged refs written during render, setState in effects, `Math.random` in render and hook-value mutation. Each was refactored rather than silenced.
 
+- 2026-11-21, realism and feedback round (Kiro IDE agent, same blanket permission). Tanvir reviewed the build and asked for realistic objects, a scarier bat, a skeleton-hand cursor, clear cart confirmation and stock limits, a single fast checkout ghost and a shadow lady in the mirror. What the agent did and found:
+  - **Code-only realism:** generated surface textures (wood grain, leather, knit, fur, paper, metal, ceramic, wax) feed the shared material factory, and the hero became a live 3D still life. After the Reveal a procedural ruined street (seeded skyline with window holes, a moon, a fire glow) stands behind it. No photos or third-party models.
+  - **Screenshot review caught layout bugs:** the first ruined skyline ran behind the hero copy and made the subtitle unreadable, because the shared canvas paints over the DOM. The skyline now starts right of the copy. When the hanging bat was flipped, its legs read as rabbit ears; the wings were redrawn to wrap the body. A haunted bat hung over a category title; tiles now use corner perches.
+  - **Flaky e2e diagnosed instead of retried:** catches failed only in full runs. A probe test showed the Reveal completes in about 2.5 s on its own; with two parallel workers, software WebGL starved the timers. The suite now runs one worker, and if the Reveal ever stalls, the failure message reports the lunge step and saved phase.
+  - **New e2e coverage:** the "Added to your cart" toast, and the "greedy" refusal past the stock limit, by day and after the Reveal.
+  - **Sub-agents:** while the agent's shell was busy with a long Playwright run, it delegated polling of the log and screenshot files to a sub-agent limited to file reads.
+
 ## Agent hooks
 
 - `.kiro/hooks/core-property-tests.json` (PostFileSave on `web/src/core` and the Director's pure modules): runs the core and Director property tests on save.

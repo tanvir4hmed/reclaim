@@ -23,11 +23,13 @@ test.describe('visual capture', () => {
     const bat = page.getByTestId('day-bat');
     await expect(bat).toBeVisible();
     await bat.hover();
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(500);
     await page.screenshot({ path: name('4-hover') });
     await bat.click();
-    await page.waitForTimeout(1300);
-    await page.screenshot({ path: name('5-lunge') });
+    // Rapid low-cost frames through the catch and lunge.
+    for (let i = 0; i < 10; i++) {
+      await page.screenshot({ path: name(`5-catch-${i}`), type: 'jpeg', quality: 45, scale: 'css' });
+    }
     await page.waitForTimeout(3500);
     await page.screenshot({ path: name('6-haunted') });
     await page.locator('#shop').scrollIntoViewIfNeeded();

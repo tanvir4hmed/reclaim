@@ -91,3 +91,11 @@ test('checkout: closing time, decline, accept, ending and echo (Req 22, 23, 38)'
   await expect(page.getByRole('heading', { name: 'Receipt' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Confirmshaming' })).toBeVisible();
 });
+
+test('after the Reveal there is only one of each, and asking for more is greedy', async ({ page }, info) => {
+  await catchBat(page, info);
+  await add(page, 'candle');
+  await expect(page.getByTestId('toast-added')).toContainText('yours now');
+  await add(page, 'candle');
+  await expect(page.getByTestId('toast-greedy')).toContainText(/greedy|only ever one|already/i);
+});

@@ -68,22 +68,38 @@ export function useHaunted(): boolean {
   return useStory((s) => isHauntedPhase(s.story.phase) || s.story.phase === 'accepted');
 }
 
+export interface Toast {
+  id: number;
+  kind: 'added' | 'greedy';
+  title: string;
+  body: string;
+  product: string | null;
+}
+
 interface UiStore {
   cartOpen: boolean;
   filtersOpen: boolean;
   announcement: string;
   wishlist: string[];
+  toast: Toast | null;
   setCartOpen: (open: boolean) => void;
   setFiltersOpen: (open: boolean) => void;
   announce: (text: string) => void;
   toggleWish: (id: string) => void;
+  showToast: (t: Omit<Toast, 'id'>) => void;
+  hideToast: () => void;
 }
+
+let toastSeq = 0;
 
 export const useUi = create<UiStore>((set) => ({
   cartOpen: false,
   filtersOpen: false,
   announcement: '',
   wishlist: [],
+  toast: null,
+  showToast: (t) => set({ toast: { ...t, id: ++toastSeq } }),
+  hideToast: () => set({ toast: null }),
   setCartOpen: (cartOpen) => set({ cartOpen }),
   setFiltersOpen: (filtersOpen) => set({ filtersOpen }),
   // Clearing first makes screen readers repeat identical messages.

@@ -8,6 +8,9 @@ import { nav } from './bridge';
 import { sendEcho } from './echo';
 import { playLight, reducedMotion, wait } from './runtime';
 
+/** Length of the lunge from the bat's size to full screen (kept in step with CatchLunge). */
+export const LUNGE_MS = 1350;
+
 function tweenDecay(to: number, seconds: number): Promise<void> {
   return new Promise((resolve) => {
     glBus.revealing = true;
@@ -38,20 +41,23 @@ export async function revealSequence(): Promise<void> {
     await wait(700);
     set({ catchStep: 'none' });
   } else {
+    // The bony fist closes on the bat, its head jerks round to face the screen, then it flies
+    // straight at the visitor, growing smoothly from its own size until its wings blot out
+    // the whole screen. The Reveal happens in that dark.
     set({ catchStep: 'grab' });
     await wait(420);
     set({ catchStep: 'turn' });
-    await wait(480);
-    set({ catchStep: 'lunge' });
     await wait(520);
+    set({ catchStep: 'lunge' });
+    await wait(LUNGE_MS);
     set({ catchStep: 'dark', mains: 0.2 });
-    const decay = tweenDecay(1, 1.1);
-    await wait(500);
+    const decay = tweenDecay(1, 0.9);
+    await wait(350);
     dispatch({ type: 'REVEAL_DONE' });
     await decay;
     set({ catchStep: 'release', mains: 1 });
-    await wait(650);
-    set({ catchStep: 'none' });
+    await wait(550);
+    set({ catchStep: 'none', catchFrom: null, catchHand: null });
   }
   useUi.getState().announce('The lights have changed.');
 }
@@ -73,37 +79,23 @@ export async function closingSequence(): Promise<void> {
     set({ closingStep: 'power' });
     await playLight(
       [
-        { t: 0, level: 0.85 },
-        { t: 600, level: 0.65 },
-        { t: 1400, level: 0.45 },
-        { t: 2200, level: 0.3 },
-        { t: 2700, level: 0 },
+        { t: 0, level: 0.7 },
+        { t: 350, level: 0.4 },
+        { t: 800, level: 0.12 },
       ],
       s,
     );
     if (s.aborted) return;
-    set({ closingStep: 'eyes', mains: 0 });
-    await wait(reduced ? 1500 : 4000, s);
-    if (s.aborted) return;
-    set({ mains: 0.55 });
-    await wait(250, s);
-    set({ mains: 0.25 });
-    await wait(300, s);
-    set({ closingStep: 'sheets', mains: 0.75 });
-    await wait(reduced ? 1500 : 3500, s);
-    if (s.aborted) return;
-    set({ closingStep: 'turn' });
-    await wait(reduced ? 1500 : 5000, s);
-    if (s.aborted) return;
-    set({ closingStep: 'ghost', mains: 0.5 });
-    await wait(reduced ? 1500 : 4500, s);
+    // The sheet ghost rises out of the dark, close and silent, and lifts its hem.
+    set({ closingStep: 'ghost', mains: 0.35 });
+    await wait(reduced ? 1400 : 2800, s);
     if (s.aborted) return;
     set({ mains: 0 });
-    await wait(1200, s);
+    await wait(600, s);
   } finally {
     set({ closingStep: 'after', mains: 1 });
     dispatch({ type: 'CLOSING_DONE' });
-    await wait(ctrl.signal.aborted ? 300 : 2200);
+    await wait(ctrl.signal.aborted ? 300 : 1400);
     set({ closingStep: 'none' });
     closingCtrl = null;
   }

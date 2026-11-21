@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { surfaceMaps, type SurfaceKind } from './surfaces';
 
 /**
  * Shared decay uniforms (design: Decay material). `uDecay` goes 0 → 1 during the Reveal and
@@ -33,6 +34,8 @@ export interface MatParams {
   /** Colour after the Reveal; the shader blends toward it with uDecay. */
   hauntedColor?: string;
   decay?: DecayParams;
+  /** Code-made surface detail: grain, weave, pores, scratches (gl/surfaces.ts). */
+  surface?: SurfaceKind;
 }
 
 const NOISE = /* glsl */ `
@@ -73,6 +76,13 @@ function build(p: MatParams): THREE.MeshPhysicalMaterial {
     side: p.side ?? THREE.FrontSide,
     envMapIntensity: 1,
   });
+  const sm = p.surface ? surfaceMaps(p.surface) : null;
+  if (sm) {
+    m.map = sm.map;
+    m.bumpMap = sm.bumpMap;
+    m.bumpScale = sm.bumpScale;
+    m.roughnessMap = sm.roughnessMap;
+  }
   const d = p.decay ?? {};
   const own = {
     uBurn: { value: d.burn ?? 0 },

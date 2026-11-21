@@ -280,3 +280,28 @@
     right: 40%;
   }
 }
+
+/* Live 3D still life: the CSS shapes stay as invisible bat perches and as the no-WebGL fallback. */
+.hero-live {
+  position: absolute;
+  inset: 0;
+}
+
+.hero[data-live='true'] :is(.hero-tree, .hero-lantern, .hero-gifts, .hero-globe, .hero-photo) {
+  opacity: 0;
+  box-shadow: none;
+}
+
+.hero[data-live='true'] {
+  background:
+    radial-gradient(520px 320px at 80% 55%, rgb(255 196 120 / 0.28), transparent 70%),
+    radial-gradient(900px 400px at 70% 110%, rgb(40 10 10 / 0.5), transparent 60%),
+    linear-gradient(120deg, #7c121b 0%, #9a1a24 45%, #5c0c13 100%);
+}
+
+[data-state='haunted'] .hero[data-live='true'] {
+  background:
+    radial-gradient(260px 220px at 66% 72%, rgb(255 160 70 / 0.22), transparent 70%),
+    radial-gradient(800px 380px at 70% -10%, rgb(80 110 160 / 0.28), transparent 70%),
+    linear-gradient(180deg, #0a101e 0%, #111827 55%, #07090f 100%);
+}

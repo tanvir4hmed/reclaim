@@ -1,6 +1,10 @@
-import { useMemo } from 'react';
+import gsap from 'gsap';
+import { useLayoutEffect, useMemo, useRef } from 'react';
+import { LUNGE_MS } from '../director/sequences';
 import { useHaunted, useStory } from '../store';
 import { BatSvg } from './BatSvg';
+import { BAT_W } from './DayBat';
+import { SkeletonHand } from './SkeletonHand';
 import { useFx } from './fxStore';
 
 /** Darkness between the DOM and the canvas: covers the UI, not flames and eyes (design z 2). */
@@ -11,15 +15,69 @@ export function Darkness() {
   return <div className="darkness" aria-hidden="true" style={{ opacity: Math.min(0.97, base + (1 - mains) * 0.92) }} />;
 }
 
-/** The catch: the bat's head jerks round, it lunges, its wings fill the screen (Req 9.7–9.9). */
+/**
+ * The catch (Req 9.6–9.9). The bony fist closes where the visitor clicked; the bat's head jerks
+ * round with glowing eyes and an open, fanged mouth; then it flies straight at the screen,
+ * starting at its own size and growing smoothly, wings beating, until it blots out everything.
+ */
 export function CatchLunge() {
   const step = useFx((s) => s.catchStep);
+  const from = useFx((s) => s.catchFrom);
+  const hand = useFx((s) => s.catchHand);
+  const batRef = useRef<HTMLDivElement>(null);
+  const shadeRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const el = batRef.current;
+    if (!el || step !== 'lunge') return;
+    const w = from?.w ?? BAT_W;
+    const x0 = from?.x ?? window.innerWidth / 2;
+    const y0 = from?.y ?? window.innerHeight / 2;
+    // Big enough that the wings overfill the longest screen side.
+    const scale = (Math.hypot(window.innerWidth, window.innerHeight) * 2.4) / w;
+    const tl = gsap.timeline();
+    tl.fromTo(
+      el,
+      { x: x0, y: y0, scale: 1, rotate: 0 },
+      {
+        x: window.innerWidth / 2,
+        y: window.innerHeight * 0.48,
+        scale,
+        rotate: 0,
+        duration: LUNGE_MS / 1000,
+        // Slow at first, then rushing at the glass: a creature flying closer, not a pop.
+        ease: 'power3.in',
+        onUpdate() {
+          // A gentle wobble from the wing beats while it approaches.
+          const p = this.progress();
+          gsap.set(el, { rotate: Math.sin(p * Math.PI * 9) * 6 * (1 - p) });
+        },
+      },
+    );
+    if (shadeRef.current) tl.fromTo(shadeRef.current, { opacity: 0 }, { opacity: 1, duration: LUNGE_MS / 1000, ease: 'power4.in' }, 0);
+    return () => {
+      tl.kill();
+    };
+  }, [step, from]);
+
   if (step === 'none') return null;
+  const pose = step === 'grab' ? 'hang' : 'fly';
+  const placed = from && (step === 'grab' || step === 'turn');
   return (
     <div className={`lunge lunge-${step}`} aria-hidden="true" data-testid="lunge">
-      <div className="lunge-bat">
-        <BatSvg pose={step === 'grab' || step === 'turn' ? 'hang' : 'spread'} facing={step === 'grab' ? 'away' : 'toward'} eyes={step !== 'grab'} />
+      <div ref={shadeRef} className="lunge-shade" />
+      <div
+        ref={batRef}
+        className="lunge-bat"
+        style={
+          placed
+            ? { transform: `translate(${from.x}px, ${from.y}px)`, width: from.w }
+            : { width: from?.w ?? BAT_W }
+        }
+      >
+        <BatSvg pose={pose} facing={step === 'grab' ? 'away' : 'toward'} eyes={step !== 'grab'} mouth={step === 'grab' ? 'closed' : 'snarl'} />
       </div>
+      {hand && (step === 'grab' || step === 'turn') && <SkeletonHand x={hand.x} y={hand.y} closed />}
       {step === 'dark' && <DarkEvents />}
     </div>
   );

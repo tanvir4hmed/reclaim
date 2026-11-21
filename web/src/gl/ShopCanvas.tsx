@@ -45,7 +45,7 @@ export default function ShopCanvas() {
       gl={{ alpha: true, antialias: true, powerPreference: 'high-performance' }}
       style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 3 }}
       onCreated={({ gl }) => {
-        gl.toneMapping = THREE.ACESFilmicToneMapping;
+        gl.toneMapping = THREE.NeutralToneMapping;
         gl.toneMappingExposure = 1.05;
         gl.setClearColor(0x000000, 0);
       }}

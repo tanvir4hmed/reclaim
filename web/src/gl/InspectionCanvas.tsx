@@ -26,7 +26,7 @@ export default function InspectionCanvas({ id, inspecting = false }: { id: Produ
         dpr={[1, 2]}
         gl={{ alpha: true, antialias: true }}
         onCreated={({ gl }) => {
-          gl.toneMapping = THREE.ACESFilmicToneMapping;
+          gl.toneMapping = THREE.NeutralToneMapping;
           gl.setClearColor(0x000000, 0);
           setReady(true);
         }}
