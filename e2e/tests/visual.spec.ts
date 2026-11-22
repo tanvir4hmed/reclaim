@@ -39,6 +39,13 @@ test.describe('visual capture', () => {
     await page.getByTestId('add-teddy-bear').scrollIntoViewIfNeeded();
     await page.waitForTimeout(1200);
     await page.screenshot({ path: name('8-pumpkin') });
+    // The bottom of the shelves: the graveyard and the lantern among the graves.
+    await page.evaluate(() => {
+      const s = document.querySelector('.shop');
+      if (s) window.scrollTo(0, s.getBoundingClientRect().bottom + window.scrollY - window.innerHeight + 80);
+    });
+    await page.waitForTimeout(1500);
+    await page.screenshot({ path: name('8b-graveyard') });
     // Checkout to the end: the scare after Accept.
     await page.getByTestId('add-letter').scrollIntoViewIfNeeded();
     await page.getByTestId('add-letter').click();

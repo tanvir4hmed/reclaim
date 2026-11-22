@@ -63,7 +63,8 @@ function drawReflection(g: CanvasRenderingContext2D, w: number, h: number, haunt
     g.fillStyle = '#cfd6e6';
     for (const dx of [-0.028, 0.028]) {
       g.beginPath();
-      g.ellipse(cx + w * dx, h * 0.3, w * 0.011, h * 0.006, 0, 0, Math.PI * 2);
+      // a little below the middle of the head, where eyes sit on a face
+      g.ellipse(cx + w * dx, h * 0.322, w * 0.011, h * 0.006, 0, 0, Math.PI * 2);
       g.fill();
     }
     g.restore();

@@ -17,6 +17,15 @@
   pointer-events: none;
 }
 
+/* The same walking prints, drawn over the open product view (it sits above the page). */
+.decals.decals-top {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 2147481000;
+}
+
 .decal-footprint,
 .decal-footprint-r,
 .print {

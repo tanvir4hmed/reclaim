@@ -102,7 +102,7 @@ export function CatchLunge() {
 }
 
 /** One claw rake: four gouges torn into the glass, raw red in the middle, dark at the edges. */
-function Rake({ x, y, rot, s }: { x: number; y: number; rot: number; s: number }) {
+export function Rake({ x, y, rot, s }: { x: number; y: number; rot: number; s: number }) {
   return (
     <g transform={`translate(${x} ${y}) rotate(${rot}) scale(${s})`}>
       {[0, 1, 2, 3].map((i) => (

@@ -4,10 +4,12 @@
   overflow-x: clip;
 }
 
+/* Just enough room under the shelves for the graveyard and the lantern; no empty floor. */
 [data-state='haunted'] .shop {
   position: relative;
   isolation: isolate;
-  padding-bottom: 280px;
+  margin-bottom: 0;
+  padding-bottom: 190px;
 }
 
 .shop-backdrop {
@@ -48,21 +50,33 @@
   background: linear-gradient(180deg, rgb(8 6 7 / 0.88) 0%, rgb(8 6 7 / 0.7) 30%, rgb(8 6 7 / 0.45) 70%, rgb(8 6 7 / 0.2) 100%);
 }
 
+/* The graveyard along the bottom of the scene, right-aligned so the graves stay round the lantern. */
+.shop-graveyard {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: clamp(200px, 26.25vw, 460px);
+  object-fit: cover;
+  object-position: 100% 100%;
+}
+
+/* The lantern sits among the graves on the right, at the size it had as a grid cell. */
 .shop-pumpkin {
   position: absolute;
-  right: max(4vw, calc(50vw - 640px));
-  bottom: 18px;
-  width: 250px;
-  height: 250px;
+  right: max(4vw, calc(50vw - 600px));
+  bottom: 34px;
+  width: 300px;
+  height: 300px;
 }
 
 @media (max-width: 860px) {
   [data-state='haunted'] .shop {
-    padding-bottom: 200px;
+    padding-bottom: 150px;
   }
   .shop-pumpkin {
-    width: 170px;
-    height: 170px;
+    width: 200px;
+    height: 200px;
   }
 }
 

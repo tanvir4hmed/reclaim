@@ -5,6 +5,7 @@ import { useCanvasTexture } from '../../gl/canvasTex';
 import { M } from '../../gl/materials';
 import { progress, useTaken } from '../../gl/useTaken';
 import { useHaunted, useStory } from '../../store';
+import { FaceUpSkull } from './Skull';
 
 const MONTHS = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
 
@@ -165,6 +166,62 @@ export function TinSoldier() {
           </group>
         </group>
       </group>
+      {taken && <BoneHand since={since} />}
+    </group>
+  );
+}
+
+/**
+ * Out of the broken soldier: a skeleton hand, much too big to have fitted inside him, pushing
+ * up out of the torn tin, fingers uncurling.
+ */
+function BoneHand({ since }: { since: () => number }) {
+  const hand = useRef<THREE.Group>(null);
+  const fingers = useRef<(THREE.Group | null)[]>([]);
+  useFrame(() => {
+    const s = since();
+    const up = progress(s, 1.4, 0.5);
+    if (hand.current) {
+      hand.current.position.y = 0.0 + up * 0.32;
+      hand.current.scale.setScalar(Math.max(0.001, up));
+    }
+    const open = progress(s, 1.0, 1.6);
+    fingers.current.forEach((f, i) => {
+      if (f) f.rotation.x = (1 - open) * 1.3 + Math.sin(s * 3 + i) * 0.05 * open;
+    });
+  });
+  const bone = <meshStandardMaterial color="#e3d9c2" roughness={0.65} />;
+  return (
+    <group ref={hand} position={[0, 0.07, 0]} rotation-z={0.15}>
+      {/* wrist and palm bones */}
+      <mesh position-y={-0.06}>
+        <cylinderGeometry args={[0.025, 0.03, 0.16, 8]} />
+        {bone}
+      </mesh>
+      <mesh position-y={0.05} scale={[1.4, 0.6, 0.5]}>
+        <sphereGeometry args={[0.06, 12, 10]} />
+        {bone}
+      </mesh>
+      {[-0.045, -0.015, 0.015, 0.045].map((x, i) => (
+        <group
+          key={x}
+          ref={(g) => {
+            fingers.current[i] = g;
+          }}
+          position={[x, 0.08, 0]}
+        >
+          {[0, 1, 2].map((j) => (
+            <mesh key={j} position-y={0.025 + j * 0.048}>
+              <cylinderGeometry args={[0.009 - j * 0.002, 0.011 - j * 0.002, 0.042, 6]} />
+              {bone}
+            </mesh>
+          ))}
+        </group>
+      ))}
+      <mesh position={[-0.075, 0.04, 0]} rotation-z={0.8}>
+        <cylinderGeometry args={[0.01, 0.012, 0.08, 6]} />
+        {bone}
+      </mesh>
     </group>
   );
 }
@@ -403,46 +460,22 @@ function GiftOpen({ eyes }: { eyes: RefObject<(THREE.MeshBasicMaterial | null)[]
         <boxGeometry args={[0.9, 0.02, 0.9]} />
         <meshStandardMaterial color="#120806" roughness={1} />
       </mesh>
-      {/* the skull, cranium just over the rim, eyes burning */}
-      <group position={[0, 0.16, 0.05]} scale={0.9}>
-        <mesh>
-          <sphereGeometry args={[0.24, 28, 20]} />
-          <meshStandardMaterial color="#cfc3a6" roughness={0.7} />
-        </mesh>
-        <mesh position={[0, -0.13, 0.08]}>
-          <boxGeometry args={[0.24, 0.12, 0.18]} />
-          <meshStandardMaterial color="#c4b796" roughness={0.75} />
-        </mesh>
-        {[-0.085, 0.085].map((x, i) => (
-          <group key={x} position={[x, 0.0, 0.2]}>
-            <mesh>
-              <sphereGeometry args={[0.06, 16, 12]} />
-              <meshBasicMaterial color="#050202" />
-            </mesh>
-            <mesh position-z={0.02}>
-              <sphereGeometry args={[0.025, 12, 10]} />
-              <meshBasicMaterial
-                ref={(m) => {
-                  eyes.current[i] = m;
-                }}
-                color="#ff5a1a"
-                toneMapped={false}
-              />
-            </mesh>
-          </group>
-        ))}
-        <mesh position={[0, -0.08, 0.235]}>
-          <coneGeometry args={[0.03, 0.06, 3]} />
-          <meshBasicMaterial color="#0a0505" />
-        </mesh>
-        {[-0.06, -0.02, 0.02, 0.06].map((x) => (
-          <mesh key={x} position={[x, -0.165, 0.17]}>
-            <boxGeometry args={[0.03, 0.04, 0.02]} />
-            <meshStandardMaterial color="#e6dcc0" />
-          </mesh>
-        ))}
+      {/* blood-soaked tissue paper, and on it the skull, lying on its back: the empty sockets,
+          the nose hole and the teeth look straight up out of the box, eyes still burning */}
+      <mesh position-y={-0.02}>
+        <boxGeometry args={[0.9, 0.5, 0.9]} />
+        <meshStandardMaterial color="#2c0b09" roughness={0.6} />
+      </mesh>
+      {/* lying back on the paper, high in the box and tipped a little toward you, so you look
+          straight into its face over the rim */}
+      <group position={[0, 0.2, 0.06]} rotation={[0.5, 0.6, 0]} scale={0.95}>
+        <FaceUpSkull
+          embers={[0, 1].map((i) => (m: THREE.MeshBasicMaterial | null) => {
+            eyes.current[i] = m;
+          })}
+        />
       </group>
-      <pointLight position={[0, 0.3, 0.4]} intensity={1.2} distance={1.6} color="#ff6a2a" />
+      <pointLight position={[0.3, 0.9, 0.5]} intensity={0.45} distance={2} color="#ff6a2a" />
     </group>
   );
 }

@@ -7,6 +7,7 @@ import { M } from '../../gl/materials';
 import { useHaunted, useStory } from '../../store';
 import { progress, useTaken } from '../../gl/useTaken';
 import { MusicBoxBlown } from './MusicBoxBlown';
+import { FaceUpSkull } from './Skull';
 
 /** Hand-blown glass ornament with a gilt cap (cracks after the Reveal). */
 export function GlassOrnament() {
@@ -197,38 +198,13 @@ export function ChocolateBox() {
 }
 
 /**
- * Taken: in every paper cup, where a truffle sat, a tiny pale head with its eyes shut, cut off
- * at the neck and sitting in its own blood. Doll-like, small, and far too many.
+ * Taken: in every paper cup, where a truffle sat, a tiny skull lying on its back, face up: the
+ * eye sockets, the nose hole and the teeth look up at you, smeared with blood. Far too many.
  */
 function SmallHead({ position, turn }: { position: [number, number, number]; turn: number }) {
   return (
-    <group position={position} rotation-y={turn}>
-      <mesh position-y={-0.045} rotation-x={-Math.PI / 2}>
-        <circleGeometry args={[0.095, 18]} />
-        <meshStandardMaterial color="#4a0507" roughness={0.25} />
-      </mesh>
-      <mesh position-y={-0.03}>
-        <cylinderGeometry args={[0.04, 0.045, 0.03, 12]} />
-        <meshStandardMaterial color="#6a0a0c" roughness={0.35} />
-      </mesh>
-      <mesh position-y={0.04}>
-        <sphereGeometry args={[0.075, 18, 14]} />
-        <meshStandardMaterial color="#d8b49c" roughness={0.6} />
-      </mesh>
-      {[-0.025, 0.025].map((x) => (
-        <mesh key={x} position={[x, 0.05, 0.068]} rotation-z={x > 0 ? -0.2 : 0.2}>
-          <boxGeometry args={[0.024, 0.004, 0.004]} />
-          <meshBasicMaterial color="#2a1410" />
-        </mesh>
-      ))}
-      <mesh position={[0, 0.02, 0.07]}>
-        <sphereGeometry args={[0.009, 8, 6]} />
-        <meshStandardMaterial color="#b8846a" />
-      </mesh>
-      <mesh position={[0.02, -0.005, 0.06]}>
-        <boxGeometry args={[0.006, 0.03, 0.004]} />
-        <meshStandardMaterial color="#5a0507" roughness={0.3} />
-      </mesh>
+    <group position={[position[0], position[1] - 0.075, position[2]]} rotation-y={turn * 0.4} scale={0.36}>
+      <FaceUpSkull detail="small" />
     </group>
   );
 }
@@ -290,90 +266,194 @@ export function MusicBox({ open = false }: { open?: boolean }) {
   );
 }
 
-/** Christmas teddy bear with a ribbon. */
+const TEDDY_BODY: [number, number, number, number][] = [
+  [0, -0.25, 0, 0.42],
+  [-0.4, -0.1, 0.1, 0.13],
+  [0.4, -0.1, 0.1, 0.13],
+  [-0.24, -0.6, 0.18, 0.15],
+  [0.24, -0.6, 0.18, 0.15],
+];
+/** The head, measured from the neck (the cut) at y = 0.05. */
+const TEDDY_HEAD: [number, number, number, number][] = [
+  [0, 0.25, 0.02, 0.3],
+  [-0.24, 0.47, 0, 0.1],
+  [0.24, 0.47, 0, 0.1],
+];
+const NECK_Y = 0.05;
+/** When the blade goes through, in seconds after the take (the slash on screen is at 0.15 s). */
+const CUT_AT = 0.22;
+
+/**
+ * Christmas teddy bear with a ribbon. Taken: one sword stroke through the neck. The head comes
+ * off, tips, falls and rolls onto the floor beside the body, face still to you; the body
+ * jerks back, the stump bleeds out over the ribbon and down, and the head lies in its own pool.
+ */
 export function TeddyBear() {
   const { taken, since } = useTaken('teddy-bear');
-  const parts: [number, number, number, number][] = [
-    [0, -0.25, 0, 0.42],
-    [0, 0.3, 0.02, 0.3],
-    [-0.24, 0.52, 0, 0.1],
-    [0.24, 0.52, 0, 0.1],
-    [-0.4, -0.1, 0.1, 0.13],
-    [0.4, -0.1, 0.1, 0.13],
-    [-0.24, -0.6, 0.18, 0.15],
-    [0.24, -0.6, 0.18, 0.15],
-  ];
+  const head = useRef<THREE.Group>(null);
+  const body = useRef<THREE.Group>(null);
+  useFrame(() => {
+    const h = head.current;
+    const b = body.current;
+    if (!h || !b) return;
+    if (!taken) {
+      h.position.set(0, NECK_Y, 0);
+      h.rotation.set(0, 0, 0);
+      b.rotation.set(0, 0, 0);
+      return;
+    }
+    const t = since() - CUT_AT;
+    if (t <= 0) return;
+    // The head: a jolt up and off along the blade's line, then gravity, a bounce, a roll.
+    const lift = Math.min(1, t / 0.28);
+    const fall = Math.min(1, Math.max(0, (t - 0.28) / 0.42));
+    const roll = Math.min(1, Math.max(0, (t - 0.7) / 0.5));
+    const bounce = t > 0.7 && t < 1.05 ? Math.sin(((t - 0.7) / 0.35) * Math.PI) * 0.07 : 0;
+    // Ends on its side on the floor (y = -0.75), clear of the body, face still toward you.
+    // It lands in front of the body and to its right, inside the picture.
+    const x = 0.1 * lift + 0.1 * fall + 0.05 * (1 - (1 - roll) ** 2);
+    const y = NECK_Y + 0.1 * Math.sin(lift * Math.PI * 0.5) - 0.62 * fall * fall + bounce;
+    h.position.set(x, y, 0.1 * lift + 0.28 * fall + 0.12 * roll);
+    h.rotation.set(0.15 * fall, 0, -0.5 * lift - 0.7 * fall - 0.3 * roll);
+    // The body takes the blow: a jerk back, then it sags a little to one side.
+    const jerk = t < 0.35 ? Math.sin((t / 0.35) * Math.PI) : 0;
+    b.rotation.set(-0.12 * jerk, 0, 0.05 * Math.min(1, t / 1.2));
+  });
   return (
     <group position-y={0.05} rotation-y={-0.25} scale={0.9}>
-      {parts.map(([x, y, z, r], i) => (
-        <mesh key={i} material={M.plush()} position={[x, y, z]}>
-          <sphereGeometry args={[r, 28, 20]} />
+      <group ref={body}>
+        {TEDDY_BODY.map(([x, y, z, r], i) => (
+          <mesh key={i} material={M.plush()} position={[x, y, z]}>
+            <sphereGeometry args={[r, 28, 20]} />
+          </mesh>
+        ))}
+        <mesh material={M.ribbon()} position={[0, 0.06, 0.06]} rotation-x={Math.PI / 2}>
+          <torusGeometry args={[0.22, 0.03, 8, 30]} />
         </mesh>
-      ))}
-      <mesh material={M.cream()} position={[0, 0.24, 0.27]} scale={[1, 0.8, 0.7]}>
-        <sphereGeometry args={[0.12, 20, 14]} />
-      </mesh>
-      <mesh material={M.ink()} position={[0, 0.28, 0.36]}>
-        <sphereGeometry args={[0.035, 12, 10]} />
-      </mesh>
-      {[-0.1, 0.1].map((x) => (
-        <mesh key={x} material={M.ink()} position={[x, 0.38, 0.26]}>
-          <sphereGeometry args={[0.03, 12, 10]} />
+        {taken && <TeddyStump since={since} />}
+      </group>
+      <group ref={head} position-y={NECK_Y}>
+        {TEDDY_HEAD.map(([x, y, z, r], i) => (
+          <mesh key={i} material={M.plush()} position={[x, y, z]}>
+            <sphereGeometry args={[r, 28, 20]} />
+          </mesh>
+        ))}
+        <mesh material={M.cream()} position={[0, 0.19, 0.27]} scale={[1, 0.8, 0.7]}>
+          <sphereGeometry args={[0.12, 20, 14]} />
         </mesh>
-      ))}
-      <mesh material={M.ribbon()} position={[0, 0.06, 0.06]} rotation-x={Math.PI / 2}>
-        <torusGeometry args={[0.22, 0.03, 8, 30]} />
-      </mesh>
-      {taken && <TeddyBleed since={since} />}
+        <mesh material={M.ink()} position={[0, 0.23, 0.36]}>
+          <sphereGeometry args={[0.035, 12, 10]} />
+        </mesh>
+        {[-0.1, 0.1].map((x) => (
+          <mesh key={x} material={M.ink()} position={[x, 0.33, 0.26]}>
+            <sphereGeometry args={[0.03, 12, 10]} />
+          </mesh>
+        ))}
+        {taken && (
+          <>
+            {/* the cut face under the head: red, with the stuffing showing */}
+            <mesh position-y={0.005} rotation-x={Math.PI / 2}>
+              <circleGeometry args={[0.2, 24]} />
+              <meshStandardMaterial color="#5a0609" roughness={0.3} side={THREE.DoubleSide} />
+            </mesh>
+            <mesh material={M.cream()} position-y={-0.002} rotation-x={Math.PI / 2}>
+              <circleGeometry args={[0.09, 16]} />
+            </mesh>
+          </>
+        )}
+      </group>
+      {taken && <TeddyPool since={since} />}
     </group>
   );
 }
 
-/** Taken: blood soaks out through the bear's belly, spreads, and runs down over its legs. */
-function TeddyBleed({ since }: { since: () => number }) {
-  const stain = useRef<THREE.Mesh>(null);
-  const drips = useRef<(THREE.Mesh | null)[]>([]);
-  const pool = useRef<THREE.Mesh>(null);
-  const runs: [number, number][] = [
-    [-0.12, 0.42],
-    [-0.03, 0.55],
-    [0.07, 0.35],
-    [0.15, 0.48],
+/** The stump: a red cut face, blood spurting from it in pulses, then running down the front. */
+function TeddyStump({ since }: { since: () => number }) {
+  const spurts = useRef<(THREE.Mesh | null)[]>([]);
+  const runs = useRef<(THREE.Mesh | null)[]>([]);
+  const RUNS: [number, number][] = [
+    [-0.13, 0.36],
+    [-0.04, 0.5],
+    [0.06, 0.3],
+    [0.14, 0.44],
   ];
   useFrame(() => {
-    const s = since();
-    const spread = progress(s, 2.2);
-    if (stain.current) stain.current.scale.setScalar(0.15 + spread * 0.85);
-    runs.forEach(([, len], i) => {
-      const d = drips.current[i];
-      if (!d) return;
-      const k = progress(s, 2.4, 0.8 + i * 0.25);
-      d.scale.y = Math.max(0.001, k);
-      d.position.y = -0.28 - (len * k) / 2;
+    const t = since() - CUT_AT;
+    spurts.current.forEach((m, i) => {
+      if (!m) return;
+      // Three pulses, weaker each time, each a small arc of drops.
+      const p = t - i * 0.06;
+      const beat = p > 0 && p < 2.4 ? (p % 0.8) / 0.8 : -1;
+      const power = Math.max(0, 1 - p / 2.6);
+      m.visible = beat >= 0 && power > 0.05;
+      if (!m.visible) return;
+      const a = (i / spurts.current.length) * Math.PI * 2;
+      m.position.set(Math.cos(a) * 0.12 * beat * power, 0.12 + (0.5 * beat - 0.65 * beat * beat) * power, 0.05 + Math.sin(a) * 0.1 * beat * power);
     });
-    if (pool.current) pool.current.scale.setScalar(Math.max(0.001, progress(s, 2, 2.4)));
+    RUNS.forEach(([, len], i) => {
+      const m = runs.current[i];
+      if (!m) return;
+      const k = progress(t, 2.6, 0.4 + i * 0.22);
+      m.scale.y = Math.max(0.001, k);
+      m.position.y = 0.1 - (len * k) / 2;
+    });
   });
   return (
     <group>
-      <mesh ref={stain} position={[0, -0.24, 0.405]} rotation-x={-0.12}>
+      <mesh position-y={0.12} rotation-x={-Math.PI / 2}>
         <circleGeometry args={[0.2, 24]} />
-        <meshStandardMaterial color="#4e0406" roughness={0.3} />
+        <meshStandardMaterial color="#4a0406" roughness={0.2} />
       </mesh>
-      {runs.map(([x, len], i) => (
+      <mesh material={M.cream()} position-y={0.123} rotation-x={-Math.PI / 2}>
+        <circleGeometry args={[0.08, 14]} />
+      </mesh>
+      {Array.from({ length: 7 }, (_, i) => (
+        <mesh
+          key={i}
+          ref={(m) => {
+            spurts.current[i] = m;
+          }}
+          visible={false}
+        >
+          <sphereGeometry args={[0.022, 8, 6]} />
+          <meshStandardMaterial color="#7a0a0e" roughness={0.2} />
+        </mesh>
+      ))}
+      {RUNS.map(([x, len], i) => (
         <mesh
           key={x}
           ref={(m) => {
-            drips.current[i] = m;
+            runs.current[i] = m;
           }}
-          position={[x, -0.28, 0.4 - Math.abs(x) * 0.3]}
+          position={[x, 0.1, 0.36 - Math.abs(x) * 0.5]}
+          rotation-x={0.25}
         >
           <boxGeometry args={[0.035, len, 0.02]} />
           <meshStandardMaterial color="#560508" roughness={0.25} />
         </mesh>
       ))}
-      <mesh ref={pool} position={[0, -0.78, 0.25]} rotation-x={-Math.PI / 2}>
-        <circleGeometry args={[0.35, 24]} />
-        <meshStandardMaterial color="#3a0305" roughness={0.15} />
+    </group>
+  );
+}
+
+/** Blood on the floor: under the body, and spreading out from under the fallen head. */
+function TeddyPool({ since }: { since: () => number }) {
+  const body = useRef<THREE.Mesh>(null);
+  const head = useRef<THREE.Mesh>(null);
+  useFrame(() => {
+    const t = since() - CUT_AT;
+    if (body.current) body.current.scale.setScalar(Math.max(0.001, progress(t, 2.5, 1.6)));
+    if (head.current) head.current.scale.setScalar(Math.max(0.001, progress(t, 2.2, 1.1)));
+  });
+  return (
+    <group>
+      <mesh ref={body} position={[-0.05, -0.745, 0.3]} rotation-x={-Math.PI / 2}>
+        <circleGeometry args={[0.32, 24]} />
+        <meshStandardMaterial color="#3a0305" roughness={0.12} />
+      </mesh>
+      <mesh ref={head} position={[0.5, -0.745, 0.5]} rotation-x={-Math.PI / 2}>
+        <circleGeometry args={[0.3, 24]} />
+        <meshStandardMaterial color="#400306" roughness={0.12} />
       </mesh>
     </group>
   );

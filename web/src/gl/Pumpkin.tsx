@@ -52,14 +52,15 @@ function JackOLantern() {
   );
 }
 
-/** A grid cell after the Reveal: no product, just a candle burning in a pumpkin by the bear. */
+/** The lantern in the haunted backdrop: a candle burning in a pumpkin among the graves. */
 export function PumpkinView() {
   return (
     <View className="pumpkin-view">
       <ambientLight intensity={0.12} color="#5a6a90" />
       {/* cold moonlight from above left picks out the ribs */}
       <directionalLight position={[-3, 4, 2]} intensity={0.9} color="#8a9ac8" />
-      <PerspectiveCamera makeDefault position={[0, 0.6, 7]} fov={30} />
+      {/* close enough that the lantern fills its frame (it stands among the graves) */}
+      <PerspectiveCamera makeDefault position={[0, 0.5, 4.6]} fov={30} />
       <group position={[0, -0.15, 0]} scale={0.85}>
         <JackOLantern />
       </group>

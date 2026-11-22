@@ -57,8 +57,9 @@ function Hand({ x, y, flip, scale }: { x: number; y: number; flip: boolean; scal
 
 /**
  * The jump scare after Accept (the climax's last beat). A found-footage frame: camcorder grain,
- * REC, a date stamp from the night the shop was left. She comes out of the dark hallway and
- * rushes the lens, arms out, mouth open, filling the screen in about a second. Drawn in code.
+ * REC, a date stamp from the night the shop was left. The tape cuts in and she is already at
+ * the lens, face filling the screen; she jerks there, then lunges, arms out, mouth unhinging,
+ * until she is all there is. Then the shop goes back to Christmas. Drawn in code.
  * No flashing: the frame never goes bright, so the flash limit (Req 9.4) is not involved.
  */
 export function JumpScare() {

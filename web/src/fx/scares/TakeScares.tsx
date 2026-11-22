@@ -1,8 +1,10 @@
 import type { ReactElement } from 'react';
 import { reducedMotion } from '../../director/runtime';
 import { useFx } from '../fxStore';
+import { TopLayer } from '../TopLayer';
 import { ChildDrawing } from './Marks';
 import { CameraPolaroid, OrnamentReflection } from './Presence';
+import { TeddySlash } from './Slash';
 
 /**
  * The few Take events that cannot happen inside the object's own picture: the Polaroid the
@@ -15,6 +17,7 @@ const SCARES: Record<string, () => ReactElement> = {
   'instant-camera': CameraPolaroid,
   'glass-ornament': OrnamentReflection,
   'childs-drawing': ChildDrawing,
+  'teddy-bear': TeddySlash,
 };
 
 export function TakeScares() {
@@ -22,9 +25,12 @@ export function TakeScares() {
   if (!id) return null;
   const Scene = SCARES[id];
   if (!Scene) return null;
+  // Inside the product view when it is open, so it happens the instant you take it, there.
   return (
-    <div className={`take-scare take-scare-${id}${reducedMotion() ? ' take-scare-still' : ''}`} aria-hidden="true" data-testid="take-scare">
-      <Scene />
-    </div>
+    <TopLayer key={id} stick>
+      <div className={`take-scare take-scare-${id}${reducedMotion() ? ' take-scare-still' : ''}`} aria-hidden="true" data-testid="take-scare">
+        <Scene />
+      </div>
+    </TopLayer>
   );
 }

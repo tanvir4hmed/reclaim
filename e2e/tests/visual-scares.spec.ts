@@ -43,4 +43,47 @@ test.describe('visual capture of the Take scares', () => {
       await expect(page.getByTestId('take-scare')).toHaveCount(0, { timeout: 20_000 });
     }
   });
+
+  // Taken from the product view: every event must play right there, not after it is closed.
+  const PV_IDS = ['shoes', 'instant-camera', 'glass-ornament', 'candle', 'teddy-bear', 'unopened-gift', 'chocolate-box', 'doll', 'telephone', 'pocket-watch', 'letter', 'mirror', 'tin-soldier'];
+
+  test('Take events play inside the product view', async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop', 'desktop only');
+    test.setTimeout(300_000);
+    await fresh(page);
+    await catchBat(page, info);
+    await page.waitForTimeout(3000);
+    for (const id of process.env.PV_IDS?.split(',') ?? PV_IDS) {
+      const link = page.locator(`.card[data-product="${id}"] .card-title a`);
+      // Jump (no smooth scroll) so the card holds still, then click it.
+      await link.evaluate((el) => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+      await page.waitForTimeout(800);
+      await link.click({ force: true });
+      const view = page.getByTestId('product-view');
+      // A slammed door or a held Stage can swallow the first try; try once more.
+      if (!(await view.isVisible())) {
+        await page.waitForTimeout(3000);
+        await link.click({ force: true });
+      }
+      await expect(view).toBeVisible({ timeout: 10_000 });
+      await page.waitForTimeout(1500);
+      await page.getByTestId('pv-add').click();
+      await page.waitForTimeout(id === 'teddy-bear' ? 250 : 900);
+      await page.screenshot({ path: `${OUT}/pv-${id}-a.jpeg`, type: 'jpeg', quality: 60, scale: 'css' });
+      await page.waitForTimeout(1800);
+      await page.screenshot({ path: `${OUT}/pv-${id}-b.jpeg`, type: 'jpeg', quality: 60, scale: 'css' });
+      await page.waitForTimeout(2500);
+      await page.screenshot({ path: `${OUT}/pv-${id}-d.jpeg`, type: 'jpeg', quality: 60, scale: 'css' });
+      if (id === 'candle') {
+        await expect(page.getByTestId('candle-dark')).toBeVisible();
+        await page.mouse.move(1380, 40);
+        await page.waitForTimeout(400);
+        await page.screenshot({ path: `${OUT}/pv-candle-c.jpeg`, type: 'jpeg', quality: 60, scale: 'css' });
+      }
+      await page.keyboard.press('Escape');
+      await expect(view).toHaveCount(0);
+      if (id === 'candle') await expect(page.getByTestId('candle-dark')).toHaveCount(0, { timeout: 3000 });
+      await page.waitForTimeout(id === 'shoes' ? 8000 : 2500);
+    }
+  });
 });

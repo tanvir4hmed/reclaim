@@ -48,7 +48,7 @@ export default function Letter() {
       for (let i = 0; i < 500; i++) g.fillRect((i * 151) % w, (i * 83) % h, 2, 1);
       // the old photograph, a little crooked, with a paper clip
       g.save();
-      g.translate(w * 0.5, h * 0.3);
+      g.translate(w * 0.5, h * 0.25);
       g.rotate(-0.06);
       g.fillStyle = '#efe7d6';
       g.fillRect(-110, -110, 220, 200);
@@ -61,17 +61,18 @@ export default function Letter() {
       g.strokeRect(w * 0.5 - 14, 20, 28, 60);
       // written in blood, pressed hard into the paper, running
       g.fillStyle = '#7a0d0d';
-      g.font = 'bold 54px "Brush Script MT", "Segoe Script", cursive';
+      g.font = 'bold 44px "Brush Script MT", "Segoe Script", cursive';
       g.textAlign = 'center';
-      g.fillText('YOU KILLED ME', w / 2, h * 0.76);
+      // Written high on the page, above where the envelope still covers it.
+      g.fillText('YOU KILLED ME', w / 2, h * 0.58);
       g.font = 'italic 30px "Brush Script MT", "Segoe Script", cursive';
-      g.fillText('I am behind you', w / 2, h * 0.9);
+      g.fillText('I am behind you', w / 2, h * 0.7);
       for (let i = 0; i < 9; i++) {
         const x = w * 0.16 + i * w * 0.085;
         const len = 18 + ((i * 37) % 40);
-        g.fillRect(x, h * 0.765, 3, len);
+        g.fillRect(x, h * 0.585, 3, len);
         g.beginPath();
-        g.arc(x + 1.5, h * 0.765 + len, 3.4, 0, Math.PI * 2);
+        g.arc(x + 1.5, h * 0.585 + len, 3.4, 0, Math.PI * 2);
         g.fill();
       }
     },
@@ -85,7 +86,7 @@ export default function Letter() {
     if (sheet.current) {
       sheet.current.visible = taken;
       // Starts hidden inside the envelope (top edge below the opening), slides up and out.
-      sheet.current.position.y = -0.3 + k * 1.25;
+      sheet.current.position.y = -0.3 + k * 1.55;
     }
     if (lid.current) lid.current.rotation.x = taken ? -progress(s, 0.4) * 2.6 : 0;
   });

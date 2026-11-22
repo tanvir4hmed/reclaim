@@ -52,10 +52,13 @@ let shoesWalking = false;
  * they stopped, now and then, for as long as the shop is haunted.
  */
 async function shoes() {
+  // From the boots you just took: the product view's picture if it is open, else the card.
+  const seen = objectCentre('shoes');
   const from = card('shoes');
-  if (!from) return;
+  const start = seen ? { x: seen.x + window.scrollX, y: seen.y + window.scrollY } : from ? pageCenter(from) : null;
+  if (!start) return;
   const rand = seeded(Date.now() & 0xffff);
-  let prints = wanderPath(pageCenter(from), rand, 3);
+  let prints = wanderPath(start, rand, 3);
   fx().set({ prints: reducedMotion() ? prints.slice(-6) : prints });
   // Hold the Stage while they first walk; the prints fade on their own afterwards.
   await wait(Math.min(9000, prints.length * 220) + 600);
@@ -84,15 +87,22 @@ async function telephone() {
   fx().set({ cartRinging: false });
 }
 
-async function teddy() {
-  const c = card('teddy-bear');
-  const footer = document.querySelector('.site-footer');
-  if (!c || !footer) return;
-  await flag('stuffing-fall', reducedMotion() ? 400 : 2600);
-  const f = footer.getBoundingClientRect();
-  for (let i = 0; i < 6; i++) {
-    mark('stuffing', f.left + window.scrollX + 40 + i * (f.width / 7) + (i % 2) * 20, f.top + window.scrollY + 4, 0, 0.8 + (i % 3) * 0.3, 'teddy-bear');
-  }
+/**
+ * The candle goes out and the window goes black; the flame is the pointer now. Taken in the
+ * product view, it stays dark until that view is closed; taken from the shop, for a while.
+ * Then the light comes back. The Stage is only held for the first seconds either way.
+ */
+async function candle() {
+  const inView = () => document.querySelector('dialog[open]') !== null;
+  const held = inView();
+  fx().flag('candle-dark');
+  const end = (async () => {
+    if (held) while (inView()) await wait(150);
+    else await wait(reducedMotion() ? 3000 : 7000);
+    fx().unflag('candle-dark');
+    await flag('candle-back', 900);
+  })();
+  await Promise.race([end, wait(reducedMotion() ? 3000 : 7000)]);
 }
 
 async function advent() {
@@ -174,16 +184,16 @@ const CONSEQUENCES: Partial<Record<ProductId, () => Promise<void>>> = {
   'rocking-chair': () => flag('chair-rock', 1500),
   // It bursts: springs and gears fly out like fireworks (in the model).
   'music-box': musicBox,
-  // Blood soaks out of its belly and runs down (in the model); stuffing falls to the footer.
-  'teddy-bear': teddy,
+  // A sword stroke flashes across the window; its head comes off and falls (in the model).
+  'teddy-bear': withScare('teddy-bear', 1600),
   // Her reflection is in it the instant you take it.
   'glass-ornament': withScare('glass-ornament', 3400),
   // It goes out, and so does everything else: only the candle is left, barely.
-  candle: () => flag('candle-dark', reducedMotion() ? 3000 : 7000),
+  candle,
   // A black ghost is trapped inside, throwing itself at the glass (in the model).
   'snow-globe': () => flag('globe-ghost', 1500),
   'childs-drawing': withScare('childs-drawing', 3800),
-  // Every truffle is a small head now (in the model).
+  // Every truffle is a tiny skull now, face up in its cup, bloody (in the model).
   'chocolate-box': () => flag('heads', 1500),
 };
 

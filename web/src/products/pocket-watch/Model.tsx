@@ -23,14 +23,13 @@ function useWatchTime(open: boolean) {
       const d = new Date();
       return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
     }
-    // Haunted: it ticks backward, one stiff second at a time, from 4:17; opened it runs
-    // forward; carted it races backward (Req 14.2–14.3). The moment you take it, every hand
-    // whips backward, hours in a second, as if winding your time off.
+    // Haunted, on show: it ticks forward, the right way, from 4:17, as if nothing were wrong.
+    // The moment you take it, every hand whips backward, hours in a second, as if winding your
+    // time off; from then on it races backward (Req 14.2–14.3).
     const step = Math.min(dt, 0.1);
     if (whirl) t.current -= step * 2400;
-    else if (open && !reverse) t.current += step;
-    else if (reverse) t.current -= step * 4;
-    else t.current -= step;
+    else if (reverse && !open) t.current -= step * 4;
+    else t.current += step;
     // Second hand jumps in whole seconds, like a real escapement.
     return reverse ? t.current : Math.ceil(t.current);
   };

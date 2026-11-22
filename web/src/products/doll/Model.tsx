@@ -1,5 +1,56 @@
+import { useFrame } from '@react-three/fiber';
+import { useRef } from 'react';
+import type * as THREE from 'three';
 import { M } from '../../gl/materials';
+import { progress, useTaken } from '../../gl/useTaken';
 import { useHaunted, useStory } from '../../store';
+
+/** When she looks, blood runs from both eyes down the porcelain, slowly, and keeps running. */
+function BloodTears() {
+  const { since } = useTaken('doll');
+  const runs = useRef<(THREE.Mesh | null)[]>([]);
+  useFrame(() => {
+    const k = progress(since(), 3, 0.4);
+    runs.current.forEach((m, i) => {
+      if (!m) return;
+      const len = (i % 2 ? 0.09 : 0.13) * Math.max(0.02, k);
+      m.scale.y = len / 0.2;
+      m.position.y = -0.02 - len / 2;
+    });
+  });
+  return (
+    <>
+      {[-0.08, 0.08].map((x, i) => (
+        // tipped back so the runs follow the curve of her cheek instead of standing off it
+        <group key={x} position={[x + (i ? -0.006 : 0.006), 0, 0.222]} rotation-x={-0.45}>
+          {/* the lower lid, red and wet */}
+          <mesh position-y={-0.02}>
+            <sphereGeometry args={[0.016, 10, 8]} />
+            <meshStandardMaterial color="#5c0508" roughness={0.2} />
+          </mesh>
+          <mesh
+            ref={(m) => {
+              runs.current[i * 2] = m;
+            }}
+            position-y={-0.04}
+          >
+            <boxGeometry args={[0.012, 0.2, 0.006]} />
+            <meshStandardMaterial color="#4a0306" roughness={0.55} envMapIntensity={0.25} />
+          </mesh>
+          <mesh
+            ref={(m) => {
+              runs.current[i * 2 + 1] = m;
+            }}
+            position={[0.012, -0.04, -0.004]}
+          >
+            <boxGeometry args={[0.007, 0.2, 0.005]} />
+            <meshStandardMaterial color="#3e0204" roughness={0.55} envMapIntensity={0.25} />
+          </mesh>
+        </group>
+      ))}
+    </>
+  );
+}
 
 /**
  * Porcelain doll in red velvet; damaged and unstitched after the Reveal (Requirement 15).
@@ -53,6 +104,7 @@ export default function Doll() {
             <boxGeometry args={[0.18, 0.008, 0.01]} />
           </mesh>
         )}
+        {haunted && looking && <BloodTears />}
       </group>
       {haunted &&
         [0, 1, 2, 3, 4].map((i) => (

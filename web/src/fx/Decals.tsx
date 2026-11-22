@@ -1,6 +1,10 @@
 import type { ReactElement } from 'react';
+import { createPortal } from 'react-dom';
+import type { LastingMark as Mark } from '../core';
+import type { Print } from '../director/footprints';
 import { useStory } from '../store';
 import { useFx } from './fxStore';
+import { useOpenDialog } from './TopLayer';
 
 /**
  * A child's boot print, about 48 px long (pointing +x): the sole with its tread bars and a
@@ -43,10 +47,46 @@ const SHAPES: Record<string, (rot: number) => ReactElement> = {
   mitten: () => <path d="M-8 10 C-10 -4 -6 -12 0 -12 C6 -12 9 -6 8 2 L12 -2 C14 0 13 4 10 6 L8 10 Z" />,
 };
 
-/** Lasting marks in page coordinates, so they stay where they fell when the page scrolls (Req 11.3b). */
+function Prints({ prints }: { prints: readonly Print[] }) {
+  return prints.map((p, i) => (
+    <g
+      key={`${i}-${p.x}`}
+      className="print"
+      style={{ animationDelay: `${i * 0.22}s` }}
+      transform={`translate(${p.x} ${p.y}) rotate(${(p.angle * 180) / Math.PI})`}
+    >
+      <FootprintShape foot={p.foot} />
+    </g>
+  ));
+}
+
+/**
+ * Lasting marks in page coordinates, so they stay where they fell when the page scrolls (Req 11.3b).
+ * While the product view is open the walking prints are drawn inside it too (it sits above the
+ * page), so the shoes start walking the moment they are taken, right there.
+ */
 export function Decals() {
   const marks = useStory((s) => s.story.marks);
   const prints = useFx((s) => s.prints);
+  const dialog = useOpenDialog();
+  return (
+    <>
+      {dialog &&
+        prints.length > 0 &&
+        createPortal(
+          <svg className="decals decals-top" aria-hidden="true" data-testid="decals-top">
+            <g transform={`translate(${-window.scrollX} ${-window.scrollY})`}>
+              <Prints prints={prints} />
+            </g>
+          </svg>,
+          dialog,
+        )}
+      <PageDecals marks={marks} prints={prints} />
+    </>
+  );
+}
+
+function PageDecals({ marks, prints }: { marks: readonly Mark[]; prints: readonly Print[] }) {
   return (
     <svg className="decals" aria-hidden="true" data-testid="decals">
       {marks.map((m) => (
@@ -54,16 +94,7 @@ export function Decals() {
           {(SHAPES[m.kind] ?? SHAPES.ash)!(m.rotation)}
         </g>
       ))}
-      {prints.map((p, i) => (
-        <g
-          key={`${i}-${p.x}`}
-          className="print"
-          style={{ animationDelay: `${i * 0.22}s` }}
-          transform={`translate(${p.x} ${p.y}) rotate(${(p.angle * 180) / Math.PI})`}
-        >
-          <FootprintShape foot={p.foot} />
-        </g>
-      ))}
+      <Prints prints={prints} />
     </svg>
   );
 }

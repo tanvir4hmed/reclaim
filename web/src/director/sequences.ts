@@ -118,7 +118,7 @@ export async function acceptedSequence(): Promise<void> {
   // The one jump scare in the game, and it is earned: the shop's last resident comes for the
   // visitor who just "bought" her things. Reduced motion shows her still, then a fade.
   set({ scare: true });
-  await wait(reducedMotion() ? 1100 : 1250);
+  await wait(reducedMotion() ? 1100 : 1650);
   set({ scare: false });
   set({ quiet: true, acceptedShown: true, cartRinging: false });
   await wait(4000);

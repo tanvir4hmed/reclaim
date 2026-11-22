@@ -2,7 +2,7 @@
 .take-scare {
   position: fixed;
   inset: 0;
-  z-index: 66;
+  z-index: 2147482000;
   pointer-events: none;
   overflow: hidden;
 }
@@ -184,6 +184,23 @@
 .ts-crack-line { fill: none; stroke: rgb(232 236 242 / 0.8); stroke-width: 1.6; stroke-dasharray: 4000; stroke-dashoffset: 4000; filter: drop-shadow(0 0 3px rgb(255 255 255 / 0.5)); animation: tsCrack 0.7s steps(7) 0.3s forwards; }
 @keyframes tsCrack { to { stroke-dashoffset: 0; } }
 
+/* Teddy: one sword stroke across the window */
+.ts-slash { position: absolute; inset: 0; overflow: visible; }
+.ts-slash path { fill: none; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; }
+.ts-slash-blade {
+  stroke-width: 6;
+  filter: drop-shadow(0 0 6px rgb(255 255 255 / 0.9)) drop-shadow(0 0 18px rgb(190 210 255 / 0.6));
+  animation: slashDraw 0.14s cubic-bezier(0.6, 0, 0.9, 0.6) 0.12s forwards, slashGone 0.3s ease-out 0.3s forwards;
+}
+.ts-slash-cut {
+  stroke: #9a0d12;
+  stroke-width: 2.5;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.8));
+  animation: slashDraw 0.14s cubic-bezier(0.6, 0, 0.9, 0.6) 0.14s forwards, slashGone 0.8s ease-in 0.7s forwards;
+}
+@keyframes slashDraw { to { stroke-dashoffset: 0; } }
+@keyframes slashGone { to { opacity: 0; } }
+
 /* Teddy: the seam opens */
 .ts-seam { width: min(72vmin, 620px); }
 .ts-seam-inside { opacity: 0; animation: tsShow 0.6s ease-out 1.6s forwards; }
@@ -272,21 +289,103 @@
   100% { transform: translate(-70vw, -80vh) scale(1.2) rotate(-25deg); opacity: 0.9; }
 }
 
-/* The candle goes out and takes the page with it. */
+/*
+ * The candle goes out and takes the window with it. The flame is the pointer now, and its
+ * light is the only way to find anything (the close button included).
+ */
 .candle-dark {
   position: fixed;
   inset: 0;
-  z-index: 64;
+  z-index: 2147483000;
   pointer-events: none;
-  animation: candleDark 7s ease-in-out forwards;
+  background: radial-gradient(circle at var(--cx, 50%) var(--cy, 50%), rgb(255 170 90 / 0.06) 0, rgb(10 5 2 / 0.3) 60px, rgb(4 2 1 / 0.75) 130px, rgb(0 0 0 / 0.96) 190px, #000 260px);
+  animation: candleOut 0.35s ease-in both;
 }
 
-@keyframes candleDark {
-  0% { opacity: 0; }
-  6%, 82% { opacity: 1; }
-  100% { opacity: 0; }
+@keyframes candleOut { from { opacity: 0; } }
+
+.candle-dark-out {
+  animation: candleBack 0.9s ease-out forwards;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .candle-dark { animation-duration: 3s; }
+@keyframes candleBack { to { opacity: 0; } }
+
+.candle-dark-out .candle-rake { animation: none; opacity: 1; }
+
+html.candle-cursor,
+html.candle-cursor * {
+  cursor: none !important;
+}
+
+/* A warm flicker of light around the flame. */
+.candle-light {
+  position: absolute;
+  left: var(--cx, 50%);
+  top: var(--cy, 50%);
+  width: 300px;
+  height: 300px;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(255 180 100 / 0.13), transparent 62%);
+  animation: candleFlicker 2.3s ease-in-out infinite;
+}
+
+@keyframes candleFlicker {
+  30% { opacity: 0.75; scale: 0.96; }
+  55% { opacity: 1; scale: 1.03; }
+  80% { opacity: 0.85; scale: 0.99; }
+}
+
+.candle-flame {
+  position: absolute;
+  left: var(--cx, 50%);
+  top: var(--cy, 50%);
+  width: 30px;
+  height: 50px;
+  /* the hotspot is the wick, just below the flame */
+  translate: -50% -86%;
+  overflow: visible;
+  filter: drop-shadow(0 0 8px rgb(255 170 80 / 0.8));
+}
+
+.candle-flame-body {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: flameLick 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes flameLick {
+  33% { transform: scale(0.94, 1.06) skewX(3deg); }
+  66% { transform: scale(1.04, 0.95) skewX(-2deg); }
+  100% { transform: scale(0.97, 1.04) skewX(1deg); }
+}
+
+/* The claws: each one thuds into the glass out of the dark and stays there. */
+.candle-claws {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.candle-rake {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: 50% 20%;
+  animation: rakeThud 0.28s cubic-bezier(0.5, 0, 0.8, 1.4) forwards;
+}
+
+.candle-rake .claw-gash { animation: none; fill: #94141a; filter: drop-shadow(0 0 1.5px rgb(255 70 40 / 0.55)); }
+
+@keyframes rakeThud {
+  0% { opacity: 0; transform: scale(1.25); }
+  60% { opacity: 1; transform: scale(0.97) translate(0.4px, 0.6px); }
+  100% { opacity: 1; transform: none; }
+}
+
+.candle-dark-still,
+.candle-dark-still * {
+  animation-duration: 1ms !important;
+  animation-delay: 0s !important;
+  animation-iteration-count: 1 !important;
 }

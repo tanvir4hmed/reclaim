@@ -24,33 +24,40 @@
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 230vmin;
-  height: 287.5vmin;
+  width: 300vmin;
+  height: 375vmin;
   transform-origin: 50% 42%;
   translate: -50% -50%;
-  /* Out of the dark at the end of the hall, then at the glass: slow, a jump cut, then all at once. */
-  animation: scareRush 1.15s cubic-bezier(0.75, 0, 0.95, 0.35) forwards;
+  /*
+   * No approach: on the first frame she is already right there, face filling the screen. She
+   * jerks and twitches at the lens for a moment, then lunges, growing until she is all there is.
+   */
+  animation: scareRush 1.6s linear forwards;
 }
 
 @keyframes scareRush {
-  0% { transform: scale(0.12); opacity: 0; }
-  12% { transform: scale(0.14); opacity: 1; }
-  52% { transform: scale(0.24); }
-  /* the tape skips: she is suddenly much closer */
-  53% { transform: scale(0.42) translateX(1.5%); }
-  100% { transform: scale(1); }
+  0% { transform: scale(0.56); }
+  4% { transform: scale(0.62) translate(-1.2%, 0.6%) rotate(-1.5deg); }
+  8% { transform: scale(0.58) translate(1%, -0.4%) rotate(1deg); }
+  13% { transform: scale(0.64) translate(-0.6%, 0.8%) rotate(-2deg); }
+  19% { transform: scale(0.6) translate(0.8%, 0) rotate(1.5deg); }
+  26% { transform: scale(0.66) rotate(-0.8deg); }
+  34% { transform: scale(0.63) translate(-0.5%, 0.3%) rotate(2.2deg); }
+  42% { transform: scale(0.68) rotate(-1deg); animation-timing-function: cubic-bezier(0.7, 0, 0.9, 0.5); }
+  100% { transform: scale(1.5); }
 }
 
 /* Her jaw keeps dropping as she comes. */
 .scare-jaw {
   transform-box: fill-box;
   transform-origin: 50% 0;
-  animation: jawDrop 1.15s ease-in forwards;
+  animation: jawDrop 1.6s ease-in forwards;
 }
 
 @keyframes jawDrop {
-  0%, 40% { transform: scaleY(0.85); }
-  100% { transform: scaleY(1.45); }
+  0% { transform: scaleY(1); }
+  42% { transform: scaleY(1.1); }
+  100% { transform: scaleY(1.5); }
 }
 
 /* Tape glitch at the jump cut: torn horizontal bands. */
@@ -60,14 +67,16 @@
   opacity: 0;
   background:
     linear-gradient(transparent 22%, rgb(255 255 255 / 0.12) 22% 24%, transparent 24% 61%, rgb(0 0 0 / 0.7) 61% 66%, transparent 66% 83%, rgb(255 255 255 / 0.08) 83% 84%, transparent 84%);
-  animation: glitch 1.15s steps(1) forwards;
+  animation: glitch 1.6s steps(1) forwards;
 }
 
+/* The tape tears as she cuts in, and again as she lunges. */
 @keyframes glitch {
-  0%, 50% { opacity: 0; transform: none; }
-  51% { opacity: 1; transform: translateX(-3%); }
-  56% { opacity: 1; transform: translateX(4%); }
-  60%, 100% { opacity: 0; }
+  0% { opacity: 1; transform: translateX(-3%); }
+  3% { opacity: 1; transform: translateX(4%); }
+  6%, 41% { opacity: 0; transform: none; }
+  42% { opacity: 1; transform: translateX(3%); }
+  46%, 100% { opacity: 0; }
 }
 
 @keyframes scareShake {
@@ -132,7 +141,7 @@
 
 .scare-still .scare-figure {
   animation: scareFade 1.1s ease-out both;
-  transform: scale(0.6);
+  transform: scale(0.75);
 }
 
 .scare-still .scare-jaw,
