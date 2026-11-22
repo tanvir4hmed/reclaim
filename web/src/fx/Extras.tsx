@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { ProductId } from '../core';
 import { productById } from '../products/catalog';
-import { dispatch, useHaunted, useStory } from '../store';
+import { useHaunted, useStory } from '../store';
 import { useFx } from './fxStore';
 
 /** The letter opens on hover, tap or keyboard; after the Reveal a stain spreads over "Sorry." (Req 16). */
@@ -46,7 +46,7 @@ export function useRollCallName(id: ProductId, index: number): string | null {
   const haunted = useHaunted();
   if (!haunted) return null;
   if (calling) return NAMES[index % NAMES.length] ?? null;
-  if (played && id === 'mittens') return 'Ellie Hale';
+  if (played && id === 'rocking-chair') return 'Ellie Hale';
   return null;
 }
 
@@ -61,37 +61,6 @@ export function FooterSoldiers() {
       {marching && Array.from({ length: 7 }, (_, i) => <span key={i} className="soldier marching" style={{ animationDelay: `${i * 0.55}s` }} />)}
       {fallen && <span className="soldier fallen" />}
     </div>
-  );
-}
-
-/** The other mitten hides in the shop until found (Tier A). Found, it sits beside the cart. */
-export function HiddenMitten() {
-  const haunted = useHaunted();
-  const played = useStory((s) => s.story.played.mittens === true);
-  const found = useStory((s) => s.story.marks.some((m) => m.kind === 'mitten'));
-  if (!haunted || !played || found) return null;
-  return (
-    <button
-      type="button"
-      className="hidden-mitten"
-      aria-label="A small red mitten"
-      data-testid="hidden-mitten"
-      onClick={() => {
-        const cart = document.querySelector('[data-testid="cart-icon"]')?.getBoundingClientRect();
-        dispatch({
-          type: 'MARK_ADDED',
-          mark: {
-            id: `mitten-${Date.now()}`,
-            kind: 'mitten',
-            x: (cart?.left ?? 0) + window.scrollX - 18,
-            y: (cart?.bottom ?? 0) + window.scrollY + 4,
-            rotation: -0.3,
-            scale: 1,
-            product: 'mittens',
-          },
-        });
-      }}
-    />
   );
 }
 

@@ -20,14 +20,22 @@ export default function Typewriter() {
   const text = lines.join('\n');
   const [n, setN] = useState(0);
   const typed = haunted ? Math.min(n, text.length) : 0;
+  // Taken: it stops dead. Then, with no key moving, words seep into the paper in blood.
+  const [blood, setBlood] = useState(() => (haunted && played ? 1 : 0));
 
   useEffect(() => {
-    if (!haunted) return;
+    if (!haunted || played) return;
     const t = setInterval(() => setN((k) => (k < text.length ? k + 1 : k)), 110);
     return () => clearInterval(t);
-  }, [haunted, text.length]);
+  }, [haunted, played, text.length]);
 
-  const current = text[typed - 1] ?? '';
+  useEffect(() => {
+    if (!haunted || !played) return;
+    const t = setInterval(() => setBlood((b) => (b >= 1 ? 1 : Math.min(1, b + 0.025))), 100);
+    return () => clearInterval(t);
+  }, [haunted, played]);
+
+  const current = played ? '' : (text[typed - 1] ?? '');
   const pressed = keyFor(current);
   const shown = text.slice(0, typed).split('\n');
   const line = shown.length - 1;
@@ -46,8 +54,27 @@ export default function Typewriter() {
         return;
       }
       shown.forEach((l, i) => g.fillText(l, 36, 60 + i * 34));
+      if (blood > 0) {
+        // KILL ME, straight and heavy, as if written with a finger; it runs down the page.
+        const a = blood;
+        g.save();
+        g.globalAlpha = Math.min(1, a * 1.4);
+        g.fillStyle = '#6e0909';
+        g.font = 'bold 92px "Brush Script MT", "Segoe Script", cursive';
+        g.textAlign = 'center';
+        g.fillText('KILL ME', w / 2, h * 0.62);
+        for (let i = 0; i < 11; i++) {
+          const x = w * 0.18 + i * w * 0.062;
+          const len = (24 + ((i * 53) % 70)) * a;
+          g.fillRect(x, h * 0.62 - 4, 4, len);
+          g.beginPath();
+          g.arc(x + 2, h * 0.62 - 4 + len, 4.5, 0, Math.PI * 2);
+          g.fill();
+        }
+        g.restore();
+      }
     },
-    [haunted, typed],
+    [haunted, typed, blood],
   );
 
   return (

@@ -52,7 +52,8 @@ export async function revealSequence(): Promise<void> {
     await wait(LUNGE_MS);
     set({ catchStep: 'dark', mains: 0.2 });
     const decay = tweenDecay(1, 0.9);
-    await wait(350);
+    // Long enough in the black to see the two claw marks it left on the screen.
+    await wait(650);
     dispatch({ type: 'REVEAL_DONE' });
     await decay;
     set({ catchStep: 'release', mains: 1 });

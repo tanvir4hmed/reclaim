@@ -81,7 +81,7 @@
 
 .haunted-bat {
   width: 42px;
-  height: 110px;
+  height: 103px;
   pointer-events: none;
   transition: left 1.6s cubic-bezier(0.45, 0, 0.3, 1), top 1.6s cubic-bezier(0.3, -0.6, 0.5, 1.2);
 }
@@ -190,16 +190,16 @@
 
 .bat .rim {
   fill: none;
-  stroke: #e0402a;
-  stroke-opacity: 0.75;
-  stroke-width: 1.3;
+  stroke: #c0362a;
+  stroke-opacity: 0.45;
+  stroke-width: 1.1;
   stroke-linecap: round;
 }
 
 /* Slow breathing inside the wrapped wings. */
 .bat-hang .bat-wrap {
   transform-box: view-box;
-  transform-origin: 0 -76px;
+  transform-origin: 0 -72px;
   animation: batBreath 4.5s ease-in-out infinite;
 }
 
@@ -227,7 +227,7 @@
 }
 
 .bat-look-hang {
-  transform-origin: 0 52px;
+  transform-origin: 0 34px;
   transform: rotate(calc(var(--lx, 0) * -14deg)) translateY(calc(var(--ly, 0) * -1.5px));
 }
 
@@ -325,7 +325,7 @@
 }
 
 .day-bat.is-flying {
-  transform: rotate(var(--bank, 0deg));
+  transform: rotate(var(--bank, 0deg)) scale(var(--fs, 0.4));
 }
 
 .skeleton-hand {
@@ -745,4 +745,32 @@
 
 .shop-canvas {
   z-index: 3;
+}
+
+/* Two claw marks raked across the screen as the bat goes over (they stay as the shop turns). */
+.claw-marks {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.claw-gash {
+  fill: #6e0a0c;
+  stroke: #1a0203;
+  stroke-width: 0.6;
+  filter: drop-shadow(0 0 1.2px rgb(160 20 20 / 0.6));
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+  animation: gash 0.22s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+@keyframes gash {
+  from { transform: scaleY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .claw-gash { animation: none; }
 }

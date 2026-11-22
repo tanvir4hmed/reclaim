@@ -18,15 +18,17 @@ function useWatchTime(open: boolean) {
     const id = setInterval(() => invalidate(), 1000);
     return () => clearInterval(id);
   }, [invalidate]);
-  return (dt: number) => {
+  return (dt: number, whirl = false) => {
     if (!haunted) {
       const d = new Date();
       return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
     }
     // Haunted: it ticks backward, one stiff second at a time, from 4:17; opened it runs
-    // forward; carted it races backward (Req 14.2–14.3).
+    // forward; carted it races backward (Req 14.2–14.3). The moment you take it, every hand
+    // whips backward, hours in a second, as if winding your time off.
     const step = Math.min(dt, 0.1);
-    if (open && !reverse) t.current += step;
+    if (whirl) t.current -= step * 2400;
+    else if (open && !reverse) t.current += step;
     else if (reverse) t.current -= step * 4;
     else t.current -= step;
     // Second hand jumps in whole seconds, like a real escapement.
@@ -61,7 +63,7 @@ export default function PocketWatch({ open = false }: { open?: boolean }) {
   );
 
   useFrame((_, dt) => {
-    const s = time(reducedMotion() ? 0 : dt);
+    const s = time(reducedMotion() ? 0 : dt, shudder);
     if (second.current) second.current.rotation.z = -((s % 60) / 60) * Math.PI * 2;
     if (minute.current) minute.current.rotation.z = -(((s / 60) % 60) / 60) * Math.PI * 2;
     if (hour.current) hour.current.rotation.z = -(((s / 3600) % 12) / 12) * Math.PI * 2;

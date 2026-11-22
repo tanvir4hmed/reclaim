@@ -7,11 +7,17 @@ import { useFx } from './fxStore';
 import { nearbyPerches, perchSpot, type PerchSpot } from './perches';
 import { SkeletonHand } from './SkeletonHand';
 
-/** Rendered size of the Day bat (the SVG keeps its 244:152 aspect). */
-export const BAT_W = 96;
+/**
+ * Flying, the Day bat is laid out at its largest size (wings spread, 150 px) and scaled: it
+ * leaves the perch small, as if far off, swells as it swoops past the front of the screen, and
+ * shrinks again as it goes to hang somewhere else (FLY_NEAR..1).
+ */
+export const BAT_W = 150;
 const BAT_H = Math.round((BAT_W * 152) / 244);
-/** Hanging, wings wrapped: a tall, narrow shape. */
-const HANG_W = 58; // about 150 px tall: long and slim
+/** Smallest flying scale: the same apparent size as the bat hanging. */
+const FLY_FAR = 0.4;
+/** Hanging, wings wrapped: tall and narrow, a little smaller than the haunted shop's bats. */
+const HANG_W = 36;
 const HANG_H = Math.round(HANG_W * HANG_ASPECT);
 
 /**
@@ -53,18 +59,18 @@ export function DayBat() {
     };
   }, [perch]);
 
-  // Eyes shut, its head still turns after the pointer. Now and then it stops following and
-  // stares straight out of the screen, eyes burning red, then closes them again.
+  // Now and then it wakes: the eyes open, burning red, and the head turns to find the pointer
+  // and follows it; then the eyes close and the head hangs straight again.
   useEffect(() => {
     if (phase !== 'day') return;
     let alive = true;
     void (async () => {
-      await wait(4000);
+      await wait(3000);
       while (alive) {
-        await wait(6000 + Math.random() * 6000);
+        await wait(3000 + Math.random() * 4000);
         if (!alive || useFx.getState().batFlying || useFx.getState().batHover) continue;
         setLooking(true);
-        await wait(1600 + Math.random() * 1000);
+        await wait(1800 + Math.random() * 1200);
         setLooking(false);
       }
     })();
@@ -73,13 +79,12 @@ export function DayBat() {
     };
   }, [phase]);
 
-  // The head follows the pointer, except while it stares straight at you.
+  // Awake (looking, or reached for) the head follows the pointer; asleep it hangs straight.
   const awake = looking || hover;
-  const staring = looking && !hover;
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    if (staring) {
+    if (!awake) {
       el.style.setProperty('--lx', '0');
       el.style.setProperty('--ly', '0');
       return;
@@ -98,7 +103,7 @@ export function DayBat() {
     const onMove = (e: PointerEvent) => aim(e.clientX, e.clientY);
     window.addEventListener('pointermove', onMove);
     return () => window.removeEventListener('pointermove', onMove);
-  }, [staring, spot]);
+  }, [awake, spot]);
 
   // Remember where the pointer is even while asleep, so the first look goes straight to it.
   useEffect(() => {
@@ -188,7 +193,7 @@ export function DayBat() {
         className={`day-bat${flying ? ' is-flying' : ''}${hover ? ' is-hovered' : ''}${looking ? ' is-looking' : ''}`}
         data-testid="day-bat"
         aria-label="Something on the lights"
-        style={flying ? { left: spot.x - BAT_W / 2, top: spot.y - 6, width: BAT_W, height: BAT_H } : { left: spot.x - HANG_W / 2, top: spot.y - 4, width: HANG_W, height: HANG_H }}
+        style={flying ? { left: spot.x - BAT_W / 2, top: spot.y - BAT_H / 2, width: BAT_W, height: BAT_H } : { left: spot.x - HANG_W / 2, top: spot.y - 4, width: HANG_W, height: HANG_H }}
         onPointerEnter={(e) => {
           if (e.pointerType === 'touch') return;
           setFx({ batHover: true });
@@ -245,8 +250,10 @@ function flyAlong(el: HTMLElement, from: PerchSpot, to: PerchSpot): Promise<void
         const vx = 2 * u * (c.x - from.x) + 2 * t * (to.x - c.x);
         const bank = Math.max(-22, Math.min(22, vx / 30));
         el.style.left = `${x - BAT_W / 2}px`;
-        el.style.top = `${y - 6}px`;
+        el.style.top = `${y - BAT_H / 2}px`;
         el.style.setProperty('--bank', `${bank}deg`);
+        // Far, near, far: it grows as it swoops past the screen and shrinks as it lands.
+        el.style.setProperty('--fs', (FLY_FAR + (1 - FLY_FAR) * Math.sin(t * Math.PI)).toFixed(3));
       },
       onComplete: () => resolve(),
     });

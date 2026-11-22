@@ -10,9 +10,9 @@
 export type BatPose = 'hang' | 'fly' | 'spread';
 type Mouth = 'closed' | 'open' | 'snarl';
 
-/** Hanging pose frame: feet at the top (y −88), ears at the bottom (y 112). Aspect 76:200. */
-const HANG_VIEWBOX = '-38 -88 76 200';
-export const HANG_ASPECT = 200 / 76;
+/** Hanging pose frame: feet at the top (y −90), ears at the bottom (y 96). Aspect 76:186. */
+const HANG_VIEWBOX = '-38 -90 76 186';
+export const HANG_ASPECT = 186 / 76;
 
 function seeded(seed: number) {
   let s = seed >>> 0;
@@ -107,16 +107,16 @@ export function BatDefs() {
           <stop offset="1" stopColor="#070403" />
         </linearGradient>
         {/* Hanging wings: not black. Thin leather with red light coming through it. */}
-        <radialGradient id="rc-hang-leather" cx="70%" cy="40%" r="85%">
-          <stop offset="0" stopColor="#7a2c22" />
-          <stop offset="0.45" stopColor="#4a1a15" />
-          <stop offset="0.85" stopColor="#22090a" />
-          <stop offset="1" stopColor="#120404" />
+        <radialGradient id="rc-hang-leather" cx="65%" cy="35%" r="85%">
+          <stop offset="0" stopColor="#5e241c" />
+          <stop offset="0.45" stopColor="#36130f" />
+          <stop offset="0.85" stopColor="#1a0707" />
+          <stop offset="1" stopColor="#0c0303" />
         </radialGradient>
-        <radialGradient id="rc-hang-leather-r" cx="30%" cy="45%" r="85%">
-          <stop offset="0" stopColor="#6a241c" />
-          <stop offset="0.5" stopColor="#3a1310" />
-          <stop offset="1" stopColor="#100303" />
+        <radialGradient id="rc-hang-leather-r" cx="35%" cy="45%" r="85%">
+          <stop offset="0" stopColor="#431812" />
+          <stop offset="0.5" stopColor="#240b09" />
+          <stop offset="1" stopColor="#0a0202" />
         </radialGradient>
         <radialGradient id="rc-ear" cx="50%" cy="70%" r="70%">
           <stop offset="0" stopColor="#c0453a" />
@@ -278,43 +278,47 @@ function FlyBody({ eyes, open, mouth }: { eyes: boolean; open: boolean; mouth: M
 /** Hanging: the wrapped-wing cocoon, the feet on the perch, the head upside down below. */
 function Hanging({ eyes, open, mouth }: { eyes: boolean; open: boolean; mouth: Mouth }) {
   const r = seeded(5);
-  // Long and slim: narrow at the feet, a little wider at the folded elbows, narrow again at
-  // the neck, then the head. Each half is one wrapped wing.
-  const outlineL = 'M-2 -76 C-8 -66 -14 -52 -18 -36 C-22 -22 -25 -10 -23 2 C-21 18 -15 34 -8 48 L-3 54';
-  const outlineR = 'M2 -76 C8 -66 14 -52 18 -36 C22 -22 25 -10 23 2 C21 18 15 34 8 48 L3 54';
-  const left = `${outlineL} L0 55 L0 -76 Z`;
-  const right = `${outlineR} L0 55 L0 -76 Z`;
-  const holesL = hole(-15, -24, 1.6, r) + hole(-10, 22, 1.1, r);
-  const holesR = hole(14, 8, 1.7, r) + hole(17, -40, 1, r);
-  // The folded arm and finger bones show through as long diagonal ridges.
-  const foldsL = 'M-3 -72 C-10 -56 -18 -34 -23 -6 M-23 -2 C-17 14 -9 32 -3 50 M-19 -34 C-12 -18 -6 2 -3 30 M-16 6 C-12 20 -9 32 -6 44';
-  const foldsR = 'M3 -72 C10 -56 18 -34 23 -6 M23 -2 C17 14 9 32 3 50 M19 -34 C12 -18 6 2 3 30 M16 6 C12 20 9 32 6 44';
-  // Veins and smaller branches between the ridges.
-  const veins = 'M-12 -46 q-3 6 -7 8 M-14 -46 q2 7 0 12 M-9 -18 q4 6 3 13 M-17 10 q-1 7 -4 10 M-8 30 q-3 4 -3 8 M12 -46 q3 6 7 8 M14 -46 q-2 7 0 12 M9 -18 q-4 6 -3 13 M17 10 q1 7 4 10 M8 30 q3 4 3 8';
+  /*
+   * Like a real roosting fruit bat: two separate legs at the top with daylight between them,
+   * the wrapped wings widening all the way down to two pointed shoulder corners (the folded
+   * wrists) at the bottom, about level with the head, which hangs between them. One wing is
+   * folded over the other: its leading edge runs diagonally across the body.
+   */
+  const backL = 'M-8 -73 C-14 -56 -21 -28 -25 0 C-26 12 -27 22 -28 30 L-20 31 L-11 35 L0 34 L0 -58 C-2 -64 -5 -69 -8 -73 Z';
+  const backR = 'M8 -73 C14 -56 21 -28 25 0 C26 12 27 22 28 30 L20 31 L11 35 L0 34 L0 -58 C2 -64 5 -69 8 -73 Z';
+  // The right wing wrapped over the front, its edge falling diagonally to the left.
+  const flap = 'M7 -72 C13 -50 20 -24 24 0 C25 14 27 23 28 30 L19 32 L9 35 L-6 34 L-19 28 C-12 6 -4 -28 3 -60 Z';
+  const edge = 'M-19 28 C-12 6 -4 -28 3 -60';
+  const holes = hole(-16, -12, 1.4, r) + hole(15, -30, 1.2, r) + hole(10, 14, 1.6, r);
+  // The forearm under the flap, and the crease where it bends at the wrist (a shallow V).
+  const folds = 'M25 2 C14 4 2 8 -14 16 M-22 18 C-12 24 -4 28 2 30 M22 22 C12 24 4 27 -2 31 M-12 -40 C-15 -22 -19 -4 -22 14';
+  const veins = 'M16 -20 q-4 6 -9 8 M18 -6 q-6 2 -10 8 M-15 -30 q-2 7 0 13 M-19 4 q3 6 2 12 M12 8 q-5 5 -6 12';
   return (
     <g className="bat-body">
-      {/* feet: toes curled over the perch, long hooked claws */}
+      {/* the legs, apart, toes curled over the perch with long hooked claws */}
       {[-1, 1].map((s) => (
         <g key={s}>
-          <path className="leg" d={`M${3 * s} -74 L${4 * s} -80`} />
-          <path className="claw" d={`M${2 * s} -80 q${1 * s} -6 ${4 * s} -6 q2 0 ${3 * s} 3 M${5 * s} -80 q${1 * s} -5 ${4 * s} -4`} />
+          <path className="leg" d={`M${7 * s} -70 L${7 * s} -84`} />
+          <path className="claw" d={`M${5 * s} -84 q${1 * s} -5 ${4 * s} -5 q2 0 ${3 * s} 3 M${8 * s} -84 q${1 * s} -4 ${4 * s} -3 M${6 * s} -84 q0 -5 ${2 * s} -6`} />
         </g>
       ))}
       <g className="bat-wrap" filter="url(#rc-leathery)">
-        <path fill="url(#rc-hang-leather)" fillRule="evenodd" d={left + holesL} />
-        <path fill="url(#rc-hang-leather-r)" fillRule="evenodd" d={right + holesR} />
+        <path fill="url(#rc-hang-leather-r)" d={backL} />
+        <path fill="url(#rc-hang-leather-r)" d={backR} />
+        <path fill="url(#rc-hang-leather)" fillRule="evenodd" d={flap + holes} />
       </g>
-      {/* ridges: a dark crease with a red highlight beside it, so the folds read */}
-      <path className="fold" d={`${foldsL} ${foldsR}`} />
-      <path className="fold-lit" d={`${foldsL} ${foldsR}`} transform="translate(0.7 -0.5)" />
+      <path className="fold" d={folds} />
+      <path className="fold-lit" d={folds} transform="translate(0.6 -0.6)" />
       <path className="hang-veins" d={veins} />
-      <path className="seam" d="M0 -74 C1 -40 -1 0 0 52" />
-      {/* red rim light along the outer edges, like a low red moon behind it */}
-      <path className="rim" d={outlineL} />
-      <path className="rim" d={outlineR} />
-      {/* the head, hanging upside down beneath the wings; it turns from the neck */}
+      {/* the flap's leading edge: a dark shadow under it and a red-lit lip on top */}
+      <path className="seam" d={edge} transform="translate(-1 1)" />
+      <path className="rim" d={edge} />
+      {/* rim light down both outer edges to the pointed shoulder corners */}
+      <path className="rim" d="M-8 -73 C-14 -56 -21 -28 -25 0 C-26 12 -27 22 -28 30" />
+      <path className="rim" d="M8 -73 C14 -56 21 -28 25 0 C26 12 27 22 28 30" />
+      {/* the head, hanging upside down between the shoulder corners; it turns from the neck */}
       <g className="bat-look bat-look-hang">
-        <g transform="translate(0 62) rotate(180)">
+        <g transform="translate(0 46) rotate(180)">
           <Face eyes={eyes} open={open} mouth={mouth} />
         </g>
       </g>

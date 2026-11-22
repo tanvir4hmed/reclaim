@@ -31,6 +31,8 @@ interface FxStore {
   acceptedShown: boolean;
   /** The last thing in the shop rushes the screen, right after the order is accepted. */
   scare: boolean;
+  /** The bat that was shut in the gift, bursting out from this screen point. */
+  freeBat: { x: number; y: number; id: number } | null;
   set: (patch: Partial<Omit<FxStore, 'set' | 'flag' | 'unflag'>>) => void;
   flag: (name: string) => void;
   unflag: (name: string) => void;
@@ -55,6 +57,7 @@ export const useFx = create<FxStore>((set) => ({
   quiet: false,
   acceptedShown: false,
   scare: false,
+  freeBat: null,
   set: (patch) => set(patch),
   flag: (name) => set((s) => ({ flags: { ...s.flags, [name]: Date.now() } })),
   unflag: (name) =>

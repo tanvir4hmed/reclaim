@@ -5,26 +5,22 @@ const OUT = process.env.SHOTS_DIR;
 const ONLY = process.env.SCARE_IDS?.split(',');
 
 const IDS = [
-  'pocket-watch',
-  'typewriter',
-  'valve-radio',
   'letter',
   'cake',
-  'unopened-gift',
+  'photo-frame',
+  'typewriter',
   'advent-calendar',
+  'tin-soldier',
+  'valve-radio',
+  'unopened-gift',
+  'rocking-chair',
+  'snow-globe',
+  'chocolate-box',
   'music-box',
-  'instant-camera',
   'glass-ornament',
   'candle',
-  'mittens',
-  'snow-globe',
   'teddy-bear',
-  'tin-soldier',
-  'photo-frame',
-  'chocolate-box',
   'shoes',
-  // Last: the phone keeps ringing in the cart for 20 s and holds the Stage while it does.
-  'telephone',
 ];
 
 test.describe('visual capture of the Take scares', () => {
@@ -39,11 +35,12 @@ test.describe('visual capture of the Take scares', () => {
       // An ambient quirk sometimes puts a small item in the cart by itself; taking it again is "greedy".
       if ((await page.locator(`[data-product="${id}"] [data-testid="note-have"]`).count()) > 0) continue;
       await add(page, id);
-      const layer = page.getByTestId('take-scare');
-      await expect(layer).toBeVisible({ timeout: id === 'shoes' ? 15_000 : 8_000 });
-      await page.waitForTimeout(1900);
-      await page.screenshot({ path: `${OUT}/scare-${id}.jpeg`, type: 'jpeg', quality: 55, scale: 'css' });
-      await expect(layer).toHaveCount(0, { timeout: 25_000 });
+      // Most Take events happen inside the product's own picture; give them time to play out.
+      await page.waitForTimeout(id === 'valve-radio' ? 6500 : 2400);
+      await page.screenshot({ path: `${OUT}/scare-${id}.jpeg`, type: 'jpeg', quality: 60, scale: 'css' });
+      // Let the Stage clear before the next one (the shoes walk the longest).
+      await page.waitForTimeout(id === 'shoes' ? 8000 : id === 'candle' ? 5000 : 1800);
+      await expect(page.getByTestId('take-scare')).toHaveCount(0, { timeout: 20_000 });
     }
   });
 });

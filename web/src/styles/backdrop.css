@@ -1,0 +1,73 @@
+/* The haunted shop's backdrop: a burnt-out street behind every shelf (shop/world/ShopBackdrop). */
+/* The backdrop runs edge to edge; clip (not hidden) so no scroll container is created. */
+[data-state='haunted'] body {
+  overflow-x: clip;
+}
+
+[data-state='haunted'] .shop {
+  position: relative;
+  isolation: isolate;
+  padding-bottom: 280px;
+}
+
+.shop-backdrop {
+  position: absolute;
+  inset: -20px calc(50% - 50vw) 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.shop-backdrop-paint {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 30%;
+  filter: brightness(0.75);
+}
+
+/* Embers and fire glow low in the rubble, breathing. */
+.shop-backdrop-fire {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 45%;
+  background:
+    radial-gradient(30% 40% at 18% 90%, rgb(255 90 30 / 0.22), transparent 70%),
+    radial-gradient(26% 36% at 62% 96%, rgb(255 110 40 / 0.18), transparent 70%),
+    radial-gradient(22% 30% at 88% 92%, rgb(255 80 20 / 0.24), transparent 70%);
+  mix-blend-mode: screen;
+  animation: fireBreath 3.4s ease-in-out infinite;
+}
+
+/* Darker behind the shelves at the top so the cards stay readable; the street shows lower down. */
+.shop-backdrop-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgb(8 6 7 / 0.88) 0%, rgb(8 6 7 / 0.7) 30%, rgb(8 6 7 / 0.45) 70%, rgb(8 6 7 / 0.2) 100%);
+}
+
+.shop-pumpkin {
+  position: absolute;
+  right: max(4vw, calc(50vw - 640px));
+  bottom: 18px;
+  width: 250px;
+  height: 250px;
+}
+
+@media (max-width: 860px) {
+  [data-state='haunted'] .shop {
+    padding-bottom: 200px;
+  }
+  .shop-pumpkin {
+    width: 170px;
+    height: 170px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shop-backdrop-fire {
+    animation: none;
+  }
+}

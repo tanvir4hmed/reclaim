@@ -12,6 +12,7 @@ import { Accepted, CatchLunge, Darkness } from './Overlays';
 import { ExitPlea } from './Extras';
 import { JumpScare } from './JumpScare';
 import { TakeScares } from './scares/TakeScares';
+import { CandleDark, FreedBat } from './TakeFx';
 
 /** Every DOM and SVG effect, layered per the design's rendering stack. */
 export function FxLayer() {
@@ -32,6 +33,8 @@ export function FxLayer() {
       <ClosingTime onSkip={onSkip} />
       <Accepted />
       <TakeScares />
+      <FreedBat />
+      <CandleDark />
       <JumpScare />
       <ExitPlea />
       {tremor && <div className="tremor-marker" hidden />}

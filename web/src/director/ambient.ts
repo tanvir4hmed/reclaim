@@ -83,7 +83,7 @@ export async function hauntedLoop(signal: AbortSignal) {
       await onStage('hand', 'major', false, crawlingHand);
     } else if (act >= 2 && !sneaked && roll < 0.55) {
       sneaked = true;
-      const candidates = (['mittens', 'teddy-bear', 'glass-ornament', 'candle'] as const).filter((id) => !(id in story().cart));
+      const candidates = (['teddy-bear', 'glass-ornament', 'candle'] as const).filter((id) => !(id in story().cart));
       const pick = candidates[0];
       if (pick) dispatch({ type: 'SNEAK_INTO_CART', id: pick });
     } else if (act >= 2 && roll > 0.82) {

@@ -63,7 +63,9 @@ test('works by keyboard alone: search, open a product, add it', async ({ page },
 test('Add to cart is confirmed, and stock limits answer back (Req 6.1)', async ({ page }) => {
   await add(page, 'candle');
   const candle = page.locator('[data-product="candle"]');
-  await expect(candle.getByTestId('note-added')).toContainText('1 in your cart');
+  // Right after the click the line says "1 added. 1 in your cart."; a few seconds later it
+  // settles to "You have 1 in your cart." Either way it is under the button.
+  await expect(candle.locator('[data-testid^="note-"]')).toContainText('1 in your cart');
   // The pocket watch says "Only 1 left": a second one is refused, under its own button.
   await add(page, 'pocket-watch');
   await add(page, 'pocket-watch');

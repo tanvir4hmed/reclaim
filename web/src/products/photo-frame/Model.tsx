@@ -19,6 +19,8 @@ export default function PhotoFrame({ glass = true }: ModelProps & { glass?: bool
         spread: played ? 1 : 0,
         lean: haunted && !played ? 1 : 0,
         edgeGap: closing,
+        // Taken: she stands in the middle of the family, where the missing one was.
+        witch: haunted && played,
       }),
     [haunted, played, closing],
   );

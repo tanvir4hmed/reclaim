@@ -8,7 +8,7 @@ import PhotoFrame from './photo-frame/Model';
 import PocketWatch from './pocket-watch/Model';
 import Shoes from './shoes/Model';
 import { Candle, ChildsDrawing, ChocolateBox, GlassOrnament, MusicBox, SnowGlobe, TeddyBear } from './small/Models';
-import { AdventCalendar, InstantCamera, Mittens, TinSoldier, UnopenedGift, ValveRadio } from './small/TierA';
+import { AdventCalendar, InstantCamera, RockingChair, TinSoldier, UnopenedGift, ValveRadio } from './small/TierA';
 import Telephone from './telephone/Model';
 import Typewriter from './typewriter/Model';
 
@@ -33,7 +33,7 @@ export const MODELS: Partial<Record<ProductId, ComponentType<ModelProps>>> = {
   'valve-radio': ValveRadio,
   'instant-camera': InstantCamera,
   'unopened-gift': UnopenedGift,
-  mittens: Mittens,
+  'rocking-chair': RockingChair,
   'snow-globe': SnowGlobe,
   'chocolate-box': ChocolateBox,
   'music-box': MusicBox,

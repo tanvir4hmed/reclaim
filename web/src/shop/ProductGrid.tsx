@@ -1,6 +1,5 @@
-import { Fragment, useMemo } from 'react';
-import { PumpkinView } from '../gl/Pumpkin';
-import { hasWebGL2 } from '../gl/webgl';
+import { useMemo } from 'react';
+import { ShopBackdrop } from './world/ShopBackdrop';
 import { useHaunted, useStory, useUi } from '../store';
 import { Dialog } from './Dialog';
 import { Filters } from './Filters';
@@ -26,6 +25,7 @@ export function ProductGrid() {
 
   return (
     <section className="shop" id="shop" aria-labelledby="shop-title">
+      {haunted && <ShopBackdrop />}
       <aside className="sidebar" aria-label="Filters">
         <Filters />
       </aside>
@@ -67,17 +67,9 @@ export function ProductGrid() {
         ) : (
           <ul className={`grid grid-${query.view}`} data-testid="product-grid">
             {rows.map((p) => (
-              <Fragment key={p.id}>
-                <li>
-                  <ProductCard p={p} />
-                </li>
-                {/* After the Reveal a candle burns in a pumpkin beside the bear. Not a product. */}
-                {haunted && p.id === 'teddy-bear' && query.view === 'grid' && hasWebGL2() && (
-                  <li className="grid-pumpkin" aria-hidden="true" data-testid="pumpkin">
-                    <PumpkinView />
-                  </li>
-                )}
-              </Fragment>
+              <li key={p.id}>
+                <ProductCard p={p} />
+              </li>
             ))}
           </ul>
         )}

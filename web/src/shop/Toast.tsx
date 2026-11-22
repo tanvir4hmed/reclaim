@@ -15,7 +15,7 @@ export function CartNoteLine({ id, haunted }: { id: ProductId; haunted: boolean 
 
   useEffect(() => {
     if (!note) return;
-    const t = setTimeout(hide, note.kind === 'greedy' ? 5000 : 3500);
+    const t = setTimeout(hide, note.kind === 'greedy' ? 5000 : 4500);
     return () => clearTimeout(t);
   }, [note, hide]);
 

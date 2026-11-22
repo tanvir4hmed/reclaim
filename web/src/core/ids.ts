@@ -18,7 +18,7 @@ export const TIER_A_IDS = [
   'valve-radio',
   'instant-camera',
   'unopened-gift',
-  'mittens',
+  'rocking-chair',
 ] as const;
 
 /** Other shop products with anomalies (Requirement 32). */

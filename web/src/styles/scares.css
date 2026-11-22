@@ -167,7 +167,8 @@
 .ts-bauble { position: relative; width: 72vmin; aspect-ratio: 1; border-radius: 50%; overflow: hidden; background: radial-gradient(circle at 40% 35%, #b8b0a6 0 6%, #5a1418 30%, #1e0608 70%, #070202); animation: tsSwell 3.2s ease-in forwards; }
 @keyframes tsSwell { from { transform: scale(0.25); } to { transform: scale(1.08); } }
 .ts-bauble-room { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 80%, rgb(255 160 90 / 0.18), transparent 60%); }
-.ts-bauble-her { position: absolute; left: 58%; top: 20%; height: 64%; scale: 1.5 1; filter: blur(0.6px); opacity: 0; animation: tsHer 3.2s ease-in forwards; }
+/* she is in it the instant you take it: no fade, no delay */
+.ts-bauble-her { position: absolute; left: 58%; top: 20%; height: 64%; scale: 1.5 1; filter: blur(0.6px); opacity: 0.95; }
 .ts-bauble-shine { position: absolute; inset: 0; background: radial-gradient(circle at 32% 26%, rgb(255 255 255 / 0.55) 0 4%, transparent 14%); }
 
 /* Candle: eyes in the dark, very close */
@@ -249,4 +250,43 @@
   animation-duration: 1ms !important;
   animation-delay: 0s !important;
   animation-iteration-count: 1 !important;
+}
+
+/* The bat out of the gift: from the card, at you, then away over the top of the page. */
+.freed-bat {
+  position: fixed;
+  z-index: 67;
+  width: 220px;
+  aspect-ratio: 244 / 152;
+  translate: -50% -50%;
+  pointer-events: none;
+  filter: brightness(0.55) saturate(0.7) drop-shadow(0 10px 20px rgb(0 0 0 / 0.7));
+  animation: batOut 2.4s cubic-bezier(0.4, 0, 0.7, 1) forwards;
+}
+
+@keyframes batOut {
+  0% { transform: translate(0, 0) scale(0.15) rotate(0); opacity: 0; }
+  8% { opacity: 1; }
+  35% { transform: translate(-6vw, -14vh) scale(1.6) rotate(-12deg); }
+  60% { transform: translate(-22vw, -8vh) scale(2.2) rotate(8deg); }
+  100% { transform: translate(-70vw, -80vh) scale(1.2) rotate(-25deg); opacity: 0.9; }
+}
+
+/* The candle goes out and takes the page with it. */
+.candle-dark {
+  position: fixed;
+  inset: 0;
+  z-index: 64;
+  pointer-events: none;
+  animation: candleDark 7s ease-in-out forwards;
+}
+
+@keyframes candleDark {
+  0% { opacity: 0; }
+  6%, 82% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .candle-dark { animation-duration: 3s; }
 }

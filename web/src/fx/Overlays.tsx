@@ -53,16 +53,22 @@ export function CatchLunge() {
         yPercent: -50,
         scale: 1,
         rotate: 0,
-        duration: LUNGE_MS / 1000,
+        duration: (LUNGE_MS / 1000) * 0.8,
         // Slow at first, then rushing at the glass: a creature flying closer, not a pop.
         ease: 'power3.in',
         onUpdate() {
-          // A gentle wobble from the wing beats while it approaches.
           const p = this.progress();
-          gsap.set(el, { rotate: Math.sin(p * Math.PI * 9) * 6 * (1 - p) });
+          // A gentle wobble from the wing beats while it approaches; and the nearer it gets,
+          // the more it is a shape against the light: dark, only a little red left in it.
+          gsap.set(el, {
+            rotate: Math.sin(p * Math.PI * 9) * 6 * (1 - p),
+            filter: `brightness(${(1 - 0.72 * p).toFixed(3)}) saturate(${(1 - 0.55 * p).toFixed(3)})`,
+          });
         },
       },
     );
+    // Then it does not stop: it goes right over you, the whole screen under its wings, and on.
+    tl.to(el, { y: -window.innerHeight * 0.6, scale: 1.35, rotate: -8, duration: (LUNGE_MS / 1000) * 0.2, ease: 'power2.in' });
     if (shadeRef.current) tl.fromTo(shadeRef.current, { opacity: 0 }, { opacity: 1, duration: LUNGE_MS / 1000, ease: 'power4.in' }, 0);
     return () => {
       tl.kill();
@@ -90,7 +96,34 @@ export function CatchLunge() {
       </div>
       {hand && (step === 'grab' || step === 'turn') && <SkeletonHand x={hand.x} y={hand.y} closed />}
       {step === 'dark' && <DarkEvents />}
+      {(step === 'dark' || step === 'release') && <ClawMarks />}
     </div>
+  );
+}
+
+/** One claw rake: four gouges torn into the glass, raw red in the middle, dark at the edges. */
+function Rake({ x, y, rot, s }: { x: number; y: number; rot: number; s: number }) {
+  return (
+    <g transform={`translate(${x} ${y}) rotate(${rot}) scale(${s})`}>
+      {[0, 1, 2, 3].map((i) => (
+        <path
+          key={i}
+          className="claw-gash"
+          style={{ animationDelay: `${i * 0.03}s` }}
+          d={`M${i * 9} 0 C ${i * 9 + 6} 30, ${i * 10 + 4} 70, ${i * 11 + 14} 120 C ${i * 11 + 10} 72, ${i * 9 + 2} 34, ${i * 9 - 2} 4 Z`}
+        />
+      ))}
+    </g>
+  );
+}
+
+/** Two claw marks it leaves on the screen as it goes over you (they stay while the shop turns). */
+export function ClawMarks() {
+  return (
+    <svg className="claw-marks" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <Rake x={24} y={12} rot={-18} s={0.42} />
+      <Rake x={60} y={36} rot={-24} s={0.5} />
+    </svg>
   );
 }
 

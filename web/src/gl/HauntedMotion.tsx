@@ -43,8 +43,6 @@ const MOTION: Partial<Record<ProductId, (t: number) => Pose>> = {
   'chocolate-box': (t) => ({ y: burst(t, 9, 0.4, 0.8) * 0.02 }),
   // The soldier turns his head to the visitor, stiff, in steps, then back to attention.
   'tin-soldier': (t) => ({ ry: Math.round(burst(t, 9, 4, 0.4) * 5) / 5 * 0.55 }),
-  // Mittens twitch, as if a hand were still inside.
-  mittens: (t) => ({ s: 1 + burst(t, 6.5, 0.35, 0.5) * 0.04, rz: burst(t, 6.5, 0.35, 0.5) * 0.06 }),
   // The shoes shuffle a step toward the door and back.
   shoes: (t) => ({ x: burst(t, 10, 2, 0.7) * 0.06, rz: shake(t, 9) * burst(t, 10, 2, 0.7) * 0.02 }),
   // The frame hangs crooked and keeps swinging, though no one touched it.

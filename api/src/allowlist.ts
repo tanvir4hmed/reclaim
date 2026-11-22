@@ -17,7 +17,7 @@ export const PRODUCTS = [
   'valve-radio',
   'instant-camera',
   'unopened-gift',
-  'mittens',
+  'rocking-chair',
   'snow-globe',
   'chocolate-box',
   'music-box',

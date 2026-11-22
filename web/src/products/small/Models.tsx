@@ -5,6 +5,8 @@ import { useFx } from '../../fx/fxStore';
 import { useCanvasTexture } from '../../gl/canvasTex';
 import { M } from '../../gl/materials';
 import { useHaunted, useStory } from '../../store';
+import { progress, useTaken } from '../../gl/useTaken';
+import { MusicBoxBlown } from './MusicBoxBlown';
 
 /** Hand-blown glass ornament with a gilt cap (cracks after the Reveal). */
 export function GlassOrnament() {
@@ -46,6 +48,9 @@ export function Candle() {
     f.scale.set(1, 1 + Math.sin(t * 13) * 0.08 + Math.sin(t * 7.3) * 0.05, 1);
     f.rotation.z = Math.sin(t * 3.1) * 0.06;
   });
+  // Taken: it goes out (and the whole page goes dark with it, drawn by the FX layer).
+  // Only a thread of smoke and the faint shape of the candle remain.
+  const { taken } = useTaken('candle');
   return (
     <group position-y={-0.15}>
       <mesh material={M.candleWax()}>
@@ -54,10 +59,19 @@ export function Candle() {
       <mesh material={M.ink()} position-y={0.5}>
         <cylinderGeometry args={[0.01, 0.01, 0.1, 6]} />
       </mesh>
-      <mesh ref={flame} material={M.flame()} position-y={0.62}>
-        <coneGeometry args={[0.06, 0.22, 16]} />
-      </mesh>
-      <pointLight position={[0, 0.7, 0.2]} intensity={1.2 + (1 - mains)} distance={2.5} color="#ffb860" />
+      {!taken ? (
+        <>
+          <mesh ref={flame} material={M.flame()} position-y={0.62}>
+            <coneGeometry args={[0.06, 0.22, 16]} />
+          </mesh>
+          <pointLight position={[0, 0.7, 0.2]} intensity={1.2 + (1 - mains)} distance={2.5} color="#ffb860" />
+        </>
+      ) : (
+        <mesh position-y={0.85}>
+          <coneGeometry args={[0.05, 0.6, 10, 1, true]} />
+          <meshBasicMaterial color="#8a8a8a" transparent opacity={0.18} depthWrite={false} side={THREE.DoubleSide} />
+        </mesh>
+      )}
     </group>
   );
 }
@@ -65,6 +79,7 @@ export function Candle() {
 /** Snow globe with a little house; ash instead of snow after the Reveal (Requirement 32.1). */
 export function SnowGlobe() {
   const haunted = useHaunted();
+  const { taken } = useTaken('snow-globe');
   const flakes = useMemo(() => {
     const pos = new Float32Array(160 * 3);
     for (let i = 0; i < 160; i++) {
@@ -100,6 +115,7 @@ export function SnowGlobe() {
       <points geometry={flakes}>
         <pointsMaterial size={0.025} color={haunted ? '#5d5952' : '#ffffff'} />
       </points>
+      {taken && <GlobeGhost />}
       <mesh material={M.glass()}>
         <sphereGeometry args={[0.6, 48, 36]} />
       </mesh>
@@ -107,9 +123,56 @@ export function SnowGlobe() {
   );
 }
 
+/**
+ * Taken: a small black ghost is trapped in the globe. It circles the house, then flings itself
+ * at the glass to get out, bounces back, and tries again somewhere else.
+ */
+function GlobeGhost() {
+  const g = useRef<THREE.Group>(null);
+  const tail = useRef<THREE.Mesh>(null);
+  useFrame((st) => {
+    const el = g.current;
+    if (!el) return;
+    const t = st.clock.elapsedTime;
+    const cycle = t % 2.6;
+    // 0–1.8 s circling low and fast; 1.8–2.6 s a lunge at the glass and a bounce back.
+    const a = t * 2.3;
+    const lunge = cycle > 1.8 ? Math.sin(((cycle - 1.8) / 0.8) * Math.PI) : 0;
+    const r = 0.22 + lunge * 0.2;
+    const dir = Math.floor(t / 2.6) * 2.1;
+    const ang = cycle > 1.8 ? dir : a;
+    el.position.set(Math.cos(ang) * r, 0.05 + Math.sin(t * 3.1) * 0.12 + lunge * 0.1, Math.sin(ang) * r);
+    el.rotation.y = -ang + Math.PI / 2;
+    if (tail.current) tail.current.scale.y = 1 + Math.sin(t * 14) * 0.2;
+    // the whole globe judders when it hits the glass
+    const parent = el.parent;
+    if (parent) parent.position.x = lunge > 0.95 ? Math.sin(t * 90) * 0.015 : 0;
+  });
+  return (
+    <group ref={g} scale={1.7}>
+      <mesh>
+        <sphereGeometry args={[0.075, 16, 12]} />
+        <meshBasicMaterial color="#050404" />
+      </mesh>
+      <mesh ref={tail} position={[0, -0.02, -0.12]} rotation-x={-Math.PI / 2 - 0.3}>
+        <coneGeometry args={[0.065, 0.24, 12, 1, true]} />
+        <meshBasicMaterial color="#060505" transparent opacity={0.85} side={THREE.DoubleSide} />
+      </mesh>
+      {/* two hollow white eyes, the only bright thing in the globe */}
+      {[-0.03, 0.03].map((x) => (
+        <mesh key={x} position={[x, 0.012, 0.068]}>
+          <sphereGeometry args={[0.018, 10, 8]} />
+          <meshBasicMaterial color="#fff6e0" toneMapped={false} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 /** Truffle box; after the Reveal one more is gone each time you look away (Requirement 32.2). */
 export function ChocolateBox() {
   const haunted = useHaunted();
+  const { taken } = useTaken('chocolate-box');
   const missing = useFx((s) => s.flags['choc-missing'] ?? 0);
   const cells = useMemo(() => Array.from({ length: 24 }, (_, i) => [(i % 6) - 2.5, Math.floor(i / 6) - 1.5] as const), []);
   return (
@@ -121,7 +184,9 @@ export function ChocolateBox() {
         <boxGeometry args={[1.4, 0.01, 0.95]} />
       </mesh>
       {cells.map(([x, z], i) =>
-        haunted && i < missing ? null : (
+        haunted && i < missing ? null : taken ? (
+          <SmallHead key={i} position={[x * 0.22, 0.06, z * 0.22]} turn={(i * 1.7) % 1.2 - 0.6} />
+        ) : (
           <mesh key={i} material={M.chocolate()} position={[x * 0.22, 0.06, z * 0.22]}>
             <sphereGeometry args={[0.085, 20, 14]} />
           </mesh>
@@ -131,9 +196,47 @@ export function ChocolateBox() {
   );
 }
 
+/**
+ * Taken: in every paper cup, where a truffle sat, a tiny pale head with its eyes shut, cut off
+ * at the neck and sitting in its own blood. Doll-like, small, and far too many.
+ */
+function SmallHead({ position, turn }: { position: [number, number, number]; turn: number }) {
+  return (
+    <group position={position} rotation-y={turn}>
+      <mesh position-y={-0.045} rotation-x={-Math.PI / 2}>
+        <circleGeometry args={[0.095, 18]} />
+        <meshStandardMaterial color="#4a0507" roughness={0.25} />
+      </mesh>
+      <mesh position-y={-0.03}>
+        <cylinderGeometry args={[0.04, 0.045, 0.03, 12]} />
+        <meshStandardMaterial color="#6a0a0c" roughness={0.35} />
+      </mesh>
+      <mesh position-y={0.04}>
+        <sphereGeometry args={[0.075, 18, 14]} />
+        <meshStandardMaterial color="#d8b49c" roughness={0.6} />
+      </mesh>
+      {[-0.025, 0.025].map((x) => (
+        <mesh key={x} position={[x, 0.05, 0.068]} rotation-z={x > 0 ? -0.2 : 0.2}>
+          <boxGeometry args={[0.024, 0.004, 0.004]} />
+          <meshBasicMaterial color="#2a1410" />
+        </mesh>
+      ))}
+      <mesh position={[0, 0.02, 0.07]}>
+        <sphereGeometry args={[0.009, 8, 6]} />
+        <meshStandardMaterial color="#b8846a" />
+      </mesh>
+      <mesh position={[0.02, -0.005, 0.06]}>
+        <boxGeometry args={[0.006, 0.03, 0.004]} />
+        <meshStandardMaterial color="#5a0507" roughness={0.3} />
+      </mesh>
+    </group>
+  );
+}
+
 /** Music box whose dancer spins and stops facing you (Requirement 32.3). */
 export function MusicBox({ open = false }: { open?: boolean }) {
   const haunted = useHaunted();
+  const { taken, since } = useTaken('music-box');
   const lidOpen = open || (haunted && useStory.getState().story.played['music-box'] === true);
   const dancer = useRef<THREE.Group>(null);
   const invalidate = useThree((s) => s.invalidate);
@@ -153,6 +256,7 @@ export function MusicBox({ open = false }: { open?: boolean }) {
     d.rotation.y += dt * 4 * speed;
     if (speed === 0) d.rotation.y = 0;
   });
+  if (taken) return <MusicBoxBlown since={since} />;
   return (
     <group rotation={[0.3, -0.5, 0]} position-y={-0.25}>
       <mesh material={M.wood()}>
@@ -188,6 +292,7 @@ export function MusicBox({ open = false }: { open?: boolean }) {
 
 /** Christmas teddy bear with a ribbon. */
 export function TeddyBear() {
+  const { taken, since } = useTaken('teddy-bear');
   const parts: [number, number, number, number][] = [
     [0, -0.25, 0, 0.42],
     [0, 0.3, 0.02, 0.3],
@@ -218,6 +323,57 @@ export function TeddyBear() {
       ))}
       <mesh material={M.ribbon()} position={[0, 0.06, 0.06]} rotation-x={Math.PI / 2}>
         <torusGeometry args={[0.22, 0.03, 8, 30]} />
+      </mesh>
+      {taken && <TeddyBleed since={since} />}
+    </group>
+  );
+}
+
+/** Taken: blood soaks out through the bear's belly, spreads, and runs down over its legs. */
+function TeddyBleed({ since }: { since: () => number }) {
+  const stain = useRef<THREE.Mesh>(null);
+  const drips = useRef<(THREE.Mesh | null)[]>([]);
+  const pool = useRef<THREE.Mesh>(null);
+  const runs: [number, number][] = [
+    [-0.12, 0.42],
+    [-0.03, 0.55],
+    [0.07, 0.35],
+    [0.15, 0.48],
+  ];
+  useFrame(() => {
+    const s = since();
+    const spread = progress(s, 2.2);
+    if (stain.current) stain.current.scale.setScalar(0.15 + spread * 0.85);
+    runs.forEach(([, len], i) => {
+      const d = drips.current[i];
+      if (!d) return;
+      const k = progress(s, 2.4, 0.8 + i * 0.25);
+      d.scale.y = Math.max(0.001, k);
+      d.position.y = -0.28 - (len * k) / 2;
+    });
+    if (pool.current) pool.current.scale.setScalar(Math.max(0.001, progress(s, 2, 2.4)));
+  });
+  return (
+    <group>
+      <mesh ref={stain} position={[0, -0.24, 0.405]} rotation-x={-0.12}>
+        <circleGeometry args={[0.2, 24]} />
+        <meshStandardMaterial color="#4e0406" roughness={0.3} />
+      </mesh>
+      {runs.map(([x, len], i) => (
+        <mesh
+          key={x}
+          ref={(m) => {
+            drips.current[i] = m;
+          }}
+          position={[x, -0.28, 0.4 - Math.abs(x) * 0.3]}
+        >
+          <boxGeometry args={[0.035, len, 0.02]} />
+          <meshStandardMaterial color="#560508" roughness={0.25} />
+        </mesh>
+      ))}
+      <mesh ref={pool} position={[0, -0.78, 0.25]} rotation-x={-Math.PI / 2}>
+        <circleGeometry args={[0.35, 24]} />
+        <meshStandardMaterial color="#3a0305" roughness={0.15} />
       </mesh>
     </group>
   );
