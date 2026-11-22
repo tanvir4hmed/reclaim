@@ -2,15 +2,27 @@ import type { ReactElement } from 'react';
 import { useStory } from '../store';
 import { useFx } from './fxStore';
 
-function FootprintShape({ foot }: { foot: 'left' | 'right' }) {
+/**
+ * A child's boot print, about 48 px long (pointing +x): the sole with its tread bars and a
+ * separate heel, smudged where the foot dragged. Right feet are mirrored.
+ */
+export function FootprintShape({ foot }: { foot: 'left' | 'right' }) {
   const flip = foot === 'right' ? -1 : 1;
   return (
     <g transform={`scale(1 ${flip})`}>
-      <ellipse cx="2" cy="0" rx="7" ry="4.2" />
-      <ellipse cx="-7.5" cy="0.4" rx="3.6" ry="3" />
-      <circle cx="9.5" cy="-2.6" r="1.4" />
-      <circle cx="10.4" cy="-0.4" r="1.2" />
-      <circle cx="10.2" cy="1.8" r="1.1" />
+      <path d="M-4 -7 C 8 -9, 20 -8, 24 -3 C 27 1, 24 6, 18 7 C 10 8, 2 7, -4 6 C -6 2, -6 -3, -4 -7 Z" />
+      <path d="M-24 -5.5 C -17 -7, -11 -6.5, -10 -4 L -10 4 C -12 6.5, -18 6.5, -24 5 C -26 2, -26 -2, -24 -5.5 Z" />
+      {/* tread: bars cut out of the print */}
+      <g className="tread">
+        <rect x="0" y="-5.4" width="1.6" height="10.6" />
+        <rect x="5" y="-6.2" width="1.6" height="12" />
+        <rect x="10" y="-6.4" width="1.6" height="12.6" />
+        <rect x="15" y="-5.6" width="1.6" height="11" />
+        <rect x="-20" y="-4.2" width="1.4" height="8.4" />
+        <rect x="-15.5" y="-4.6" width="1.4" height="9.2" />
+      </g>
+      {/* a smear behind the heel where it dragged */}
+      <path className="smear" d="M-26 -3 C -34 -2, -40 0, -46 1 C -40 2, -33 3, -26 3 Z" />
     </g>
   );
 }

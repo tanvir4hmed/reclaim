@@ -39,7 +39,8 @@ async function shoes() {
   if (!from || !to) return;
   const a = pageCenter(from);
   const b = pageCenter(to);
-  const prints = footprintPath(a, { x: b.x, y: b.y + 18 }, seeded(Date.now() & 0xffff));
+  // Big prints, a child's stride, walking right up to your cart.
+  const prints = footprintPath(a, { x: b.x, y: b.y + 30 }, seeded(Date.now() & 0xffff), 64, 15);
   if (reducedMotion()) {
     fx().set({ prints: prints.slice(-6) });
   } else {
@@ -91,27 +92,53 @@ async function musicBox() {
   fx().set({ quiet: false });
 }
 
+/** Shows the product's Take scare (fx/scares) for `ms`, alongside its lasting effect. */
+function scare(id: ProductId, ms: number) {
+  return flag(`scare-${id}`, ms);
+}
+
+/** Runs the lasting effect and the scare together; the Stage is held until both end. */
+function withScare(id: ProductId, ms: number, run?: () => Promise<void>): () => Promise<void> {
+  return async () => {
+    await Promise.all([run ? run() : Promise.resolve(), scare(id, ms)]);
+  };
+}
+
 const CONSEQUENCES: Partial<Record<ProductId, () => Promise<void>>> = {
-  shoes,
-  'pocket-watch': () => flag('watch-shudder', 1600),
+  // Shoes: the prints walk to your cart; then the steps stop right behind you.
+  shoes: async () => {
+    await shoes();
+    await scare('shoes', 3600);
+  },
+  'pocket-watch': withScare('pocket-watch', 4000, () => flag('watch-shudder', 1600)),
+  // The doll and the mirror already do it in their models.
   doll: () => flag('doll-look', 2000),
-  letter: () => flag('letter-carted', 2500),
-  typewriter: () => flag('typewriter-carted', 3000),
   mirror: () => flag('mirror-face', 4000),
-  'photo-frame': () => flag('photo-shift', 3000),
-  cake: async () => {
+  letter: withScare('letter', 4200, () => flag('letter-carted', 2500)),
+  typewriter: withScare('typewriter', 4600, () => flag('typewriter-carted', 3000)),
+  'photo-frame': withScare('photo-frame', 3600, () => flag('photo-shift', 3000)),
+  cake: withScare('cake', 3000, async () => {
     fx().set({ flyPerch: '#site-search' });
     await flag('fly-takeoff', 1800);
+  }),
+  // The phone rings in the cart for a long time; the scare is only its first moment.
+  telephone: async () => {
+    void scare('telephone', 2200);
+    await telephone();
   },
-  telephone,
-  'advent-calendar': advent,
-  'tin-soldier': () => flag('soldiers-march', reducedMotion() ? 800 : 7000),
-  'valve-radio': () => flag('roll-call', 3000),
-  'instant-camera': camera,
-  'unopened-gift': () => flag('gift-heavy', 1500),
-  mittens: () => flag('mitten-gone', 1500),
-  'music-box': musicBox,
-  'teddy-bear': teddy,
+  'advent-calendar': withScare('advent-calendar', 3400, advent),
+  'tin-soldier': withScare('tin-soldier', 3400, () => flag('soldiers-march', reducedMotion() ? 800 : 7000)),
+  'valve-radio': withScare('valve-radio', 4400, () => flag('roll-call', 3000)),
+  'instant-camera': withScare('instant-camera', 4000, camera),
+  'unopened-gift': withScare('unopened-gift', 3000, () => flag('gift-heavy', 1500)),
+  mittens: withScare('mittens', 3600, () => flag('mitten-gone', 1500)),
+  'music-box': withScare('music-box', 3600, musicBox),
+  'teddy-bear': withScare('teddy-bear', 4000, teddy),
+  'glass-ornament': withScare('glass-ornament', 3400),
+  candle: withScare('candle', 3400),
+  'snow-globe': withScare('snow-globe', 3400),
+  'childs-drawing': withScare('childs-drawing', 3800),
+  'chocolate-box': withScare('chocolate-box', 3200),
 };
 
 export async function playConsequence(id: ProductId): Promise<void> {

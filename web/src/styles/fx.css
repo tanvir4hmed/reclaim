@@ -23,10 +23,23 @@
   fill: rgb(40 28 22 / 0.55);
 }
 
+/* After the Reveal the prints are wet: black mud and something dark red. */
 [data-state='haunted'] .decal-footprint,
 [data-state='haunted'] .decal-footprint-r,
 [data-state='haunted'] .print {
-  fill: rgb(10 8 8 / 0.75);
+  fill: rgb(70 6 8 / 0.82);
+}
+
+.decal-footprint .tread,
+.decal-footprint-r .tread,
+.print .tread {
+  fill: rgb(0 0 0 / 0.35);
+}
+
+.decal-footprint .smear,
+.decal-footprint-r .smear,
+.print .smear {
+  opacity: 0.35;
 }
 
 .print {
@@ -67,8 +80,8 @@
 }
 
 .haunted-bat {
-  width: 46px;
-  height: 86px;
+  width: 42px;
+  height: 110px;
   pointer-events: none;
   transition: left 1.6s cubic-bezier(0.45, 0, 0.3, 1), top 1.6s cubic-bezier(0.3, -0.6, 0.5, 1.2);
 }
@@ -153,6 +166,22 @@
   stroke-linecap: round;
 }
 
+.bat .fold-lit {
+  fill: none;
+  stroke: #c4483a;
+  stroke-opacity: 0.4;
+  stroke-width: 0.7;
+  stroke-linecap: round;
+}
+
+.bat .hang-veins {
+  fill: none;
+  stroke: #160404;
+  stroke-opacity: 0.75;
+  stroke-width: 0.5;
+  stroke-linecap: round;
+}
+
 .bat .seam {
   fill: none;
   stroke: #000;
@@ -170,7 +199,7 @@
 /* Slow breathing inside the wrapped wings. */
 .bat-hang .bat-wrap {
   transform-box: view-box;
-  transform-origin: 0 -60px;
+  transform-origin: 0 -76px;
   animation: batBreath 4.5s ease-in-out infinite;
 }
 
@@ -198,8 +227,8 @@
 }
 
 .bat-look-hang {
-  transform-origin: 0 40px;
-  transform: rotate(calc(var(--lx, 0) * -24deg)) translateY(calc(var(--ly, 0) * -2px));
+  transform-origin: 0 52px;
+  transform: rotate(calc(var(--lx, 0) * -14deg)) translateY(calc(var(--ly, 0) * -1.5px));
 }
 
 .bat-look-fly {
@@ -353,7 +382,12 @@
   aspect-ratio: 244 / 152;
   margin-left: calc(var(--w, 0px) * -0.5);
   translate: -50% -50%;
-  will-change: transform;
+  /* No will-change: it would freeze the raster at the small starting size (blurry close-up). */
+}
+
+/* A big bat beats its wings slower and deeper as it comes at you. */
+.lunge .bat-fly .wing {
+  animation-duration: 0.38s;
 }
 
 .lunge-grab .lunge-bat {

@@ -33,16 +33,25 @@ export function CatchLunge() {
     const w = from?.w ?? BAT_W;
     const x0 = from?.x ?? window.innerWidth / 2;
     const y0 = from?.y ?? window.innerHeight / 2;
-    // Big enough that the wings overfill the longest screen side.
-    const scale = (Math.hypot(window.innerWidth, window.innerHeight) * 2.4) / w;
+    // Lay the bat out at its FINAL size (wings well past both screen edges) and shrink it
+    // down to start from. The browser then draws the SVG and its fur at full resolution;
+    // scaling a small element up instead is what made the close-up blurry.
+    const final = Math.max(window.innerWidth * 1.9, window.innerHeight * 3);
+    el.style.width = `${final}px`;
+    // Centre it in GSAP (CSS `translate` is dropped once GSAP owns the transform).
+    el.style.translate = 'none';
+    // The face sits 24 of 244 viewBox units above the bat's centre: end with the face mid-screen.
+    const faceDrop = (final * 24) / 244;
     const tl = gsap.timeline();
     tl.fromTo(
       el,
-      { x: x0, y: y0, scale: 1, rotate: 0 },
+      { x: x0, y: y0, xPercent: -50, yPercent: -50, scale: w / final, rotate: 0 },
       {
         x: window.innerWidth / 2,
-        y: window.innerHeight * 0.48,
-        scale,
+        y: window.innerHeight * 0.5 + faceDrop,
+        xPercent: -50,
+        yPercent: -50,
+        scale: 1,
         rotate: 0,
         duration: LUNGE_MS / 1000,
         // Slow at first, then rushing at the glass: a creature flying closer, not a pop.
@@ -72,7 +81,9 @@ export function CatchLunge() {
         style={
           placed
             ? { transform: `translate(${from.x}px, ${from.y}px)`, width: from.w }
-            : { width: from?.w ?? BAT_W }
+            : step === 'lunge'
+              ? {}
+              : { width: from?.w ?? BAT_W }
         }
       >
         <BatSvg pose={pose} facing={step === 'grab' ? 'away' : 'toward'} eyes={step !== 'grab'} mouth={step === 'grab' ? 'closed' : 'snarl'} />

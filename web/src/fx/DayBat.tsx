@@ -11,7 +11,7 @@ import { SkeletonHand } from './SkeletonHand';
 export const BAT_W = 96;
 const BAT_H = Math.round((BAT_W * 152) / 244);
 /** Hanging, wings wrapped: a tall, narrow shape. */
-const HANG_W = 58;
+const HANG_W = 58; // about 150 px tall: long and slim
 const HANG_H = Math.round(HANG_W * HANG_ASPECT);
 
 /**
@@ -53,18 +53,18 @@ export function DayBat() {
     };
   }, [perch]);
 
-  // Every few seconds it wakes: the eyes open and burn red and the head turns to find the
-  // pointer, then they close again. Short gaps, short looks: often, never constant.
+  // Eyes shut, its head still turns after the pointer. Now and then it stops following and
+  // stares straight out of the screen, eyes burning red, then closes them again.
   useEffect(() => {
     if (phase !== 'day') return;
     let alive = true;
     void (async () => {
-      await wait(2500);
+      await wait(4000);
       while (alive) {
-        await wait(2500 + Math.random() * 3500);
+        await wait(6000 + Math.random() * 6000);
         if (!alive || useFx.getState().batFlying || useFx.getState().batHover) continue;
         setLooking(true);
-        await wait(1800 + Math.random() * 1400);
+        await wait(1600 + Math.random() * 1000);
         setLooking(false);
       }
     })();
@@ -73,12 +73,13 @@ export function DayBat() {
     };
   }, [phase]);
 
-  // While awake (or reached for), the head follows the pointer; asleep it hangs straight.
+  // The head follows the pointer, except while it stares straight at you.
   const awake = looking || hover;
+  const staring = looking && !hover;
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    if (!awake) {
+    if (staring) {
       el.style.setProperty('--lx', '0');
       el.style.setProperty('--ly', '0');
       return;
@@ -97,7 +98,7 @@ export function DayBat() {
     const onMove = (e: PointerEvent) => aim(e.clientX, e.clientY);
     window.addEventListener('pointermove', onMove);
     return () => window.removeEventListener('pointermove', onMove);
-  }, [awake, spot]);
+  }, [staring, spot]);
 
   // Remember where the pointer is even while asleep, so the first look goes straight to it.
   useEffect(() => {
@@ -115,7 +116,8 @@ export function DayBat() {
     const loop = async () => {
       await wait(3000);
       while (alive) {
-        await wait(15000 + Math.random() * 25000);
+        // It flies often: a restless thing, every 8–18 s.
+        await wait(8000 + Math.random() * 10000);
         if (!alive || useFx.getState().batHover) continue;
         const options = nearbyPerches().filter((p) => p !== useFx.getState().batPerch);
         const next = options[Math.floor(Math.random() * options.length)];

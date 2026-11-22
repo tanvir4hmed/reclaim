@@ -140,20 +140,44 @@ export function JumpScare() {
             {/* eye sockets, sunk and bruised, fading into the skin */}
             <ellipse cx="179" cy="196" rx="21" ry="15" fill="url(#rc-scare-socket)" />
             <ellipse cx="221" cy="196" rx="21" ry="15" fill="url(#rc-scare-socket)" />
-            {/* blank, milky eyes, staring straight into the lens */}
-            <ellipse cx="179" cy="197" rx="12" ry="8.5" fill="url(#rc-scare-eye)" />
-            <ellipse cx="221" cy="197" rx="12" ry="8.5" fill="url(#rc-scare-eye)" />
-            <circle cx="179" cy="197" r="1.6" fill="#3d3a33" opacity="0.7" />
-            <circle cx="221" cy="197" r="1.6" fill="#3d3a33" opacity="0.7" />
+            {/* veins standing out under grey skin, from the temples and the forehead */}
+            <path
+              d="M156 170 q8 6 10 16 q2 6 8 8 M244 168 q-8 7 -10 17 q-2 6 -8 7 M186 140 q4 10 2 18 q-2 6 2 12 M214 142 q-3 9 -1 17 M160 236 q6 4 8 12 M240 236 q-6 4 -8 12"
+              stroke="#2e2622"
+              strokeOpacity="0.55"
+              strokeWidth="1"
+              fill="none"
+            />
+            {/* eyes: wide open, all white, a pinprick pupil, bloodshot at the rims */}
+            <ellipse cx="179" cy="197" rx="13" ry="9.5" fill="url(#rc-scare-eye)" />
+            <ellipse cx="221" cy="197" rx="13" ry="9.5" fill="url(#rc-scare-eye)" />
+            <path
+              d="M167 196 q5 -1 7 2 M168 200 q4 0 6 -2 M191 195 q-4 0 -6 3 M190 200 q-4 -1 -5 -3 M209 196 q5 -1 7 2 M210 200 q4 0 6 -2 M233 195 q-4 0 -6 3 M232 200 q-4 -1 -5 -3"
+              stroke="#8a1c1c"
+              strokeOpacity="0.7"
+              strokeWidth="0.7"
+              fill="none"
+            />
+            <circle cx="180" cy="196" r="1.1" fill="#0a0808" />
+            <circle cx="220" cy="196" r="1.1" fill="#0a0808" />
+            {/* dark blood run from the lower lids down the cheeks */}
+            <path fill="#3e0808" opacity="0.85" d="M174 205 C 173 218, 175 232, 172 252 C 176 240, 178 226, 178 206 Z M224 205 C 225 222, 223 238, 226 262 C 228 244, 229 226, 228 206 Z" />
+            {/* the corners of the mouth have torn up toward the cheeks */}
+            <path d="M174 270 C 168 258, 166 248, 160 238 M226 270 C 232 258, 234 248, 240 238" stroke="#2a0d0b" strokeWidth="1.6" strokeLinecap="round" fill="none" />
             {/* brows pulled up in the scream */}
             <path d="M160 180 q19 -12 36 -2 M204 178 q17 -10 36 2" stroke="#2d2924" strokeOpacity="0.55" strokeWidth="1.6" fill="none" filter="url(#rc-scare-soft)" />
             {/* nose */}
             <path d="M200 206 C 196 226, 194 236, 192 242 C 198 246, 204 246, 210 242" stroke="#544f46" strokeWidth="2.2" fill="none" />
-            {/* the scream: a jaw hanging far too low, a black throat, a few yellowed teeth */}
-            <path fill="#5a3a34" opacity="0.6" d="M200 248 C 226 248, 234 268, 232 292 C 230 320, 216 336, 200 336 C 184 336, 170 320, 168 292 C 166 268, 174 248, 200 248 Z" />
-            <path fill="url(#rc-scare-mouth)" d="M200 254 C 220 254, 228 270, 226 292 C 224 316, 213 328, 200 328 C 187 328, 176 316, 174 292 C 172 270, 180 254, 200 254 Z" />
-            <path fill="#b9ad94" opacity="0.85" d="M184 257 q3 7 6 0 Z M192 255 q3 6 6 0 Z M202 255 q3 6 6 0 Z M210 257 q3 7 6 0 Z" />
-            <path fill="#8f8470" opacity="0.6" d="M188 326 q3 -5 6 0 Z M206 326 q3 -5 6 0 Z" />
+          </g>
+
+          {/* The scream: the jaw unhinges, dropping far past where a chin should stop. A black
+              throat, gums and a few long yellowed teeth. */}
+          <g className="scare-jaw">
+            <path fill="#4a2c27" opacity="0.75" d="M200 248 C 228 248, 236 268, 234 294 C 232 326, 216 344, 200 344 C 184 344, 168 326, 166 294 C 164 268, 172 248, 200 248 Z" />
+            <path fill="#5a1414" opacity="0.8" d="M200 252 C 224 252, 230 268, 229 292 C 227 320, 214 336, 200 336 C 186 336, 173 320, 171 292 C 170 268, 176 252, 200 252 Z" />
+            <path fill="url(#rc-scare-mouth)" d="M200 258 C 218 258, 224 272, 223 292 C 221 314, 212 328, 200 328 C 188 328, 179 314, 177 292 C 176 272, 182 258, 200 258 Z" />
+            <path fill="#c2b597" d="M180 258 l3 14 l3 -13 Z M188 256 l2.5 10 l2.5 -10 Z M196 255 l2 8 l2 -8 Z M203 255 l2.5 9 l2.5 -9 Z M211 256 l3 12 l3 -11 Z" />
+            <path fill="#9a8d72" d="M184 330 l3 -10 l3 10 Z M196 332 l2 -7 l2 7 Z M208 330 l3 -11 l3 11 Z" />
           </g>
 
           {/* hair hanging across the face */}
@@ -171,6 +195,7 @@ export function JumpScare() {
         </svg>
       </div>
       {/* camcorder frame on top: grain, scan lines, vignette, REC and the date stamp */}
+      <div className="scare-glitch" />
       <div className="scare-grain" />
       <div className="scare-lines" />
       <div className="scare-ui">

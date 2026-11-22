@@ -50,10 +50,5 @@ export function isFeatured(id: ProductId): id is FeaturedId {
   return featuredSet.has(id);
 }
 
-/** Products whose Add to Cart in the Haunted state plays a Consequence. */
-export const CONSEQUENCE_IDS: ReadonlySet<ProductId> = new Set<ProductId>([
-  ...FEATURED_IDS,
-  ...TIER_A_IDS,
-  'music-box',
-  'teddy-bear',
-]);
+/** Products whose Add to Cart in the Haunted state plays a Consequence: all of them. */
+export const CONSEQUENCE_IDS: ReadonlySet<ProductId> = new Set<ProductId>(PRODUCT_IDS);

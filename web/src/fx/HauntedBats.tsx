@@ -94,7 +94,7 @@ export function HauntedBats() {
         const spot: PerchSpot | null = perchSpot(b.perch, b.seed);
         if (!spot) return null;
         return (
-          <div key={i} className={`haunted-bat${b.flying ? ' is-flying' : ''}`} style={{ left: spot.x - 23, top: spot.y }} aria-hidden="true" data-testid="haunted-bat">
+          <div key={i} className={`haunted-bat${b.flying ? ' is-flying' : ''}`} style={{ left: spot.x - 21, top: spot.y }} aria-hidden="true" data-testid="haunted-bat">
             <BatSvg pose={b.flying ? 'fly' : 'hang'} eyes={b.eyes} />
           </div>
         );

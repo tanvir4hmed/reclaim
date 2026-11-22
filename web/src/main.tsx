@@ -10,6 +10,7 @@ import './styles/extras.css';
 import './styles/cartnote.css';
 import './styles/scare.css';
 import './styles/world.css';
+import './styles/scares.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';

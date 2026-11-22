@@ -10,7 +10,8 @@ import { useHaunted } from '../store';
  * Each object moves the way its owner would have made it move: the soldier turns to look, the
  * gift knocks from inside, the phone trembles before it rings. Motion is small and deniable,
  * comes in short bursts with long quiet gaps, and is off under reduced motion.
- * The doll's eyes and the watch running backward live inside their own models.
+ * The doll is deliberately still: she only looks once you take her (her model). The watch
+ * running backward lives inside its model.
  */
 
 /** 0 most of the time; a smooth 0→1→0 bump lasting `len` seconds once every `period` seconds. */

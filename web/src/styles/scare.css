@@ -16,23 +16,58 @@
   animation: scareShake 0.09s steps(2) infinite;
 }
 
+/*
+ * Laid out at its final, closest size and scaled DOWN to start, so the last frames (the ones
+ * that matter) are drawn sharp instead of being a small picture blown up.
+ */
 .scare-figure {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 100vmin;
-  height: 125vmin;
+  width: 230vmin;
+  height: 287.5vmin;
   transform-origin: 50% 42%;
   translate: -50% -50%;
-  /* Out of the dark at the end of the hall, then at the glass: slow, then all at once. */
+  /* Out of the dark at the end of the hall, then at the glass: slow, a jump cut, then all at once. */
   animation: scareRush 1.15s cubic-bezier(0.75, 0, 0.95, 0.35) forwards;
 }
 
 @keyframes scareRush {
-  0% { transform: scale(0.28); opacity: 0; }
-  12% { transform: scale(0.32); opacity: 1; }
-  55% { transform: scale(0.6); }
-  100% { transform: scale(2.3); }
+  0% { transform: scale(0.12); opacity: 0; }
+  12% { transform: scale(0.14); opacity: 1; }
+  52% { transform: scale(0.24); }
+  /* the tape skips: she is suddenly much closer */
+  53% { transform: scale(0.42) translateX(1.5%); }
+  100% { transform: scale(1); }
+}
+
+/* Her jaw keeps dropping as she comes. */
+.scare-jaw {
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+  animation: jawDrop 1.15s ease-in forwards;
+}
+
+@keyframes jawDrop {
+  0%, 40% { transform: scaleY(0.85); }
+  100% { transform: scaleY(1.45); }
+}
+
+/* Tape glitch at the jump cut: torn horizontal bands. */
+.scare-glitch {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background:
+    linear-gradient(transparent 22%, rgb(255 255 255 / 0.12) 22% 24%, transparent 24% 61%, rgb(0 0 0 / 0.7) 61% 66%, transparent 66% 83%, rgb(255 255 255 / 0.08) 83% 84%, transparent 84%);
+  animation: glitch 1.15s steps(1) forwards;
+}
+
+@keyframes glitch {
+  0%, 50% { opacity: 0; transform: none; }
+  51% { opacity: 1; transform: translateX(-3%); }
+  56% { opacity: 1; transform: translateX(4%); }
+  60%, 100% { opacity: 0; }
 }
 
 @keyframes scareShake {
@@ -97,7 +132,12 @@
 
 .scare-still .scare-figure {
   animation: scareFade 1.1s ease-out both;
-  transform: scale(1.6);
+  transform: scale(0.6);
+}
+
+.scare-still .scare-jaw,
+.scare-still .scare-glitch {
+  animation: none;
 }
 
 @keyframes scareFade {

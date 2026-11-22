@@ -11,6 +11,7 @@ import { HauntedBats } from './HauntedBats';
 import { Accepted, CatchLunge, Darkness } from './Overlays';
 import { ExitPlea } from './Extras';
 import { JumpScare } from './JumpScare';
+import { TakeScares } from './scares/TakeScares';
 
 /** Every DOM and SVG effect, layered per the design's rendering stack. */
 export function FxLayer() {
@@ -30,6 +31,7 @@ export function FxLayer() {
       <CatchLunge />
       <ClosingTime onSkip={onSkip} />
       <Accepted />
+      <TakeScares />
       <JumpScare />
       <ExitPlea />
       {tremor && <div className="tremor-marker" hidden />}
