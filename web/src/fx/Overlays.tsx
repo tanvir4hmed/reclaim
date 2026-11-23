@@ -2,7 +2,7 @@ import gsap from 'gsap';
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import { LUNGE_MS } from '../director/sequences';
 import { useHaunted, useStory } from '../store';
-import { BatSvg } from './BatSvg';
+import { BatSvg, FLY_FACE_Y, FLY_MOUTH_Y, FLY_W } from './BatSvg';
 import { BAT_W } from './DayBat';
 import { SkeletonHand } from './SkeletonHand';
 import { useFx } from './fxStore';
@@ -26,52 +26,81 @@ export function CatchLunge() {
   const hand = useFx((s) => s.catchHand);
   const batRef = useRef<HTMLDivElement>(null);
   const shadeRef = useRef<HTMLDivElement>(null);
+  const mawRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
     const el = batRef.current;
+    const maw = mawRef.current;
     if (!el || step !== 'lunge') return;
-    const w = from?.w ?? BAT_W;
-    const x0 = from?.x ?? window.innerWidth / 2;
-    const y0 = from?.y ?? window.innerHeight / 2;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const x0 = from?.x ?? vw / 2;
+    const y0 = from?.y ?? vh / 2;
     // Lay the bat out at its FINAL size (wings well past both screen edges) and shrink it
     // down to start from. The browser then draws the SVG and its fur at full resolution;
     // scaling a small element up instead is what made the close-up blurry.
-    const final = Math.max(window.innerWidth * 1.9, window.innerHeight * 3);
+    const final = Math.max(vw * 1.9, vh * 3);
     el.style.width = `${final}px`;
     // Centre it in GSAP (CSS `translate` is dropped once GSAP owns the transform).
     el.style.translate = 'none';
-    // The face sits 24 of 244 viewBox units above the bat's centre: end with the face mid-screen.
-    const faceDrop = (final * 24) / 244;
+    const unit = final / 244;
+    // At scale 1, the face sits this far above the bat's centre, and the open mouth this far.
+    const faceOff = -FLY_FACE_Y * unit;
+    const mouthOff = -FLY_MOUTH_Y * unit;
+    // Where it looks at you from: centred, eyes just above the middle of the screen.
+    const faceX = vw / 2;
+    const faceY = vh * 0.435;
+    const approach = (LUNGE_MS / 1000) * 0.72;
+    const engulf = (LUNGE_MS / 1000) * 0.28;
     const tl = gsap.timeline();
+    // It starts at its own flying size, where it was caught. Centre and scale share one
+    // ease, so its face travels in a straight line to the focal point while it grows.
     tl.fromTo(
       el,
-      { x: x0, y: y0, xPercent: -50, yPercent: -50, scale: w / final, rotate: 0 },
+      { x: x0, y: y0, xPercent: -50, yPercent: -50, scale: FLY_W / final, rotate: 0 },
       {
-        x: window.innerWidth / 2,
-        y: window.innerHeight * 0.5 + faceDrop,
+        x: faceX,
+        y: faceY + faceOff,
         xPercent: -50,
         yPercent: -50,
         scale: 1,
         rotate: 0,
-        duration: (LUNGE_MS / 1000) * 0.8,
+        duration: approach,
         // Slow at first, then rushing at the glass: a creature flying closer, not a pop.
         ease: 'power3.in',
         onUpdate() {
           const p = this.progress();
-          // A gentle wobble from the wing beats while it approaches; and the nearer it gets,
-          // the more it is a shape against the light: dark, only a little red left in it.
+          // A small wobble from the wing beats; it darkens a little as it blocks the light,
+          // but its face stays readable.
           gsap.set(el, {
-            rotate: Math.sin(p * Math.PI * 9) * 6 * (1 - p),
-            filter: `brightness(${(1 - 0.72 * p).toFixed(3)}) saturate(${(1 - 0.55 * p).toFixed(3)})`,
+            rotate: Math.sin(p * Math.PI * 9) * 3 * (1 - p),
+            filter: `brightness(${(1 - 0.35 * p).toFixed(3)}) saturate(${(1 - 0.25 * p).toFixed(3)})`,
           });
         },
       },
     );
-    // Then it does not stop: it goes right over you, the whole screen under its wings, and on.
-    tl.to(el, { y: -window.innerHeight * 0.6, scale: 1.35, rotate: -8, duration: (LUNGE_MS / 1000) * 0.2, ease: 'power2.in' });
-    if (shadeRef.current) tl.fromTo(shadeRef.current, { opacity: 0 }, { opacity: 1, duration: LUNGE_MS / 1000, ease: 'power4.in' }, 0);
+    // Then the dark comes out of it: still closing in around its open mouth, the black of
+    // its throat spreads until it covers the screen.
+    const mouthY = faceY + faceOff - mouthOff;
+    const k = { s: 1 };
+    tl.to(k, {
+      s: 1.6,
+      duration: engulf,
+      ease: 'power2.in',
+      onUpdate: () => gsap.set(el, { scale: k.s, y: mouthY + mouthOff * k.s }),
+    });
+    if (maw) {
+      const reach = Math.hypot(vw, vh) * 1.15;
+      gsap.set(maw, { left: faceX, top: mouthY, width: reach * 2, height: reach * 2, xPercent: -50, yPercent: -50 });
+      tl.fromTo(maw, { scale: (9 * unit) / reach, opacity: 0 }, { scale: 1, opacity: 1, duration: engulf, ease: 'power2.in' }, approach);
+    }
+    // Fully black a moment before the lunge ends, so the hand-over to the dark step is seamless.
+    const shade = shadeRef.current;
+    if (shade) tl.fromTo(shade, { opacity: 0 }, { opacity: 1, duration: engulf * 0.4, ease: 'power1.in' }, approach + engulf * 0.45);
     return () => {
       tl.kill();
+      // Hand the shade back to the stylesheet (the dark step holds it at full black).
+      if (shade) gsap.set(shade, { clearProps: 'opacity' });
     };
   }, [step, from]);
 
@@ -85,15 +114,19 @@ export function CatchLunge() {
         ref={batRef}
         className="lunge-bat"
         style={
+          // Caught hanging, it is held at its hanging size; once it turns it opens its wings at
+          // its own flying size (the same scale), and the lunge grows it from there.
           placed
-            ? { transform: `translate(${from.x}px, ${from.y}px)`, width: from.w }
+            ? { transform: `translate(${from.x}px, ${from.y}px)`, width: step === 'turn' ? FLY_W : from.w }
             : step === 'lunge'
               ? {}
-              : { width: from?.w ?? BAT_W }
+              : { width: step === 'grab' ? (from?.w ?? BAT_W) : FLY_W }
         }
       >
         <BatSvg pose={pose} facing={step === 'grab' ? 'away' : 'toward'} eyes={step !== 'grab'} mouth={step === 'grab' ? 'closed' : 'snarl'} />
       </div>
+      {/* the dark that comes out of its mouth at the end of the lunge */}
+      {step === 'lunge' && <div ref={mawRef} className="lunge-maw" />}
       {hand && (step === 'grab' || step === 'turn') && <SkeletonHand x={hand.x} y={hand.y} closed />}
       {step === 'dark' && <DarkEvents />}
       {(step === 'dark' || step === 'release') && <ClawMarks />}

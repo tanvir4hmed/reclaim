@@ -88,10 +88,8 @@
   background: none;
 }
 
-/* Hanging, its size comes from hangBox() (the same as the Christmas bat); this is for flight. */
+/* Its box comes from hangBox() / flyBox(), the same sizes as the Christmas bat. */
 .haunted-bat {
-  width: 42px;
-  height: 103px;
   pointer-events: none;
   transition: left 1.6s cubic-bezier(0.45, 0, 0.3, 1), top 1.6s cubic-bezier(0.3, -0.6, 0.5, 1.2);
 }
@@ -115,7 +113,7 @@
 
 /* Wings: torn, red-lit membrane over dark bones. */
 .bat .membrane {
-  stroke: #0b0303;
+  stroke: #080708;
   stroke-width: 0.9;
   stroke-linejoin: round;
 }
@@ -129,14 +127,14 @@
 }
 
 .bat .veins.bright {
-  stroke: #ff6a3a;
-  stroke-opacity: 0.35;
+  stroke: #814047;
+  stroke-opacity: 0.4;
   stroke-width: 0.5;
 }
 
 .bat .bone-wing {
   fill: none;
-  stroke: #1a0a08;
+  stroke: #24191d;
   stroke-width: 2.6;
   stroke-linecap: round;
 }
@@ -145,8 +143,39 @@
   stroke-width: 1.4;
 }
 
+.bat .bone-lit {
+  fill: none;
+  stroke: #4a2026;
+  stroke-opacity: 0.7;
+  stroke-width: 0.5;
+  stroke-linecap: round;
+}
+
 .bat .joint {
-  fill: #2a1210;
+  fill: #24191d;
+}
+
+/* Flying legs: thin, hanging, small curved claws. */
+.bat .fly-leg {
+  fill: none;
+  stroke: #1d191d;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.bat .fly-leg-lit {
+  fill: none;
+  stroke: #39353a;
+  stroke-opacity: 0.8;
+  stroke-width: 0.45;
+  stroke-linecap: round;
+}
+
+.bat .fly-claw {
+  fill: none;
+  stroke: #8a8076;
+  stroke-width: 0.6;
+  stroke-linecap: round;
 }
 
 .bat .claw {
@@ -407,15 +436,17 @@
   to { transform: translateY(4px); }
 }
 
+/* In flight it only banks into its turns; it keeps the size it hangs at. */
 .day-bat.is-flying {
-  transform: rotate(var(--bank, 0deg)) scale(var(--fs, 0.4));
+  transform: rotate(var(--bank, 0deg));
 }
 
 .skeleton-hand {
   position: fixed;
   z-index: 75;
-  width: 34px;
-  height: 46px;
+  /* about twice a normal cursor (SkeletonHand's HAND_W) */
+  width: 17px;
+  height: 23.3px;
   pointer-events: none;
   filter: drop-shadow(0 2px 2px rgb(0 0 0 / 0.5));
   transform-origin: 36% 4%;
@@ -423,7 +454,7 @@
 }
 
 @keyframes handReach {
-  from { transform: translateY(8px) scale(0.9); opacity: 0; }
+  from { transform: translateY(4px) scale(0.9); opacity: 0; }
 }
 
 .skeleton-hand.closed {
@@ -468,9 +499,37 @@
   /* No will-change: it would freeze the raster at the small starting size (blurry close-up). */
 }
 
-/* A big bat beats its wings slower and deeper as it comes at you. */
-.lunge .bat-fly .wing {
-  animation-duration: 0.38s;
+/*
+ * Coming at you, the wings beat slower and shallower, turning at the shoulder: the shape of
+ * the wings and the face stay readable (no deep fold that would squash them).
+ */
+.lunge .bat-fly .wing-left {
+  animation: flapLungeL 0.42s ease-in-out infinite alternate;
+}
+
+.lunge .bat-fly .wing-right {
+  animation: flapLungeR 0.42s ease-in-out infinite alternate;
+}
+
+@keyframes flapLungeL {
+  from { transform: rotate(-7deg); }
+  to { transform: rotate(13deg) scaleY(0.88); }
+}
+
+@keyframes flapLungeR {
+  from { transform: rotate(7deg); }
+  to { transform: rotate(-13deg) scaleY(0.88); }
+}
+
+/* Its throat: black, with a dark crimson edge, opening out until it covers everything. */
+.lunge-maw {
+  position: absolute;
+  left: 50%;
+  top: 43%;
+  border-radius: 50%;
+  opacity: 0;
+  background: radial-gradient(circle, #000 0 56%, rgb(18 4 6 / 0.92) 63%, rgb(40 8 12 / 0.5) 67%, transparent 71%);
+  pointer-events: none;
 }
 
 .lunge-grab .lunge-bat {

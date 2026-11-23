@@ -31,6 +31,23 @@ export function hangBox(x: number, y: number) {
   return { left: x - HANG_W / 2, top: y - HANG_TOP, width: HANG_W, height: HANG_H };
 }
 
+/**
+ * Flying, the bat is drawn at the same scale as when it hangs (the same pixels per drawing
+ * unit, so the head is the same size): wings spread it is wider than the wrapped bat and its
+ * body is smaller. It does not grow or shrink in flight.
+ */
+export const BAT_UNIT = HANG_W / 76;
+export const FLY_W = 244 * BAT_UNIT;
+export const FLY_H = 152 * BAT_UNIT;
+/** Flying box centred where the hanging bat's body is, so take-off and landing do not jump. */
+export function flyBox(x: number, y: number) {
+  const cy = y - HANG_TOP + HANG_H / 2;
+  return { left: x - FLY_W / 2, top: cy - FLY_H / 2, width: FLY_W, height: FLY_H };
+}
+/** In the flying drawing: the face is 24 units above the centre; the open mouth 17 below it. */
+export const FLY_FACE_Y = -24;
+export const FLY_MOUTH_Y = -7;
+
 /*
  * Ears: half the original absolute length. The whole bat is already drawn at 0.8, so inside
  * the drawing they are 0.5 / 0.8 = 0.625 of the old ear (old root-to-tip 39.1 units, now 24.4).
@@ -95,13 +112,23 @@ const T3: P = [101, 34];
 const T4: P = [60, 56];
 const B: P = [12, 30];
 
-const WING = (() => {
+const WING_OUTLINE = (() => {
   const r = seeded(17);
   const edge =
     ragged(T1, T2, W, 0.32, r) + ragged(T2, T3, W, 0.3, r) + ragged(T3, T4, W, 0.3, r) + ragged(T4, B, W, 0.22, r, 9);
   const holes = hole(88, -18, 3.2, r) + hole(76, 26, 2.4, r) + hole(104, 6, 1.8, r) + hole(40, 30, 1.6, r);
-  return `M${S[0]} ${S[1]} L${W[0]} ${W[1]} L${T1[0]} ${T1[1]}${edge} Z${holes}`;
+  // The leading edge bows upward as it rises out from the wrist to the hooked tip.
+  return { outline: `M${S[0]} ${S[1]} L${W[0]} ${W[1]} Q 86 -64 ${T1[0]} ${T1[1]}${edge} Z`, holes };
 })();
+const WING = WING_OUTLINE.outline + WING_OUTLINE.holes;
+
+/** A bone path from a to b with a slight bend. */
+function bonePath(a: P, b: P, bend = 0) {
+  return `M${a[0]} ${a[1]} Q${((a[0] + b[0]) / 2 + bend).toFixed(1)} ${((a[1] + b[1]) / 2 - bend).toFixed(1)} ${b[0]} ${b[1]}`;
+}
+const FINGERS = `${bonePath(W, T1, 3)} ${bonePath(W, T2, 2)} ${bonePath(W, T3, -2)} ${bonePath(W, T4, -3)}`;
+/** Down the middle of each membrane panel, where it sags between the bones: the recesses. */
+const PANEL_MIDS = 'M50 -40 Q 92 -40 120 -40 M50 -40 Q 84 -8 111 12 M50 -40 Q 66 4 81 45 M44 -34 Q 38 6 36 43 M14 -6 Q 22 18 26 36';
 
 export function BatDefs() {
   return (
@@ -121,13 +148,42 @@ export function BatDefs() {
         <filter id="rc-soft-fine" x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur stdDeviation="0.6" />
         </filter>
-        {/* Wing membrane lit from behind: blood-red where it is thin, near black at the bones. */}
-        <radialGradient id="rc-membrane" cx="48%" cy="42%" r="70%">
-          <stop offset="0" stopColor="#c1281d" />
-          <stop offset="0.45" stopColor="#7a160f" />
-          <stop offset="0.8" stopColor="#2e0906" />
-          <stop offset="1" stopColor="#140403" />
+        {/* Spread wing membrane: dark burgundy, raised and lighter toward the wrist, near black at the edge. */}
+        <radialGradient id="rc-membrane" cx="42%" cy="30%" r="78%">
+          <stop offset="0" stopColor="#4a2026" />
+          <stop offset="0.35" stopColor="#32171c" />
+          <stop offset="0.72" stopColor="#1b1014" />
+          <stop offset="1" stopColor="#080708" />
         </radialGradient>
+        <clipPath id="rc-wing-clip">
+          <path d={WING_OUTLINE.outline} />
+        </clipPath>
+        {/* In flight: near-black fur with cool grey tips, and amber eyes. */}
+        <radialGradient id="rc-fur-fly" cx="50%" cy="30%" r="75%">
+          <stop offset="0" stopColor="#39353a" />
+          <stop offset="0.4" stopColor="#1d191d" />
+          <stop offset="0.78" stopColor="#111013" />
+          <stop offset="1" stopColor="#080708" />
+        </radialGradient>
+        <radialGradient id="rc-ear-fly" cx="40%" cy="75%" r="80%">
+          <stop offset="0" stopColor="#68252b" />
+          <stop offset="0.55" stopColor="#32171c" />
+          <stop offset="1" stopColor="#1b1014" />
+        </radialGradient>
+        <radialGradient id="rc-eye-amber" cx="45%" cy="40%" r="60%">
+          <stop offset="0" stopColor="#ffd9a0" />
+          <stop offset="0.3" stopColor="#ff9a3a" />
+          <stop offset="0.7" stopColor="#c8501a" />
+          <stop offset="1" stopColor="#3a0e04" />
+        </radialGradient>
+        {/* a tight glow, no halo */}
+        <filter id="rc-glow-soft" x="-100%" y="-100%" width="300%" height="300%">
+          <feGaussianBlur stdDeviation="0.7" result="b" />
+          <feMerge>
+            <feMergeNode in="b" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
         {/* Wrapped wings: dark leather, a cold sheen on top and a red rim from below. */}
         <linearGradient id="rc-leather" x1="0" x2="1" y1="0" y2="1">
           <stop offset="0" stopColor="#3a2a27" />
@@ -207,23 +263,46 @@ export function BatDefs() {
   );
 }
 
-/** One wing, drawn for the right side; the left is mirrored by its parent. */
+/**
+ * One wing, drawn for the right side; the left is mirrored by its parent. Layered: a dark
+ * burgundy membrane over a near-black base; crimson where it is thinnest; darker recesses down
+ * the middle of each panel where it sags; lighter raised folds along the bones; branching veins;
+ * a little light on the joints; a darker band round the torn edge. Soft edges come from stacked
+ * low-opacity strokes, not blur filters, so the huge close-up stays smooth to animate.
+ */
 function WingShape() {
-  const bone = (a: P, b: P, bend = 0) =>
-    `M${a[0]} ${a[1]} Q${((a[0] + b[0]) / 2 + bend).toFixed(1)} ${((a[1] + b[1]) / 2 - bend).toFixed(1)} ${b[0]} ${b[1]}`;
+  const soft = (d: string, color: string, widths: number[], opacity: number) =>
+    widths.map((w) => <path key={w} d={d} fill="none" stroke={color} strokeWidth={w} strokeOpacity={opacity} strokeLinecap="round" />);
   return (
     <>
       <path className="membrane" fill="url(#rc-membrane)" fillRule="evenodd" d={WING} />
+      <g clipPath="url(#rc-wing-clip)">
+        {/* deep crimson where the light comes through */}
+        <ellipse cx="80" cy="-10" rx="30" ry="17" fill="#68252b" opacity="0.2" />
+        <ellipse cx="98" cy="16" rx="15" ry="9" fill="#68252b" opacity="0.16" />
+        <ellipse cx="58" cy="22" rx="14" ry="10" fill="#4a2026" opacity="0.22" />
+        {/* recesses between the bones */}
+        {soft(PANEL_MIDS, '#080708', [11, 6, 2.5], 0.12)}
+        {/* raised membrane along the bones */}
+        {soft(`${FINGERS} M${S[0]} ${S[1]} Q 28 -30 ${W[0]} ${W[1]}`, '#4a2026', [6, 3], 0.16)}
+        {/* the torn outer edge, darker */}
+        {soft(WING_OUTLINE.outline, '#080708', [7, 3.5], 0.22)}
+      </g>
       {/* veins branching through the thin membrane */}
       <path
         className="veins"
-        d="M58 -38 q20 6 34 -6 M64 -20 q14 8 30 4 q8 -2 16 4 M58 -8 q10 14 30 14 M54 6 q6 14 20 22 M44 12 q-4 12 -14 16 M72 -30 q8 -10 22 -14 M84 10 q8 6 10 16"
+        d="M58 -38 q20 6 34 -6 M64 -20 q14 8 30 4 q8 -2 16 4 M58 -8 q10 14 30 14 M54 6 q6 14 20 22 M44 12 q-4 12 -14 16 M72 -30 q8 -10 22 -14 M84 10 q8 6 10 16 M92 -2 q6 -4 12 -2 M70 30 q-4 6 -2 12"
       />
       <path className="veins bright" d="M66 -24 q10 4 22 0 M60 2 q8 10 18 12" />
-      {/* arm and finger bones */}
+      {/* arm and finger bones, with a thin lit ridge on each */}
       <path className="bone-wing" d={`M${S[0]} ${S[1]} Q 28 -30 ${W[0]} ${W[1]}`} />
-      <path className="bone-wing thin" d={`${bone(W, T1, 3)} ${bone(W, T2, 2)} ${bone(W, T3, -2)} ${bone(W, T4, -3)}`} />
+      <path className="bone-wing thin" d={FINGERS} />
+      <path className="bone-lit" d={`M${S[0]} ${S[1] - 1} Q 28 -31 ${W[0]} ${W[1] - 1} ${FINGERS}`} />
       <circle className="joint" cx={W[0]} cy={W[1]} r={2.8} />
+      <circle cx={W[0] - 0.8} cy={W[1] - 0.9} r={1.1} fill="#814047" opacity="0.5" />
+      {/* the hooked tip at the top of the wing */}
+      <path d="M117.5 -64.5 C120 -71 126.5 -72.5 129.5 -67 C127 -69 123 -68.4 121 -63.6 Z" fill="#24191d" stroke="#080708" strokeWidth="0.5" />
+      <path d="M120 -67.2 C122.4 -70 125.6 -70.4 127.6 -68.6" fill="none" stroke="#814047" strokeWidth="0.45" strokeOpacity="0.6" />
       {/* hooked thumb claw at the wrist */}
       <path className="claw" d="M50 -40 q2 -8 -4 -13 q1 7 -3 9" />
       <path className="claw-fill" d="M49 -42 q1 -7 -3 -10 q0 6 -2 8 Z" />
@@ -231,9 +310,51 @@ function WingShape() {
   );
 }
 
+/**
+ * Colours for the face. Hanging, it is the warm reddish-brown roosting bat; in flight it is the
+ * near-black, crimson-shadowed creature with small amber eyes. The shapes (and so the
+ * expression) are the same in both.
+ */
+const FACE_COLORS = {
+  hang: {
+    fur: 'url(#rc-fur)',
+    muzzle: '#3e2216',
+    tufts: '#49291c',
+    fine: '#5f3829',
+    earBack: '#2e140d',
+    earRim: '#140805',
+    earIn: 'url(#rc-ear)',
+    earLine: '#3b1811',
+    nose: '#4a2a22',
+    bridge: '#7a4a38',
+    lip: '#5f3829',
+    eye: 'url(#rc-eye-glow)',
+    glow: 'url(#rc-glow)',
+    light: null as string | null,
+  },
+  fly: {
+    fur: 'url(#rc-fur-fly)',
+    muzzle: '#1d191d',
+    tufts: '#2a262b',
+    fine: '#4a454b',
+    earBack: '#1b1014',
+    earRim: '#080708',
+    earIn: 'url(#rc-ear-fly)',
+    earLine: '#24191d',
+    nose: '#2a2428',
+    bridge: '#57505a',
+    lip: '#3d373e',
+    eye: 'url(#rc-eye-amber)',
+    glow: 'url(#rc-glow-soft)',
+    // soft light on the brow, cheekbones and upper lip, so the face reads on near-black fur
+    light: '#39353a' as string | null,
+  },
+};
+
 /** The face, drawn upright and centred on (0, 0); the hanging pose turns it upside down. */
-function Face({ eyes, open, mouth }: { eyes: boolean; open: boolean; mouth: Mouth }) {
+function Face({ eyes, open, mouth, look = 'hang' }: { eyes: boolean; open: boolean; mouth: Mouth; look?: 'hang' | 'fly' }) {
   const drop = mouth === 'snarl' ? 13 : mouth === 'open' ? 7 : 0;
+  const c = FACE_COLORS[look];
   return (
     <g className={`bat-face mouth-${mouth}`}>
       {/*
@@ -245,27 +366,35 @@ function Face({ eyes, open, mouth }: { eyes: boolean; open: boolean; mouth: Mout
         <g key={s} transform={s < 0 ? 'scale(-1 1)' : undefined}>
           <g className="bat-ear">
             {/* the back of the ear: dark skin, a fine darker rim */}
-            <path d="M6.3 -11.1 C10 -17 17 -24 24.1 -27.7 C25 -20 18.5 -9.5 11.9 -5.9 Z" fill="#2e140d" stroke="#140805" strokeWidth="0.6" strokeLinejoin="round" />
+            <path d="M6.3 -11.1 C10 -17 17 -24 24.1 -27.7 C25 -20 18.5 -9.5 11.9 -5.9 Z" fill={c.earBack} stroke={c.earRim} strokeWidth="0.6" strokeLinejoin="round" />
             {/* the hollow inside: reddish-brown, curved, lighter toward the root */}
-            <path d="M7.8 -10.6 C11 -15.6 16.8 -22 22.4 -25.8 C21.6 -19.6 17 -12.2 11.3 -7.7 Z" fill="url(#rc-ear)" />
-            <path d="M9.6 -10.4 q4 -5.2 9.4 -11.2 M12.2 -8.8 q3 -3.2 6.2 -6.4" stroke="#3b1811" strokeWidth="0.45" strokeLinecap="round" fill="none" />
+            <path d="M7.8 -10.6 C11 -15.6 16.8 -22 22.4 -25.8 C21.6 -19.6 17 -12.2 11.3 -7.7 Z" fill={c.earIn} />
+            <path d="M9.6 -10.4 q4 -5.2 9.4 -11.2 M12.2 -8.8 q3 -3.2 6.2 -6.4" stroke={c.earLine} strokeWidth="0.45" strokeLinecap="round" fill="none" />
           </g>
         </g>
       ))}
       {/* wild fur */}
       <g filter="url(#rc-furry)">
-        <ellipse rx="15" ry="14" fill="url(#rc-fur)" />
-        {/* the muzzle a shade warmer than the fur round it, so nose and mouth read against it */}
-        <ellipse cy="4" rx="11" ry="8" fill="#3e2216" opacity="0.85" />
+        <ellipse rx="15" ry="14" fill={c.fur} />
+        {/* the muzzle a shade lighter than the fur round it, so nose and mouth read against it */}
+        <ellipse cy="4" rx="11" ry="8" fill={c.muzzle} opacity="0.85" />
+        {c.light && (
+          <>
+            <ellipse cy="-8.5" rx="8" ry="3" fill={c.light} opacity="0.45" />
+            <ellipse cx="-9.5" cy="2.5" rx="3.6" ry="2.2" fill={c.light} opacity="0.4" />
+            <ellipse cx="9.5" cy="2.5" rx="3.6" ry="2.2" fill={c.light} opacity="0.4" />
+            <ellipse cy="9" rx="6" ry="1.6" fill={c.light} opacity="0.35" />
+          </>
+        )}
       </g>
       <path
         d="M-15 -2 l-4 -2 M-14 5 l-5 1 M15 -2 l4 -2 M14 5 l5 1 M-10 -12 l-2 -4 M10 -12 l2 -4 M-4 -14 l0 -4 M4 -14 l0 -4 M-12 10 l-3 4 M12 10 l3 4"
-        stroke="#49291c"
+        stroke={c.tufts}
         strokeWidth="1.1"
         strokeLinecap="round"
       />
       {/* fine raised fur on the forehead and cheeks */}
-      <path d="M-7 -11 l-1 -2.4 M-2 -12.6 l0 -2.4 M2.4 -12.4 l0.6 -2.4 M7 -10.6 l1.2 -2.2 M-12.6 2 l-2.2 0.4 M12.6 2 l2.2 0.4" stroke="#5f3829" strokeWidth="0.5" strokeLinecap="round" />
+      <path d="M-7 -11 l-1 -2.4 M-2 -12.6 l0 -2.4 M2.4 -12.4 l0.6 -2.4 M7 -10.6 l1.2 -2.2 M-12.6 2 l-2.2 0.4 M12.6 2 l2.2 0.4" stroke={c.fine} strokeWidth="0.5" strokeLinecap="round" />
       {/* brows dragged down into a scowl */}
       <path d="M-12 -7 L-3 -3 M12 -7 L3 -3" stroke="#0e0605" strokeWidth="1.6" strokeLinecap="round" />
       {/* eyes: shut slits at rest; open and burning red when it looks at you */}
@@ -274,7 +403,7 @@ function Face({ eyes, open, mouth }: { eyes: boolean; open: boolean; mouth: Mout
           {open || eyes ? (
             <g className="bat-eye-look">
               <path d={`M${-4 * s} 1 Q 0 -3.6 ${4 * s} -1 Q 0 3 ${-4 * s} 1 Z`} fill="#140605" />
-              <ellipse className={eyes ? 'bat-eye glow' : 'bat-eye'} rx="3" ry="2.2" fill={eyes ? 'url(#rc-eye-glow)' : '#4a1410'} filter={eyes ? 'url(#rc-glow)' : undefined} />
+              <ellipse className={eyes ? 'bat-eye glow' : 'bat-eye'} rx="3" ry="2.2" fill={eyes ? c.eye : '#4a1410'} filter={eyes ? c.glow : undefined} />
               <ellipse className="bat-pupil" rx="0.6" ry="1.8" fill="#0c0502" />
               {/* a tiny warm catch-light, not white */}
               <circle cx={-1.1 * s} cy="-0.9" r="0.45" fill="#d9a27c" opacity={eyes ? 0.55 : 0.8} />
@@ -291,15 +420,15 @@ function Face({ eyes, open, mouth }: { eyes: boolean; open: boolean; mouth: Mout
       {/* snout: a wrinkled, upturned nose with flared nostrils */}
       {/* shade under the nose, then the nose, its nostrils, and light along the bridge */}
       <ellipse cy="8.6" rx="4.4" ry="1.3" fill="#0c0502" opacity="0.6" filter="url(#rc-soft-fine)" />
-      <path d="M-5 6 C-4 2 4 2 5 6 C4 9 -4 9 -5 6 Z" fill="#4a2a22" />
+      <path d="M-5 6 C-4 2 4 2 5 6 C4 9 -4 9 -5 6 Z" fill={c.nose} />
       <ellipse cx="-2" cy="6.2" rx="1.1" ry="0.8" fill="#0a0303" />
       <ellipse cx="2" cy="6.2" rx="1.1" ry="0.8" fill="#0a0303" />
-      <path d="M-3.4 4 Q0 2.6 3.4 4" stroke="#7a4a38" strokeWidth="0.6" strokeLinecap="round" fill="none" opacity="0.85" />
+      <path d="M-3.4 4 Q0 2.6 3.4 4" stroke={c.bridge} strokeWidth="0.6" strokeLinecap="round" fill="none" opacity="0.85" />
       <path d="M-7 3 q2 -2 4 0 M7 3 q-2 -2 -4 0" stroke="#160b09" strokeWidth="0.6" fill="none" />
       {/* the mouth: lips peel back from long fangs and rows of small teeth */}
       <g className="bat-mouth" transform="translate(0 11)">
         {/* a faint lit edge on the lower lip, so the line of the mouth shows on dark fur */}
-        <path d="M-8.6 0.6 Q0 3.8 8.6 0.6" stroke="#5f3829" strokeWidth="0.6" fill="none" opacity="0.75" />
+        <path d="M-8.6 0.6 Q0 3.8 8.6 0.6" stroke={c.lip} strokeWidth="0.6" fill="none" opacity="0.75" />
         {drop > 0 && (
           <g className="bat-jaw">
             <path d={`M-8 0 Q0 ${drop * 1.25} 8 0 Q0 2 -8 0 Z`} fill="url(#rc-throat)" />
@@ -320,25 +449,36 @@ function Face({ eyes, open, mouth }: { eyes: boolean; open: boolean; mouth: Mout
   );
 }
 
-/** Flying body: furred torso, clawed feet reaching forward, head on top. */
+/**
+ * Flying body: a narrow, densely furred torso with shoulders that carry into the wing arms,
+ * the head on top, and two thin legs hanging relaxed below with small curved claws (it is not
+ * reaching for anything).
+ */
 function FlyBody({ eyes, open, mouth }: { eyes: boolean; open: boolean; mouth: Mouth }) {
   return (
     <g className="bat-body">
-      {/* legs and hooked talons, reaching for whatever is in front */}
       {[-1, 1].map((s) => (
-        <g key={s}>
-          <path className="leg" d={`M${8 * s} 20 Q ${16 * s} 32 ${17 * s} 44`} />
-          <path className="claw" d={`M${17 * s} 44 q${-4 * s} 4 ${-3 * s} 9 M${17 * s} 44 q${0} 5 ${2 * s} 9 M${17 * s} 44 q${4 * s} 3 ${6 * s} 7 M${17 * s} 44 q${-6 * s} 1 ${-8 * s} 5`} />
+        <g key={s} className="fly-leg-g">
+          <path className="fly-leg" d={`M${5 * s} 24 C${5.6 * s} 30 ${6.2 * s} 36 ${5.8 * s} 41`} />
+          <path className="fly-leg-lit" d={`M${5.5 * s} 25 C${6 * s} 30 ${6.5 * s} 35 ${6.2 * s} 39.5`} />
+          <path className="fly-claw" d={`M${5.8 * s} 41 q${0.4 * s} 2.4 ${-1.2 * s} 3.6 M${5.8 * s} 41 q${1.4 * s} 1.8 ${0.8 * s} 3.8 M${5.8 * s} 41 q${-0.6 * s} 2 ${-2.2 * s} 2.4`} />
         </g>
       ))}
       <g filter="url(#rc-furry)">
-        <ellipse cx="0" cy="6" rx="14" ry="22" fill="url(#rc-fur)" />
-        <ellipse cx="0" cy="-6" rx="12" ry="9" fill="#2c1d18" opacity="0.8" />
+        {/* shoulders, where the arms leave the body */}
+        <ellipse cx="-9.5" cy="-9" rx="7" ry="6" fill="#1d191d" />
+        <ellipse cx="9.5" cy="-9" rx="7" ry="6" fill="#1d191d" />
+        <ellipse cx="0" cy="5" rx="12" ry="21" fill="url(#rc-fur-fly)" />
+        {/* chest: a lighter ruff under the chin */}
+        <ellipse cx="0" cy="-6" rx="10" ry="8" fill="#2a262b" opacity="0.9" />
+        <ellipse cx="0" cy="-7" rx="6" ry="4" fill="#39353a" opacity="0.5" />
       </g>
-      <path d="M-8 0 l-2 6 M-3 4 l-1 7 M3 4 l1 7 M8 0 l2 6 M-6 14 l-1 6 M6 14 l1 6" stroke="#3d2b24" strokeWidth="1" strokeLinecap="round" />
+      {/* layers of fur: dark strokes and lighter tips, short and uneven */}
+      <path d="M-8 -2 l-2 6 M-3 3 l-1 7 M3 3 l1 7 M8 -2 l2 6 M-6 13 l-1 6 M6 13 l1 6 M0 9 l0 6 M-4 20 l-0.5 5 M4 20 l0.5 5" stroke="#080708" strokeWidth="1.1" strokeLinecap="round" opacity="0.8" />
+      <path d="M-7 -3 l-1.4 4 M-2 2 l-0.6 5 M2 2 l0.6 5 M7 -3 l1.4 4 M-12 -10 l-2 -2 M12 -10 l2 -2 M-5 11 l-0.6 4 M5 11 l0.6 4" stroke="#39353a" strokeWidth="0.55" strokeLinecap="round" opacity="0.75" />
       <g className="bat-look bat-look-fly">
-        <g transform="translate(0 -24)">
-          <Face eyes={eyes} open={open} mouth={mouth} />
+        <g transform={`translate(0 ${FLY_FACE_Y})`}>
+          <Face eyes={eyes} open={open} mouth={mouth} look="fly" />
         </g>
       </g>
     </g>

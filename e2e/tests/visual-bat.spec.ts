@@ -39,7 +39,9 @@ async function enlarge(page: Page, selector: string, file: string) {
     wrap.id = 'bat-zoom';
     wrap.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;gap:40px;align-items:center;justify-content:center;background:#9a8f80';
     const big = svg.cloneNode(true) as SVGSVGElement;
-    big.setAttribute('style', 'width:300px;height:733px;overflow:visible');
+    const vb = (svg as SVGSVGElement).viewBox.baseVal;
+    const bigW = vb.width > vb.height ? 1100 : 300;
+    big.setAttribute('style', `width:${bigW}px;height:${(bigW * vb.height) / vb.width}px;overflow:visible`);
     const real = svg.cloneNode(true) as SVGSVGElement;
     const r = svg.getBoundingClientRect();
     real.setAttribute('style', `width:${r.width}px;height:${r.height}px;overflow:visible`);
@@ -56,7 +58,7 @@ test.describe('visual capture of the bat', () => {
 
   test('Christmas and haunted bat, sizes and close-ups', async ({ page }, info) => {
     test.skip(info.project.name === 'reduced-motion', 'not needed');
-    test.setTimeout(120_000);
+    test.setTimeout(180_000);
     const tag = `${LABEL}-${info.project.name}`;
     await fresh(page);
     await page.evaluate(() => window.scrollTo(0, 0));
@@ -68,7 +70,63 @@ test.describe('visual capture of the bat', () => {
     await enlarge(page, '[data-testid="day-bat"]', `${OUT}/bat-${tag}-christmas.png`);
     const r = await day.boundingBox();
     if (r) await page.screenshot({ path: `${OUT}/bat-${tag}-christmas-insitu.png`, clip: { x: Math.max(0, r.x - 60), y: Math.max(0, r.y - 30), width: 180, height: 180 } });
-    await catchBat(page, info);
+    // In flight: the same scale, wings spread. Wait for it to take off on its own.
+    let flying: unknown = null;
+    if (info.project.name === 'desktop') {
+      await expect(day).toHaveClass(/is-flying/, { timeout: 30_000 });
+      await page.waitForTimeout(300);
+      flying = await measure(page, '[data-testid="day-bat"]');
+      await enlarge(page, '[data-testid="day-bat"]', `${OUT}/bat-${tag}-flying.png`);
+      await expect(day).not.toHaveClass(/is-flying/, { timeout: 10_000 });
+      await page.waitForTimeout(500);
+    }
+    // The hand over the bat, then the catch and the lunge, frame by frame.
+    let hand: unknown = null;
+    const lunge: unknown[] = [];
+    if (!info.project.use.hasTouch) {
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await day.hover();
+      const sk = page.getByTestId('skeleton-hand');
+      await expect(sk).toBeVisible();
+      hand = await sk.boundingBox();
+      const b = await day.boundingBox();
+      if (b) await page.screenshot({ path: `${OUT}/bat-${tag}-hand.png`, clip: { x: Math.max(0, b.x - 40), y: Math.max(0, b.y - 20), width: 120, height: 120 } });
+      // Record the lunge every frame inside the page (screenshots are too slow to follow it).
+      await page.evaluate(() => {
+        const out: unknown[] = [];
+        (window as unknown as { __lunge: unknown[] }).__lunge = out;
+        const t0 = performance.now();
+        const tick = () => {
+          const l = document.querySelector('[data-testid="lunge"]');
+          const face = l?.querySelector('.lunge-bat .bat-face')?.getBoundingClientRect();
+          const bat = l?.querySelector('.lunge-bat')?.getBoundingClientRect();
+          const shade = l?.querySelector<HTMLElement>('.lunge-shade');
+          const maw = l?.querySelector<HTMLElement>('.lunge-maw');
+          out.push({
+            ms: Math.round(performance.now() - t0),
+            step: l?.className.replace('lunge ', '') ?? 'none',
+            batW: bat ? Math.round(bat.width) : null,
+            faceY: face && face.height > 0 ? +((face.top + face.height / 2) / window.innerHeight).toFixed(3) : null,
+            faceX: face && face.width > 0 ? +((face.left + face.width / 2) / window.innerWidth).toFixed(3) : null,
+            shade: shade ? +getComputedStyle(shade).opacity : null,
+            maw: maw ? +getComputedStyle(maw).opacity : null,
+          });
+          if (performance.now() - t0 < 4000) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      });
+      await day.click();
+      for (let i = 0; i < 4; i++) {
+        await page.waitForTimeout(350);
+        await page.screenshot({ path: `${OUT}/bat-${tag}-lunge-${String(i).padStart(2, '0')}.jpeg`, type: 'jpeg', quality: 60, scale: 'css' });
+      }
+      await page.waitForTimeout(2600);
+      lunge.push(...(await page.evaluate(() => (window as unknown as { __lunge: unknown[] }).__lunge)));
+      await expect(page.locator('html')).toHaveAttribute('data-state', 'haunted', { timeout: 20_000 });
+      await expect(page.getByTestId('lunge')).toHaveCount(0, { timeout: 15_000 });
+    } else {
+      await catchBat(page, info);
+    }
     const ghost = page.getByTestId('haunted-bat').first();
     await expect(ghost).toBeVisible({ timeout: 10_000 });
     await page.waitForTimeout(2500);
@@ -76,6 +134,6 @@ test.describe('visual capture of the bat', () => {
     await enlarge(page, '[data-testid="haunted-bat"]:not(.is-flying)', `${OUT}/bat-${tag}-haunted.png`);
     const h = await page.locator('[data-testid="haunted-bat"]:not(.is-flying)').first().boundingBox();
     if (h) await page.screenshot({ path: `${OUT}/bat-${tag}-haunted-insitu.png`, clip: { x: Math.max(0, h.x - 60), y: Math.max(0, h.y - 30), width: 180, height: 180 } });
-    writeFileSync(`${OUT}/bat-${tag}.json`, JSON.stringify({ christmas, haunted }, null, 2));
+    writeFileSync(`${OUT}/bat-${tag}.json`, JSON.stringify({ christmas, flying, hand, lunge, haunted }, null, 2));
   });
 });

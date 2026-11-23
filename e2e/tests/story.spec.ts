@@ -69,7 +69,9 @@ test('checkout: closing time, decline, accept, ending and echo (Req 22, 23, 38)'
   await expect(page.getByTestId('accept')).toBeVisible({ timeout: 15_000 });
 
   await page.getByTestId('decline').click();
-  await expect(page.getByRole('heading', { level: 1, name: 'Everything Must Go' })).toBeVisible();
+  // Back to the whole haunted shop: on software WebGL (CI, a loaded machine) that render can
+  // take longer than the default 5 s.
+  await expect(page.getByRole('heading', { level: 1, name: 'Everything Must Go' })).toBeVisible({ timeout: 15_000 });
 
   await openCart(page);
   await page.getByTestId('checkout').click();

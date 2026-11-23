@@ -13,9 +13,13 @@ function Bone({ x1, y1, x2, y2, w }: { x1: number; y1: number; x2: number; y2: n
   );
 }
 
-/** Drawn at 34×46 px, smaller than the bat. The index fingertip (25, 5 in the viewBox) is the hotspot. */
-const HOT_X = 12;
-const HOT_Y = 2;
+/**
+ * Drawn at 17×23 px: about twice a normal cursor, half the earlier hand. The index fingertip
+ * (25, 5 in the 70×96 viewBox) is the hotspot.
+ */
+const HAND_W = 17;
+const HOT_X = (25 / 70) * HAND_W;
+const HOT_Y = (5 / 96) * ((HAND_W * 96) / 70);
 
 export function SkeletonHand({ x, y, closed = false }: { x: number; y: number; closed?: boolean }) {
   return (
