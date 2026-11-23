@@ -88,6 +88,7 @@
   background: none;
 }
 
+/* Hanging, its size comes from hangBox() (the same as the Christmas bat); this is for flight. */
 .haunted-bat {
   width: 42px;
   height: 103px;
@@ -166,42 +167,114 @@
   stroke-linecap: round;
 }
 
-/* Hanging: wrapped-wing folds, the seam where they overlap, a red rim light. */
+/*
+ * Hanging: the wrapped wings in layers. Fold creases and the seam are deep shade, not black
+ * lines; ridges and rims are warm reddish-brown light, kept low so it never looks plastic.
+ */
 .bat .fold {
   fill: none;
-  stroke: #050202;
-  stroke-opacity: 0.8;
-  stroke-width: 1.2;
+  stroke: #110704;
+  stroke-opacity: 0.7;
+  stroke-width: 1;
   stroke-linecap: round;
 }
 
 .bat .fold-lit {
   fill: none;
-  stroke: #c4483a;
-  stroke-opacity: 0.4;
+  stroke: #83493e;
+  stroke-opacity: 0.55;
   stroke-width: 0.7;
   stroke-linecap: round;
 }
 
 .bat .hang-veins {
   fill: none;
-  stroke: #160404;
+  stroke: #280f0a;
   stroke-opacity: 0.75;
-  stroke-width: 0.5;
+  stroke-width: 0.45;
+  stroke-linecap: round;
+}
+
+.bat .hang-bones {
+  fill: none;
+  stroke: #1d0b07;
+  stroke-opacity: 0.6;
+  stroke-width: 0.75;
+  stroke-linecap: round;
+}
+
+.bat .hang-ridge path {
+  fill: none;
+  stroke: #83493e;
+  stroke-opacity: 0.6;
+  stroke-width: 1.5;
   stroke-linecap: round;
 }
 
 .bat .seam {
   fill: none;
-  stroke: #000;
+  stroke: #110704;
   stroke-width: 1.6;
 }
 
 .bat .rim {
   fill: none;
-  stroke: #c0362a;
+  stroke: #9b675b;
   stroke-opacity: 0.45;
-  stroke-width: 1.1;
+  stroke-width: 0.8;
+  stroke-linecap: round;
+}
+
+/* The outer edges: a thinner, fainter light than the fold edge. */
+.bat .rim-soft {
+  stroke-opacity: 0.3;
+  stroke-width: 0.7;
+}
+
+/* Hanging feet: slender legs, three toes each, thin hooked claws over the perch. */
+.bat .hang-leg {
+  fill: none;
+  stroke: #451d13;
+  stroke-width: 2.1;
+  stroke-linecap: round;
+}
+
+.bat .hang-leg-lit {
+  fill: none;
+  stroke: #824c39;
+  stroke-opacity: 0.7;
+  stroke-width: 0.5;
+  stroke-linecap: round;
+}
+
+.bat .hang-pad {
+  fill: #451d13;
+}
+
+.bat .hang-gap {
+  fill: none;
+  stroke: #210a05;
+  stroke-width: 0.6;
+}
+
+.bat .hang-toe {
+  fill: none;
+  stroke: #6c3628;
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+
+.bat .hang-claw {
+  fill: none;
+  stroke: #2a120b;
+  stroke-width: 0.6;
+  stroke-linecap: round;
+}
+
+.bat .hang-claw-lit {
+  fill: none;
+  stroke: #99644a;
+  stroke-width: 0.3;
   stroke-linecap: round;
 }
 
@@ -236,7 +309,8 @@
 }
 
 .bat-look-hang {
-  transform-origin: 0 34px;
+  /* it turns from the neck */
+  transform-origin: 0 36px;
   transform: rotate(calc(var(--lx, 0) * -14deg)) translateY(calc(var(--ly, 0) * -1.5px));
 }
 

@@ -2,7 +2,7 @@ import gsap from 'gsap';
 import { useEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
 import { reducedMotion, wait } from '../director/runtime';
 import { dispatch, useStory } from '../store';
-import { BatSvg, HANG_ASPECT } from './BatSvg';
+import { BatSvg, hangBox } from './BatSvg';
 import { useFx } from './fxStore';
 import { nearbyPerches, perchSpot, type PerchSpot } from './perches';
 import { SkeletonHand } from './SkeletonHand';
@@ -16,9 +16,6 @@ export const BAT_W = 150;
 const BAT_H = Math.round((BAT_W * 152) / 244);
 /** Smallest flying scale: the same apparent size as the bat hanging. */
 const FLY_FAR = 0.4;
-/** Hanging, wings wrapped: tall and narrow, a little smaller than the haunted shop's bats. */
-const HANG_W = 36;
-const HANG_H = Math.round(HANG_W * HANG_ASPECT);
 
 /**
  * The Day bat (Requirements 8, 9). It hangs face-away from a perch; now and then it turns its
@@ -193,7 +190,7 @@ export function DayBat() {
         className={`day-bat${flying ? ' is-flying' : ''}${hover ? ' is-hovered' : ''}${looking ? ' is-looking' : ''}`}
         data-testid="day-bat"
         aria-label="Something on the lights"
-        style={flying ? { left: spot.x - BAT_W / 2, top: spot.y - BAT_H / 2, width: BAT_W, height: BAT_H } : { left: spot.x - HANG_W / 2, top: spot.y - 4, width: HANG_W, height: HANG_H }}
+        style={flying ? { left: spot.x - BAT_W / 2, top: spot.y - BAT_H / 2, width: BAT_W, height: BAT_H } : hangBox(spot.x, spot.y)}
         onPointerEnter={(e) => {
           if (e.pointerType === 'touch') return;
           setFx({ batHover: true });

@@ -14,6 +14,30 @@ type Mouth = 'closed' | 'open' | 'snarl';
 const HANG_VIEWBOX = '-38 -90 76 186';
 export const HANG_ASPECT = 186 / 76;
 
+/**
+ * One size for the hanging bat, by day and after the Reveal. The baseline is the Christmas bat
+ * as deployed before round 6 (36 x 88 px box, 26.5 x 86.2 px drawn); it is shown at 80 % of
+ * that. The viewBox is unchanged, so every part of the drawing scales by exactly 0.8.
+ */
+export const BAT_SCALE = 0.8;
+const ORIGINAL_HANG_W = 36;
+export const HANG_W = ORIGINAL_HANG_W * BAT_SCALE;
+export const HANG_H = HANG_W * HANG_ASPECT;
+/** How far above the perch line the box starts (the toes hook over it); scaled the same way. */
+const HANG_TOP = 4 * BAT_SCALE;
+
+/** Where a hanging bat's box goes so its feet grip the perch at (x, y). Both modes use this. */
+export function hangBox(x: number, y: number) {
+  return { left: x - HANG_W / 2, top: y - HANG_TOP, width: HANG_W, height: HANG_H };
+}
+
+/*
+ * Ears: half the original absolute length. The whole bat is already drawn at 0.8, so inside
+ * the drawing they are 0.5 / 0.8 = 0.625 of the old ear (old root-to-tip 39.1 units, now 24.4).
+ * They now grow from the sides of the head, angled out, instead of from its middle.
+ */
+export const EAR_LOCAL_SCALE = 0.5 / BAT_SCALE;
+
 function seeded(seed: number) {
   let s = seed >>> 0;
   return () => {
@@ -83,11 +107,20 @@ export function BatDefs() {
   return (
     <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true" focusable="false">
       <defs>
+        {/* Fur: near-black at the edges, warm brown where the light catches the crown. */}
         <radialGradient id="rc-fur" cx="50%" cy="30%" r="75%">
-          <stop offset="0" stopColor="#4a3530" />
-          <stop offset="0.55" stopColor="#21150f" />
-          <stop offset="1" stopColor="#0a0605" />
+          <stop offset="0" stopColor="#5f3829" />
+          <stop offset="0.35" stopColor="#49291c" />
+          <stop offset="0.62" stopColor="#381e13" />
+          <stop offset="0.85" stopColor="#2a150d" />
+          <stop offset="1" stopColor="#1d0d08" />
         </radialGradient>
+        <filter id="rc-soft" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="1.3" />
+        </filter>
+        <filter id="rc-soft-fine" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="0.6" />
+        </filter>
         {/* Wing membrane lit from behind: blood-red where it is thin, near black at the bones. */}
         <radialGradient id="rc-membrane" cx="48%" cy="42%" r="70%">
           <stop offset="0" stopColor="#c1281d" />
@@ -106,22 +139,36 @@ export function BatDefs() {
           <stop offset="0.5" stopColor="#170d0b" />
           <stop offset="1" stopColor="#070403" />
         </linearGradient>
-        {/* Hanging wings: not black. Thin leather with red light coming through it. */}
-        <radialGradient id="rc-hang-leather" cx="65%" cy="35%" r="85%">
-          <stop offset="0" stopColor="#5e241c" />
-          <stop offset="0.45" stopColor="#36130f" />
-          <stop offset="0.85" stopColor="#1a0707" />
-          <stop offset="1" stopColor="#0c0303" />
+        {/*
+          Hanging wings, layered: a dark reddish-brown base (these two gradients), deep shadow
+          where one fold tucks under another, warmer raised ridges, low-contrast bones and veins
+          on top (drawn in <Hanging />). The front wing is lit; the one behind it is in its shade.
+        */}
+        <radialGradient id="rc-hang-leather" cx="68%" cy="38%" r="88%">
+          <stop offset="0" stopColor="#6c352b" />
+          <stop offset="0.25" stopColor="#592921" />
+          <stop offset="0.5" stopColor="#4a2019" />
+          <stop offset="0.78" stopColor="#3b1811" />
+          <stop offset="1" stopColor="#280f0a" />
         </radialGradient>
-        <radialGradient id="rc-hang-leather-r" cx="35%" cy="45%" r="85%">
-          <stop offset="0" stopColor="#431812" />
-          <stop offset="0.5" stopColor="#240b09" />
-          <stop offset="1" stopColor="#0a0202" />
+        <radialGradient id="rc-hang-leather-r" cx="35%" cy="45%" r="88%">
+          <stop offset="0" stopColor="#4a2019" />
+          <stop offset="0.45" stopColor="#3b1811" />
+          <stop offset="0.8" stopColor="#280f0a" />
+          <stop offset="1" stopColor="#110704" />
         </radialGradient>
-        <radialGradient id="rc-ear" cx="50%" cy="70%" r="70%">
-          <stop offset="0" stopColor="#c0453a" />
-          <stop offset="0.6" stopColor="#6e1a14" />
-          <stop offset="1" stopColor="#2a0907" />
+        {/* A broad light across the curve of the front wing, so the wrap reads as round. */}
+        <linearGradient id="rc-hang-sheen" x1="0" x2="1" y1="0" y2="0">
+          <stop offset="0" stopColor="#83493e" stopOpacity="0" />
+          <stop offset="0.55" stopColor="#83493e" stopOpacity="0.28" />
+          <stop offset="0.8" stopColor="#9b675b" stopOpacity="0.12" />
+          <stop offset="1" stopColor="#83493e" stopOpacity="0" />
+        </linearGradient>
+        {/* Inside of the ear: reddish-brown, darker toward the rim. */}
+        <radialGradient id="rc-ear" cx="40%" cy="75%" r="80%">
+          <stop offset="0" stopColor="#b04a3c" />
+          <stop offset="0.5" stopColor="#7a2a1e" />
+          <stop offset="1" stopColor="#3b1811" />
         </radialGradient>
         <radialGradient id="rc-eye-glow" cx="45%" cy="40%" r="60%">
           <stop offset="0" stopColor="#ffe9c2" />
@@ -189,24 +236,36 @@ function Face({ eyes, open, mouth }: { eyes: boolean; open: boolean; mouth: Mout
   const drop = mouth === 'snarl' ? 13 : mouth === 'open' ? 7 : 0;
   return (
     <g className={`bat-face mouth-${mouth}`}>
-      {/* tall, pointed, veined ears */}
+      {/*
+        Pointed ears growing from the sides of the head, angled out, half their old length
+        (EAR_LOCAL_SCALE). Drawn for the right side and mirrored; the roots sit just inside
+        the fur so they blend in, and the crown of the head shows between and beyond them.
+      */}
       {[-1, 1].map((s) => (
-        <g key={s} className="bat-ear">
-          <path d={`M${-6 * s} -9 C ${-14 * s} -18 ${-21 * s} -32 ${-20 * s} -46 C ${-13 * s} -38 ${-6 * s} -26 ${-1 * s} -12 Z`} fill="url(#rc-ear)" stroke="#120706" strokeWidth="0.8" />
-          <path d={`M${-7 * s} -13 q${-5 * s} -10 ${-10 * s} -24 M${-9 * s} -18 q${-4 * s} -2 ${-7 * s} -2`} stroke="#3a0b08" strokeWidth="0.6" fill="none" />
+        <g key={s} transform={s < 0 ? 'scale(-1 1)' : undefined}>
+          <g className="bat-ear">
+            {/* the back of the ear: dark skin, a fine darker rim */}
+            <path d="M6.3 -11.1 C10 -17 17 -24 24.1 -27.7 C25 -20 18.5 -9.5 11.9 -5.9 Z" fill="#2e140d" stroke="#140805" strokeWidth="0.6" strokeLinejoin="round" />
+            {/* the hollow inside: reddish-brown, curved, lighter toward the root */}
+            <path d="M7.8 -10.6 C11 -15.6 16.8 -22 22.4 -25.8 C21.6 -19.6 17 -12.2 11.3 -7.7 Z" fill="url(#rc-ear)" />
+            <path d="M9.6 -10.4 q4 -5.2 9.4 -11.2 M12.2 -8.8 q3 -3.2 6.2 -6.4" stroke="#3b1811" strokeWidth="0.45" strokeLinecap="round" fill="none" />
+          </g>
         </g>
       ))}
       {/* wild fur */}
       <g filter="url(#rc-furry)">
         <ellipse rx="15" ry="14" fill="url(#rc-fur)" />
-        <ellipse cy="4" rx="11" ry="8" fill="#2c1c17" opacity="0.8" />
+        {/* the muzzle a shade warmer than the fur round it, so nose and mouth read against it */}
+        <ellipse cy="4" rx="11" ry="8" fill="#3e2216" opacity="0.85" />
       </g>
       <path
         d="M-15 -2 l-4 -2 M-14 5 l-5 1 M15 -2 l4 -2 M14 5 l5 1 M-10 -12 l-2 -4 M10 -12 l2 -4 M-4 -14 l0 -4 M4 -14 l0 -4 M-12 10 l-3 4 M12 10 l3 4"
-        stroke="#3b2a24"
+        stroke="#49291c"
         strokeWidth="1.1"
         strokeLinecap="round"
       />
+      {/* fine raised fur on the forehead and cheeks */}
+      <path d="M-7 -11 l-1 -2.4 M-2 -12.6 l0 -2.4 M2.4 -12.4 l0.6 -2.4 M7 -10.6 l1.2 -2.2 M-12.6 2 l-2.2 0.4 M12.6 2 l2.2 0.4" stroke="#5f3829" strokeWidth="0.5" strokeLinecap="round" />
       {/* brows dragged down into a scowl */}
       <path d="M-12 -7 L-3 -3 M12 -7 L3 -3" stroke="#0e0605" strokeWidth="1.6" strokeLinecap="round" />
       {/* eyes: shut slits at rest; open and burning red when it looks at you */}
@@ -216,20 +275,31 @@ function Face({ eyes, open, mouth }: { eyes: boolean; open: boolean; mouth: Mout
             <g className="bat-eye-look">
               <path d={`M${-4 * s} 1 Q 0 -3.6 ${4 * s} -1 Q 0 3 ${-4 * s} 1 Z`} fill="#140605" />
               <ellipse className={eyes ? 'bat-eye glow' : 'bat-eye'} rx="3" ry="2.2" fill={eyes ? 'url(#rc-eye-glow)' : '#4a1410'} filter={eyes ? 'url(#rc-glow)' : undefined} />
-              <ellipse className="bat-pupil" rx="0.6" ry="1.8" fill="#1a0402" />
+              <ellipse className="bat-pupil" rx="0.6" ry="1.8" fill="#0c0502" />
+              {/* a tiny warm catch-light, not white */}
+              <circle cx={-1.1 * s} cy="-0.9" r="0.45" fill="#d9a27c" opacity={eyes ? 0.55 : 0.8} />
             </g>
           ) : (
-            <path d={`M${-4 * s} 0 Q 0 1.6 ${4 * s} -0.6`} stroke="#5a1610" strokeWidth="1" fill="none" />
+            <>
+              {/* shut: the same red slit, set in a darker socket so it shows on the fur */}
+              <path d={`M${-4.4 * s} 0.3 Q 0 2.6 ${4.4 * s} -0.4`} stroke="#0c0502" strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.5" />
+              <path d={`M${-4 * s} 0 Q 0 1.6 ${4 * s} -0.6`} stroke="#5a1610" strokeWidth="1" fill="none" />
+            </>
           )}
         </g>
       ))}
       {/* snout: a wrinkled, upturned nose with flared nostrils */}
-      <path d="M-5 6 C-4 2 4 2 5 6 C4 9 -4 9 -5 6 Z" fill="#3a2420" />
+      {/* shade under the nose, then the nose, its nostrils, and light along the bridge */}
+      <ellipse cy="8.6" rx="4.4" ry="1.3" fill="#0c0502" opacity="0.6" filter="url(#rc-soft-fine)" />
+      <path d="M-5 6 C-4 2 4 2 5 6 C4 9 -4 9 -5 6 Z" fill="#4a2a22" />
       <ellipse cx="-2" cy="6.2" rx="1.1" ry="0.8" fill="#0a0303" />
       <ellipse cx="2" cy="6.2" rx="1.1" ry="0.8" fill="#0a0303" />
+      <path d="M-3.4 4 Q0 2.6 3.4 4" stroke="#7a4a38" strokeWidth="0.6" strokeLinecap="round" fill="none" opacity="0.85" />
       <path d="M-7 3 q2 -2 4 0 M7 3 q-2 -2 -4 0" stroke="#160b09" strokeWidth="0.6" fill="none" />
       {/* the mouth: lips peel back from long fangs and rows of small teeth */}
       <g className="bat-mouth" transform="translate(0 11)">
+        {/* a faint lit edge on the lower lip, so the line of the mouth shows on dark fur */}
+        <path d="M-8.6 0.6 Q0 3.8 8.6 0.6" stroke="#5f3829" strokeWidth="0.6" fill="none" opacity="0.75" />
         {drop > 0 && (
           <g className="bat-jaw">
             <path d={`M-8 0 Q0 ${drop * 1.25} 8 0 Q0 2 -8 0 Z`} fill="url(#rc-throat)" />
@@ -284,22 +354,35 @@ function Hanging({ eyes, open, mouth }: { eyes: boolean; open: boolean; mouth: M
    * wrists) at the bottom, about level with the head, which hangs between them. One wing is
    * folded over the other: its leading edge runs diagonally across the body.
    */
-  const backL = 'M-8 -73 C-14 -56 -21 -28 -25 0 C-26 12 -27 22 -28 30 L-20 31 L-11 35 L0 34 L0 -58 C-2 -64 -5 -69 -8 -73 Z';
-  const backR = 'M8 -73 C14 -56 21 -28 25 0 C26 12 27 22 28 30 L20 31 L11 35 L0 34 L0 -58 C2 -64 5 -69 8 -73 Z';
-  // The right wing wrapped over the front, its edge falling diagonally to the left.
-  const flap = 'M7 -72 C13 -50 20 -24 24 0 C25 14 27 23 28 30 L19 32 L9 35 L-6 34 L-19 28 C-12 6 -4 -28 3 -60 Z';
-  const edge = 'M-19 28 C-12 6 -4 -28 3 -60';
+  // Outer edges run down to two pointed corners (the folded wrists, at ±31, 31) where the
+  // edge turns sharply back in under the body: an angle, not a rounded cloak.
+  const backL = 'M-8 -73 C-14 -56 -21 -28 -25 0 C-26.5 12 -28.5 22 -31 34.5 L-24 29.6 L-21 30.4 L-11 35 L0 34 L0 -58 C-2 -64 -5 -69 -8 -73 Z';
+  const backR = 'M8 -73 C14 -56 21 -28 25 0 C26.5 12 28.5 22 31 34.5 L24 29.6 L21 30.4 L11 35 L0 34 L0 -58 C2 -64 5 -69 8 -73 Z';
+  // The right wing wrapped over the front, its edge falling diagonally to the left and ending
+  // in a second, smaller point where it tucks under at the bottom.
+  const flap = 'M7 -72 C13 -50 20 -24 24 0 C25.5 14 28.5 22 31 34.5 L24 29.6 L20 31.6 L9 35 L-6 34 L-20.5 29.6 C-12 6 -4 -28 3 -60 Z';
+  const edge = 'M-20.5 29.6 C-12 6 -4 -28 3 -60';
   const holes = hole(-16, -12, 1.4, r) + hole(15, -30, 1.2, r) + hole(10, 14, 1.6, r);
-  // The forearm under the flap, and the crease where it bends at the wrist (a shallow V).
-  const folds = 'M25 2 C14 4 2 8 -14 16 M-22 18 C-12 24 -4 28 2 30 M22 22 C12 24 4 27 -2 31 M-12 -40 C-15 -22 -19 -4 -22 14';
-  const veins = 'M16 -20 q-4 6 -9 8 M18 -6 q-6 2 -10 8 M-15 -30 q-2 7 0 13 M-19 4 q3 6 2 12 M12 8 q-5 5 -6 12';
+  // Creases where the membrane folds at the wrist (a shallow V) and along the hidden forearm.
+  const folds = 'M25 2 C14 4 2 8 -14 16 M-23 19 C-12 24 -4 28 2 30 M23 22 C12 24 4 27 -2 31 M-12 -40 C-15 -22 -19 -4 -22 14';
+  // The bones that hold the folded wing: forearms up from each wrist corner, and the fingers
+  // fanning from the wrist back across the wrap. Thin and low-contrast, following the folds.
+  const bones = 'M30.6 33.4 C26 14 21 -12 14 -44 M30 32.6 C24 20 16 14 6 12 M30 33 C22 26 12 26 2 29 M-30.6 33.4 C-26 14 -21 -10 -15 -42 M-30 32.6 C-26 22 -22 16 -18 12';
+  const veins =
+    'M16 -20 q-4 6 -9 8 q-2 1 -3 4 M18 -6 q-6 2 -10 8 M20 -32 q-5 3 -6 9 M-15 -30 q-2 7 0 13 q1 3 -1 6 M-19 4 q3 6 2 12 M12 8 q-5 5 -6 12 M24 12 q-4 3 -5 8 M-22 -12 q2 5 1 10';
   return (
     <g className="bat-body">
-      {/* the legs, apart, toes curled over the perch with long hooked claws */}
+      {/* the legs, apart: slender, the toes hooked over the perch with thin curved claws */}
       {[-1, 1].map((s) => (
-        <g key={s}>
-          <path className="leg" d={`M${7 * s} -70 L${7 * s} -84`} />
-          <path className="claw" d={`M${5 * s} -84 q${1 * s} -5 ${4 * s} -5 q2 0 ${3 * s} 3 M${8 * s} -84 q${1 * s} -4 ${4 * s} -3 M${6 * s} -84 q0 -5 ${2 * s} -6`} />
+        <g key={s} className="bat-foot">
+          <path className="hang-leg" d={`M${7 * s} -70 C${7.5 * s} -75 ${7.4 * s} -80 ${7 * s} -84`} />
+          <path className="hang-leg-lit" d={`M${7.6 * s} -71 C${8 * s} -75 ${7.9 * s} -79 ${7.5 * s} -83`} />
+          {/* a narrow foot, short toes close together, and thin claws hooked over the perch */}
+          <ellipse className="hang-pad" cx={7 * s} cy={-84.6} rx={1.7} ry={1.2} />
+          <path className="hang-gap" d={`M${6.6 * s} -85.4 l0 -1.2 M${7.5 * s} -85.4 l0.1 -1.2`} />
+          <path className="hang-toe" d={`M${6 * s} -85.2 q0 -1.4 ${0.3 * s} -2 M${7 * s} -85.4 q0 -1.4 ${0.3 * s} -2.1 M${8 * s} -85.2 q${0.2 * s} -1.3 ${0.5 * s} -1.9`} />
+          <path className="hang-claw" d={`M${6.3 * s} -87.2 q${0.6 * s} -2 ${2 * s} -1.2 q${0.5 * s} 0.4 ${0.4 * s} 1.4 M${7.3 * s} -87.5 q${0.7 * s} -1.9 ${2.1 * s} -1 q${0.4 * s} 0.4 ${0.3 * s} 1.3`} />
+          <path className="hang-claw-lit" d={`M${6.5 * s} -87.6 q${0.6 * s} -1.4 ${1.5 * s} -1 M${7.5 * s} -87.9 q${0.6 * s} -1.3 ${1.5 * s} -0.8`} />
         </g>
       ))}
       <g className="bat-wrap" filter="url(#rc-leathery)">
@@ -307,18 +390,38 @@ function Hanging({ eyes, open, mouth }: { eyes: boolean; open: boolean; mouth: M
         <path fill="url(#rc-hang-leather-r)" d={backR} />
         <path fill="url(#rc-hang-leather)" fillRule="evenodd" d={flap + holes} />
       </g>
+      {/* the light across the curve of the front wing */}
+      <path fill="url(#rc-hang-sheen)" fillRule="evenodd" d={flap + holes} />
+      {/* deep shade where the front wing overlaps the back one, and under each pointed corner */}
+      <g className="hang-shade" filter="url(#rc-soft)" opacity="0.75">
+        <path d={edge} transform="translate(-2.2 1.4)" fill="none" stroke="#1e0805" strokeWidth="3.4" />
+        <path d="M-29.6 32 L-23.6 29 L-25.6 21 Z M29.6 32 L23.6 29 L25.6 21 Z M-19.5 29 L-8 33 L-13 24 Z" fill="#1e0805" />
+      </g>
+      {/* raised ridges: warmer light where the membrane turns over the bones */}
+      <g className="hang-ridge" filter="url(#rc-soft-fine)">
+        <path d="M29.4 28 C24.6 10 19.6 -14 12.8 -44" />
+        <path d="M-29.4 28 C-24.6 10 -19.8 -12 -13.8 -42" opacity="0.6" />
+        <path d="M28 27.4 C21 24 12 24 3 27" opacity="0.7" />
+      </g>
+      <path className="hang-bones" d={bones} />
       <path className="fold" d={folds} />
       <path className="fold-lit" d={folds} transform="translate(0.6 -0.6)" />
       <path className="hang-veins" d={veins} />
-      {/* the flap's leading edge: a dark shadow under it and a red-lit lip on top */}
+      {/* the flap's leading edge: a narrow lit lip with the shade under it */}
       <path className="seam" d={edge} transform="translate(-1 1)" />
       <path className="rim" d={edge} />
-      {/* rim light down both outer edges to the pointed shoulder corners */}
-      <path className="rim" d="M-8 -73 C-14 -56 -21 -28 -25 0 C-26 12 -27 22 -28 30" />
-      <path className="rim" d="M8 -73 C14 -56 21 -28 25 0 C26 12 27 22 28 30" />
-      {/* the head, hanging upside down between the shoulder corners; it turns from the neck */}
+      {/* controlled light down both outer edges to the pointed wrist corners */}
+      <path className="rim rim-soft" d="M-8 -73 C-14 -56 -21 -28 -25 0 C-26.5 12 -28.5 22 -31 34.5" />
+      <path className="rim rim-soft" d="M8 -73 C14 -56 21 -28 25 0 C26.5 12 28.5 22 31 34.5" />
+      {/* a soft shadow where the head hangs against the wings, then the short neck */}
+      <ellipse cx="0" cy="36.5" rx="15" ry="4.6" fill="#0c0502" opacity="0.55" filter="url(#rc-soft)" />
+      {/* the head, hanging upside down between the wrist corners; it turns from the neck */}
       <g className="bat-look bat-look-hang">
-        <g transform="translate(0 46) rotate(180)">
+        <g filter="url(#rc-furry)">
+          <ellipse cx="0" cy="35.4" rx="8.5" ry="5" fill="#2a150d" />
+          <ellipse cx="0" cy="34.6" rx="5.5" ry="3" fill="#381e13" />
+        </g>
+        <g transform="translate(0 50) rotate(180)">
           <Face eyes={eyes} open={open} mouth={mouth} />
         </g>
       </g>

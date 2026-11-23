@@ -67,6 +67,10 @@ test.describe('visual capture of the Take scares', () => {
       }
       await expect(view).toBeVisible({ timeout: 10_000 });
       await page.waitForTimeout(1500);
+      // Before the take, twice, to see which way anything moving goes.
+      await page.screenshot({ path: `${OUT}/pv-${id}-pre1.jpeg`, type: 'jpeg', quality: 60, scale: 'css' });
+      await page.waitForTimeout(2000);
+      await page.screenshot({ path: `${OUT}/pv-${id}-pre2.jpeg`, type: 'jpeg', quality: 60, scale: 'css' });
       await page.getByTestId('pv-add').click();
       await page.waitForTimeout(id === 'teddy-bear' ? 250 : 900);
       await page.screenshot({ path: `${OUT}/pv-${id}-a.jpeg`, type: 'jpeg', quality: 60, scale: 'css' });

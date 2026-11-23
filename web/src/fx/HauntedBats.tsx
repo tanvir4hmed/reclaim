@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { reducedMotion, wait } from '../director/runtime';
 import { useHaunted, useStory } from '../store';
-import { BatSvg } from './BatSvg';
+import { BatSvg, hangBox } from './BatSvg';
 import { useFx } from './fxStore';
 import { nearbyPerches, perchSpot, type PerchSpot } from './perches';
 
@@ -94,7 +94,8 @@ export function HauntedBats() {
         const spot: PerchSpot | null = perchSpot(b.perch, b.seed);
         if (!spot) return null;
         return (
-          <div key={i} className={`haunted-bat${b.flying ? ' is-flying' : ''}`} style={{ left: spot.x - 21, top: spot.y }} aria-hidden="true" data-testid="haunted-bat">
+          // Hanging, exactly the Christmas bat's size and anchor (hangBox); in flight, its own box.
+          <div key={i} className={`haunted-bat${b.flying ? ' is-flying' : ''}`} style={b.flying ? { left: spot.x - 21, top: spot.y } : hangBox(spot.x, spot.y)} aria-hidden="true" data-testid="haunted-bat">
             <BatSvg pose={b.flying ? 'fly' : 'hang'} eyes={b.eyes} />
           </div>
         );

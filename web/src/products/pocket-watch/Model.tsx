@@ -3,15 +3,18 @@ import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { M } from '../../gl/materials';
 import { useFx } from '../../fx/fxStore';
-import { useHaunted, useStory } from '../../store';
+import { useHaunted } from '../../store';
+import { useTaken } from '../../gl/useTaken';
 import { reducedMotion } from '../../director/runtime';
 
 /** Stopped at 4:17 in the Haunted state (copy: "It stopped at 4:17"). */
 const STOPPED = { h: 4, m: 17, s: 0 };
 
-function useWatchTime(open: boolean) {
+function useWatchTime() {
   const haunted = useHaunted();
-  const reverse = useStory((s) => s.story.clockDirection === -1);
+  // Backward only once it has been taken (after the Reveal), on the card and in the full
+  // view alike; before that it runs forward everywhere.
+  const { taken: reverse } = useTaken('pocket-watch');
   const invalidate = useThree((s) => s.invalidate);
   const t = useRef(STOPPED.h * 3600 + STOPPED.m * 60);
   useEffect(() => {
@@ -26,20 +29,22 @@ function useWatchTime(open: boolean) {
     // Haunted, on show: it ticks forward, the right way, from 4:17, as if nothing were wrong.
     // The moment you take it, every hand whips backward, hours in a second, as if winding your
     // time off; from then on it races backward (Req 14.2–14.3).
-    const step = Math.min(dt, 0.1);
-    if (whirl) t.current -= step * 2400;
-    else if (reverse && !open) t.current -= step * 4;
+    // Real seconds, even where the view only redraws once a second (the full view), so it
+    // keeps time there too; capped so a long pause (a hidden tab) does not jump it hours.
+    const step = Math.min(dt, 1.5);
+    if (whirl) t.current -= Math.min(dt, 0.1) * 2400;
+    else if (reverse) t.current -= step * 4;
     else t.current += step;
     // Second hand jumps in whole seconds, like a real escapement.
     return reverse ? t.current : Math.ceil(t.current);
   };
 }
 
-export default function PocketWatch({ open = false }: { open?: boolean }) {
+export default function PocketWatch() {
   const hour = useRef<THREE.Mesh>(null);
   const minute = useRef<THREE.Mesh>(null);
   const second = useRef<THREE.Mesh>(null);
-  const time = useWatchTime(open);
+  const time = useWatchTime();
   const shudder = useFx((s) => s.flags['watch-shudder'] !== undefined);
   const chain = useMemo(() => {
     const pts = [
