@@ -159,7 +159,7 @@ function SmokeGhost({ since }: { since: () => number }) {
   return (
     <points geometry={geo}>
       {/* big soft puffs, overlapping, so it reads as smoke and not as dots */}
-      <pointsMaterial map={puff} size={0.14} sizeAttenuation vertexColors transparent depthWrite={false} />
+      <pointsMaterial map={puff} size={0.34} sizeAttenuation vertexColors transparent depthWrite={false} />
     </points>
   );
 }
@@ -195,7 +195,7 @@ function updateSmoke(geo: THREE.BufferGeometry, targets: THREE.Vector3[], s: num
     p[i * 3 + 1] = y;
     p[i * 3 + 2] = z;
     const seen = age > 0 ? Math.min(1, age / 0.4) : 0;
-    const a = seen * (0.16 + 0.2 * gather) * (1 - leave);
+    const a = seen * (0.07 + 0.11 * gather) * (1 - leave);
     c[i * 4] = 0.78;
     c[i * 4 + 1] = 0.77;
     c[i * 4 + 2] = 0.74;
