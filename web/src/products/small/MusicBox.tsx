@@ -1,10 +1,29 @@
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
-import type * as THREE from 'three';
+import * as THREE from 'three';
+import { SKULL_LAUNCH, skullLaunch } from '../../fx/scares/SkullPass';
 import { M } from '../../gl/materials';
 import { progress, useTaken } from '../../gl/useTaken';
 import { UprightSkull } from './Skull';
 import { boing, springGeometry } from './spring';
+
+const tmpA = new THREE.Vector3();
+const tmpB = new THREE.Vector3();
+
+/** Where the big skull is on screen, and how big, for the pass (outside the component). */
+function publishLaunch(head: THREE.Object3D, camera: THREE.Camera, canvas: HTMLCanvasElement) {
+  if (!canvas.closest('.inspection-canvas')) return;
+  head.updateWorldMatrix(true, false);
+  head.getWorldPosition(tmpA);
+  tmpB.copy(tmpA).add(new THREE.Vector3(0, 0.16, 0));
+  tmpA.project(camera);
+  tmpB.project(camera);
+  const r = canvas.getBoundingClientRect();
+  const x = r.left + ((tmpA.x + 1) / 2) * r.width;
+  const y = r.top + ((1 - tmpA.y) / 2) * r.height;
+  const top = r.top + ((1 - tmpB.y) / 2) * r.height;
+  skullLaunch.at = { x, y, size: Math.max(20, Math.abs(y - top) * 2), when: performance.now() };
+}
 
 /** Where each skull comes up out of the box: x, z, how high, when, how it leans. */
 const SKULLS: [number, number, number, number, number][] = [
@@ -15,14 +34,29 @@ const SKULLS: [number, number, number, number, number][] = [
   [0.24, 0.22, 0.46, 0.55, 0.2],
 ];
 
-/** The box after it is taken: the lid flung back, and skulls on springs bursting out of it. */
+/**
+ * The box after it is taken: the lid flung back, and skulls on springs bursting out of it. The
+ * big one in the middle comes off its spring at SKULL_LAUNCH and flies out of the screen at you
+ * (fx/scares/SkullPass takes it from here, from the very spot where it left the spring); its
+ * empty spring stays and keeps twanging. The others go on bobbing in the box.
+ */
 function SkullsOut({ since }: { since: () => number }) {
   const spring = useMemo(() => springGeometry(10, 0.05, 1, 0.009), []);
   useEffect(() => () => spring.dispose(), [spring]);
   const coils = useRef<(THREE.Mesh | null)[]>([]);
   const heads = useRef<(THREE.Group | null)[]>([]);
+  const camera = useThree((s) => s.camera);
+  const gl = useThree((s) => s.gl);
+  const told = useRef(false);
   useFrame(() => {
     const s = since();
+    // just before it goes, say where it is on screen (in the product view; on the shelf the
+    // pass starts from the card)
+    const big = heads.current[0];
+    if (big && !told.current && s !== Infinity && s >= SKULL_LAUNCH - 0.05) {
+      told.current = true;
+      publishLaunch(big, camera, gl.domElement);
+    }
     SKULLS.forEach(([, , tall, at, lean], i) => {
       const pop = progress(s, 0.22, at);
       const h = Math.max(0.03, tall * pop * (1 + (pop > 0 ? boing(s - at, i) * 0.3 : 0)));
@@ -36,7 +70,8 @@ function SkullsOut({ since }: { since: () => number }) {
         // the top of the spring, carried over by the lean
         g.position.set(-Math.sin(lean * pop) * h, 0.225 + Math.cos(lean * pop) * h + 0.07, 0);
         g.rotation.z = lean * pop + boing(s - at, i + 2) * 0.2;
-        g.visible = pop > 0.01;
+        // the big one has flown off its spring at you
+        g.visible = pop > 0.01 && !(i === 0 && s >= SKULL_LAUNCH);
       }
     });
   });

@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import type { ProductId } from '../core/ids';
 import { hasWebGL2 } from '../gl/webgl';
 import { MODELS } from '../products/models';
+import { ShoePrints } from '../fx/ShoePrints';
 import { ObjectBox } from './ObjectBox';
 
 // The inspection canvas loads only when a product view opens (Requirement 5.4).
@@ -17,6 +18,7 @@ export function LargeView({ id, inspecting }: { id: ProductId; inspecting: boole
       <Suspense fallback={fallback}>
         <InspectionCanvas id={id} inspecting={inspecting} />
       </Suspense>
+      {id === 'shoes' && <ShoePrints />}
     </div>
   );
 }

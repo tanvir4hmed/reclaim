@@ -27,8 +27,9 @@ test('consequences leave lasting marks (Req 12–21)', async ({ page }, info) =>
   await expect(page.getByTestId('shop-clock')).toHaveAttribute('data-direction', '-1');
 
   await add(page, 'shoes');
-  // Walking prints, or (reduced motion: the end state at once) the marks they leave.
-  await expect(page.locator('.print, .decal-footprint, .decal-footprint-r').first()).toBeAttached();
+  // Bloody prints, inside the shoes' own card and nowhere else on the page.
+  await expect(page.locator('.card[data-product="shoes"] [data-testid="shoe-prints"]')).toBeAttached();
+  await expect(page.locator('.print, .decal-footprint, .decal-footprint-r')).toHaveCount(0);
 
   await page.getByTestId('letter-open').click();
   await expect(page.getByTestId('sorry')).toHaveText('Sorry.');
@@ -47,7 +48,7 @@ test('consequences leave lasting marks (Req 12–21)', async ({ page }, info) =>
   await page.waitForTimeout(12_000);
   await page.reload();
   await expect(page.getByTestId('shop-clock')).toHaveAttribute('data-direction', '-1');
-  await expect(page.locator('.decal-footprint, .decal-footprint-r').first()).toBeAttached();
+  await expect(page.locator('.card[data-product="shoes"] [data-testid="shoe-prints"]')).toBeAttached();
   await expect(page.getByTestId('fly')).toBeVisible();
 });
 

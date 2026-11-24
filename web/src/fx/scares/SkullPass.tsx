@@ -12,64 +12,58 @@ function boxSpot(): { x: number; y: number } {
   return best ? { x: best.left + best.width / 2, y: best.top + best.height * 0.45 } : { x: window.innerWidth / 2, y: window.innerHeight * 0.7 };
 }
 
-/** A zig-zag coil from a to b (the spring the skull is on). */
-function coil(ax: number, ay: number, bx: number, by: number, turns: number, w: number): string {
-  const dx = bx - ax;
-  const dy = by - ay;
-  const len = Math.hypot(dx, dy) || 1;
-  const nx = -dy / len;
-  const ny = dx / len;
-  let d = `M${ax.toFixed(1)} ${ay.toFixed(1)}`;
-  for (let i = 1; i <= turns * 2; i++) {
-    const t = i / (turns * 2);
-    const s = i % 2 ? 1 : -1;
-    d += ` L${(ax + dx * t + nx * w * s).toFixed(1)} ${(ay + dy * t + ny * w * s).toFixed(1)}`;
-  }
-  return `${d} L${bx.toFixed(1)} ${by.toFixed(1)}`;
-}
+/** Seconds after the take when the big skull leaves its spring in the box (MusicBox model). */
+export const SKULL_LAUNCH = 0.45;
+/** Where it was on screen when it left (set by the model in the product view). */
+export const skullLaunch: { at: { x: number; y: number; size: number; when: number } | null } = { at: null };
 
 /**
- * The music box's biggest skull, on its spring, shoots out of the box and through the middle of
- * the screen at you: small, then larger as it comes (like the bat, but it never fills the
- * screen), a judder at the closest point, and on past you, gone. No flash.
+ * One of the skulls springing in the music box, the big one in the middle, comes off its
+ * spring and flies out of the screen at you, from the very spot it left: small, then larger
+ * as it comes (like the bat, but it never fills the screen), a judder at its closest, in the
+ * middle of the screen, and on past you, gone. Its empty spring stays in the box. No flash.
  */
 export function MusicSkullPass() {
-  const [from] = useState(boxSpot);
   const skull = useRef<SVGGElement>(null);
-  const spring = useRef<SVGPathElement>(null);
+  const [fallback] = useState(boxSpot);
   useEffect(() => {
     if (reducedMotion()) return;
     const W = window.innerWidth;
     const H = window.innerHeight;
     const size = Math.min(W, H) * 0.42;
     const t0 = performance.now();
+    let from: { x: number; y: number; s0: number } | null = null;
     let raf = 0;
     const step = (now: number) => {
-      const t = (now - t0) / 1000;
-      // out (0–0.55 s), at its closest in the middle (to 0.9 s), then on past you (to 1.4 s)
-      const out = Math.min(1, t / 0.55);
+      const t = (now - t0) / 1000 - SKULL_LAUNCH;
+      const g = skull.current;
+      if (t < 0 || !g) {
+        if (g) g.style.opacity = '0';
+        raf = requestAnimationFrame(step);
+        return;
+      }
+      if (!from) {
+        // the spot it left from in the product view; or, taken from the shelf, the card
+        const at = skullLaunch.at && now - skullLaunch.at.when < 1500 ? skullLaunch.at : null;
+        from = at ? { x: at.x, y: at.y, s0: at.size * 1.1 } : { x: fallback.x, y: fallback.y, s0: size * 0.12 };
+        skullLaunch.at = null;
+      }
+      // out (0–0.5 s), at its closest in the middle (to 0.85 s), then on past you (to 1.35 s)
+      const out = Math.min(1, t / 0.5);
       const e = 1 - (1 - out) ** 3;
-      const past = Math.max(0, (t - 0.9) / 0.5);
+      const past = Math.max(0, (t - 0.85) / 0.5);
       const x = from.x + (W / 2 - from.x) * e;
       const y = from.y + (H * 0.45 - from.y) * e - past * H * 0.1;
-      const s = (0.12 + 0.68 * e + (t > 0.55 ? Math.min(0.2, (t - 0.55) * 0.6) : 0) + past * 0.9) * size;
-      const judder = t > 0.55 && t < 0.9 ? Math.sin(t * 80) * 4 : 0;
-      const g = skull.current;
-      if (g) {
-        g.setAttribute('transform', `translate(${(x + judder).toFixed(1)} ${y.toFixed(1)}) scale(${(s / 100).toFixed(3)})`);
-        g.style.opacity = String(Math.max(0, 1 - past * 1.1));
-      }
-      const p = spring.current;
-      if (p) {
-        p.setAttribute('d', coil(from.x, from.y, x + judder, y + s * 0.42, 9, Math.max(4, s * 0.09)));
-        p.style.opacity = String(Math.max(0, 1 - past * 1.6));
-        p.style.strokeWidth = String(Math.max(1.5, s * 0.018));
-      }
-      if (t < 1.45) raf = requestAnimationFrame(step);
+      const near = 0.8 * size + (t > 0.5 ? Math.min(0.2, (t - 0.5) * 0.6) * size : 0);
+      const s = from.s0 + (near - from.s0) * e + past * 0.9 * size;
+      const judder = t > 0.5 && t < 0.85 ? Math.sin(t * 80) * 4 : 0;
+      g.setAttribute('transform', `translate(${(x + judder).toFixed(1)} ${y.toFixed(1)}) scale(${(s / 100).toFixed(3)})`);
+      g.style.opacity = String(Math.max(0, 1 - past * 1.1));
+      if (t < 1.4) raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [from]);
+  }, [fallback]);
   if (reducedMotion()) return null;
   return (
     <svg className="ts-skull-pass" viewBox={`0 0 ${window.innerWidth} ${window.innerHeight}`}>
@@ -80,9 +74,8 @@ export function MusicSkullPass() {
           <stop offset="1" stopColor="#6e5c3c" />
         </radialGradient>
       </defs>
-      <path ref={spring} className="ts-skull-spring" d="" />
-      {/* drawn in a 100-unit box centred on the cranium */}
-      <g ref={skull} transform={`translate(${from.x} ${from.y}) scale(0.01)`}>
+      {/* drawn in a 100-unit box centred on the cranium; it has left its spring behind */}
+      <g ref={skull} style={{ opacity: 0 }} transform={`translate(${fallback.x} ${fallback.y}) scale(0.01)`}>
         <path
           fill="url(#ts-bone)"
           stroke="#2a1e12"

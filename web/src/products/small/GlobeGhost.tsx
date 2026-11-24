@@ -1,177 +1,153 @@
 import { useFrame } from '@react-three/fiber';
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
+import { reducedMotion } from '../../director/runtime';
+import { seeded } from '../../director/footprints';
+import { useCanvasTexture } from '../../gl/canvasTex';
 
-const V = THREE.Vector3;
-/** Inside radius of the globe's glass, and where the smoke comes out (the cottage roof). */
-const GLASS = 0.575;
-const ROOF = new V(0, 0.02, 0);
-const CYCLE = 4.4;
-const TAIL = 11;
-const UP = new V(0, 1, 0);
-
-/** Place a unit cylinder (height 1 along y) between two points. */
-function between(m: THREE.Object3D, a: THREE.Vector3, b: THREE.Vector3) {
-  const d = new V().subVectors(b, a);
-  m.position.copy(a).addScaledVector(d, 0.5);
-  m.quaternion.setFromUnitVectors(UP, d.clone().normalize());
-  m.scale.set(1, Math.max(0.001, d.length()), 1);
-}
+/** Just inside the globe's glass (its outer radius is 0.6). */
+const GLASS_IN = 0.575;
+const HAND_H = 0.25;
+/** One cycle of a hand: slammed flat on the glass, held, dragged a little, lifted away, gone. */
+const CYCLE = 1.5;
 
 /**
- * Taken: something dark is let out into the globe. Not a solid thing: a shadow with a head,
- * shoulders and long arms, its body thinning away below into a trail of smoke that still
- * comes out of the cottage, like a genie half out of its lamp. It drifts round inside, then
- * goes to the glass, presses both hands flat on it from inside, and beats its head against it,
- * again, to get out. The whole globe shudders each time.
+ * A hand pressed flat from inside, palm to the glass: palm, four fingers spread, the thumb.
+ * Its alpha carries a grain, so as it lifts off the glass it does not fade evenly but breaks
+ * up and goes, like the mark of a hand on cold glass.
+ */
+function drawHand(g: CanvasRenderingContext2D, w: number, h: number) {
+  g.clearRect(0, 0, w, h);
+  g.save();
+  g.filter = 'blur(2px)';
+  g.fillStyle = '#fff';
+  // palm
+  g.beginPath();
+  g.ellipse(w * 0.5, h * 0.72, w * 0.25, h * 0.2, 0, 0, Math.PI * 2);
+  g.fill();
+  // fingers, spread, the middle ones longest
+  const fingers: [number, number, number][] = [
+    [0.3, 0.27, -0.18],
+    [0.44, 0.2, -0.06],
+    [0.58, 0.22, 0.06],
+    [0.71, 0.3, 0.2],
+  ];
+  g.lineCap = 'round';
+  g.strokeStyle = '#fff';
+  g.lineWidth = w * 0.12;
+  for (const [x, top, lean] of fingers) {
+    g.beginPath();
+    g.moveTo(w * x, h * 0.62);
+    g.lineTo(w * (x + lean * 0.5), h * top);
+    g.stroke();
+  }
+  // the thumb, out to the side
+  g.lineWidth = w * 0.13;
+  g.beginPath();
+  g.moveTo(w * 0.28, h * 0.76);
+  g.lineTo(w * 0.1, h * 0.55);
+  g.stroke();
+  g.restore();
+  // the grain: alpha 0.5..1 inside the hand, so a rising alphaTest eats it away in specks
+  const img = g.getImageData(0, 0, w, h);
+  const r = seeded(7);
+  for (let i = 0; i < img.data.length; i += 4) {
+    const a = img.data[i + 3]!;
+    img.data[i] = 0;
+    img.data[i + 1] = 0;
+    img.data[i + 2] = 0;
+    img.data[i + 3] = a > 30 ? Math.round(a * (0.5 + 0.5 * r())) : 0;
+  }
+  g.putImageData(img, 0, 0);
+}
+
+interface Hand {
+  /** Where on the glass: across (radians from the front) and up. */
+  az: number;
+  el: number;
+  /** Tilt of the hand on the glass, and its phase in the cycle. */
+  roll: number;
+  phase: number;
+  mirror: boolean;
+}
+
+const HANDS: Hand[] = [
+  { az: -0.42, el: 0.28, roll: 0.18, phase: 0, mirror: false },
+  { az: 0.38, el: 0.22, roll: -0.15, phase: 0.62, mirror: true },
+];
+
+/**
+ * Taken: something inside wants out. You never see it: only its two hands, and only where
+ * they touch the glass. They slam flat against it from inside, hold, drag a little, are
+ * pulled back and gone, and slam again; the globe shudders each time.
  */
 export function GlobeGhost() {
   const root = useRef<THREE.Group>(null);
-  const head = useRef<THREE.Group>(null);
-  const torso = useRef<THREE.Mesh>(null);
-  const arms = useRef<(THREE.Mesh | null)[]>([]);
-  const hands = useRef<(THREE.Group | null)[]>([]);
-  const tail = useRef<(THREE.Mesh | null)[]>([]);
-  const tmp = useMemo(
-    () => ({ body: new V(), out: new V(), side: new V(), sh: [new V(), new V()], hand: [new V(), new V()], waist: new V(), ctrl: new V(), p: new V() }),
+  const tex = useCanvasTexture(128, 160, drawHand, []);
+  // Opaque with an alpha test, not transparent: the globe's glass uses transmission, and
+  // three.js leaves transparent objects out of what is seen through it.
+  const mats = useMemo(() => HANDS.map(() => new THREE.MeshBasicMaterial({ map: tex, color: '#0b0707', alphaTest: 0.05, side: THREE.DoubleSide })), [tex]);
+  useEffect(() => () => mats.forEach((m) => m.dispose()), [mats]);
+  const meshes = useRef<(THREE.Mesh | null)[]>([]);
+  const places = useMemo(
+    () =>
+      HANDS.map((h) => {
+        const n = new THREE.Vector3(Math.sin(h.az) * Math.cos(h.el), Math.sin(h.el), Math.cos(h.az) * Math.cos(h.el));
+        const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), n);
+        q.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), h.roll));
+        return { n, q };
+      }),
     [],
   );
   useFrame((st) => {
     const t = st.clock.elapsedTime;
-    const c = t % CYCLE;
-    const dir = Math.floor(t / CYCLE) * 2.3 + 0.6;
-    // 0–2.2 drifting round; 2.2–2.8 to the glass; 2.8–3.8 beating its head on it; then back.
-    const drift = t * 0.9;
-    const toGlass = c < 2.2 ? 0 : c < 2.8 ? (c - 2.2) / 0.6 : c < 3.8 ? 1 : 1 - (c - 3.8) / 0.6;
-    const e = toGlass * toGlass * (3 - 2 * toGlass);
-    const ang = drift + (((dir - drift) % (Math.PI * 2)) + Math.PI * 3) % (Math.PI * 2) - Math.PI;
-    const a = drift + (ang - drift) * e;
-    const bang = c > 2.8 && c < 3.8 ? Math.max(0, Math.sin(((c - 2.8) / 0.5) * Math.PI * 2)) : 0;
-    const r = 0.2 + 0.2 * e + 0.05 * bang;
-    const y = 0.18 + Math.sin(t * 1.7) * 0.05 * (1 - e) + 0.06 * e;
-    const { body, out, side, sh, hand, waist, ctrl, p } = tmp;
-    out.set(Math.sin(a), 0, Math.cos(a));
-    side.set(out.z, 0, -out.x);
-    body.set(out.x * r, y, out.z * r);
-    if (head.current) {
-      head.current.position.copy(body);
-      head.current.lookAt(body.x + out.x, body.y - 0.15 * e, body.z + out.z);
-      // head bowed forward against the glass when it beats on it
-      head.current.rotateX(0.25 * e);
-    }
-    // shoulders below the head; the torso tapers down from them into the smoke
-    waist.copy(body).addScaledVector(UP, -0.2).addScaledVector(out, -0.04);
-    if (torso.current) between(torso.current, waist, new V().copy(body).addScaledVector(UP, -0.05));
-    for (let i = 0; i < 2; i++) {
-      const s = i ? 1 : -1;
-      sh[i]!.copy(body).addScaledVector(UP, -0.085).addScaledVector(side, s * 0.075);
-      // hands: reaching about while it drifts; flat on the glass either side of its head after
-      const free = p
-        .copy(body)
-        .addScaledVector(out, 0.13)
-        .addScaledVector(side, s * (0.12 + Math.sin(t * 2 + i) * 0.03))
-        .addScaledVector(UP, 0.02 + Math.sin(t * 2.6 + i * 2) * 0.05);
-      const ga = a + s * 0.42;
-      const onGlass = new V(Math.sin(ga) * GLASS * 0.98, y + 0.03, Math.cos(ga) * GLASS * 0.98);
-      hand[i]!.copy(free).lerp(onGlass, e);
-      const arm = arms.current[i];
-      if (arm) between(arm, sh[i]!, hand[i]!);
-      const h = hands.current[i];
-      if (h) {
-        h.position.copy(hand[i]!);
-        // palm toward the glass (outward from the middle of the globe)
-        h.lookAt(hand[i]!.x * 2, hand[i]!.y, hand[i]!.z * 2);
-      }
-    }
-    // the trail of smoke from its waist down to the roof, swaying, thinner and fainter as it goes
-    ctrl.set(Math.sin(t * 1.3) * 0.12, -0.02, Math.cos(t * 1.1) * 0.12).add(waist).multiplyScalar(0.5);
-    tail.current.forEach((m, i) => {
-      if (!m) return;
-      const k = (i + 1) / (TAIL + 1);
-      const u = 1 - k;
-      m.position.set(
-        u * u * waist.x + 2 * u * k * ctrl.x + k * k * ROOF.x + Math.sin(t * 5 + i) * 0.006,
-        u * u * waist.y + 2 * u * k * ctrl.y + k * k * ROOF.y,
-        u * u * waist.z + 2 * u * k * ctrl.z + k * k * ROOF.z,
-      );
-      m.scale.setScalar(0.06 * (1 - k * 0.85) * (1 + Math.sin(t * 7 + i * 1.3) * 0.08));
+    const still = reducedMotion();
+    let bang = 0;
+    HANDS.forEach((h, i) => {
+      const m = meshes.current[i];
+      const mat = mats[i];
+      const p = places[i];
+      if (!m || !mat || !p) return;
+      const c = ((t / CYCLE + h.phase) % 1) * CYCLE;
+      // 0–0.06 s slam; held to 0.85 s, dragging down a little; lifted away by 1.15 s; gone
+      let shown: number;
+      if (still) shown = 1;
+      else if (c < 0.06) shown = c / 0.06;
+      else if (c < 0.85) shown = 1;
+      else if (c < 1.15) shown = 1 - (c - 0.85) / 0.3;
+      else shown = 0;
+      if (!still && c < 0.12) bang = Math.max(bang, 1 - c / 0.12);
+      setHand(m, mat, p, shown, still ? 0 : Math.min(1, Math.max(0, (c - 0.06) / 0.8)));
     });
-    // the globe judders each time its head hits the glass
+    // the globe judders when a hand hits the glass
     const g = root.current?.parent;
-    if (g) g.position.x = bang > 0.85 ? Math.sin(t * 90) * 0.014 : 0;
+    if (g) g.position.x = bang > 0 ? Math.sin(t * 95) * 0.012 * bang : 0;
   });
-  // The globe's glass uses transmission, and three.js leaves transparent objects out of the
-  // transmission pass, so the solid parts of the shadow must be opaque to be seen through it.
-  const shade = (o: number) =>
-    o >= 0.6 ? <meshBasicMaterial color="#050404" /> : <meshBasicMaterial color="#060505" transparent opacity={o} depthWrite={false} />;
   return (
     <group ref={root}>
-      <group ref={head}>
-        <mesh scale={[1, 1.12, 1]}>
-          <sphereGeometry args={[0.07, 16, 12]} />
-          {shade(0.95)}
-        </mesh>
-        {/* a blurred edge of shadow round it */}
-        <mesh scale={[1.35, 1.45, 1.35]}>
-          <sphereGeometry args={[0.07, 12, 10]} />
-          {shade(0.25)}
-        </mesh>
-        {/* hollow eyes and an open mouth, faint */}
-        {[-0.025, 0.025].map((x) => (
-          <mesh key={x} position={[x, 0.012, 0.064]}>
-            <sphereGeometry args={[0.012, 8, 6]} />
-            <meshBasicMaterial color="#d8d2c4" toneMapped={false} transparent opacity={0.85} />
-          </mesh>
-        ))}
-        <mesh position={[0, -0.03, 0.062]} scale={[1, 1.6, 0.5]}>
-          <sphereGeometry args={[0.01, 8, 6]} />
-          <meshBasicMaterial color="#000" />
-        </mesh>
-      </group>
-      <mesh ref={torso}>
-        <cylinderGeometry args={[0.075, 0.03, 1, 14, 1, true]} />
-        {shade(0.85)}
-      </mesh>
-      {[0, 1].map((i) => (
-        <group key={i}>
-          <mesh
-            ref={(m) => {
-              arms.current[i] = m;
-            }}
-          >
-            <cylinderGeometry args={[0.012, 0.02, 1, 8]} />
-            {shade(0.85)}
-          </mesh>
-          <group
-            ref={(h) => {
-              hands.current[i] = h;
-            }}
-          >
-            {/* a palm and four long fingers, spread flat */}
-            <mesh scale={[0.028, 0.032, 0.008]}>
-              <sphereGeometry args={[1, 10, 8]} />
-              {shade(0.92)}
-            </mesh>
-            {[-0.022, -0.007, 0.008, 0.022].map((x, j) => (
-              <mesh key={x} position={[x, 0.045, 0]} rotation-z={-x * 6} scale={[1, 1 + (j === 1 || j === 2 ? 0.25 : 0), 1]}>
-                <capsuleGeometry args={[0.005, 0.035, 3, 6]} />
-                {shade(0.92)}
-              </mesh>
-            ))}
-          </group>
-        </group>
-      ))}
-      {Array.from({ length: TAIL }, (_, i) => (
+      {HANDS.map((h, i) => (
         <mesh
           key={i}
           ref={(m) => {
-            tail.current[i] = m;
+            meshes.current[i] = m;
           }}
+          material={mats[i]}
+          scale={[h.mirror ? -1 : 1, 1, 1]}
         >
-          <sphereGeometry args={[1, 10, 8]} />
-          {shade(0.75 - (i / TAIL) * 0.5)}
+          <planeGeometry args={[HAND_H * 0.8, HAND_H]} />
         </mesh>
       ))}
     </group>
   );
+}
+
+/** Outside the component, so the React compiler rules see no mutation of hook values. */
+function setHand(m: THREE.Mesh, mat: THREE.MeshBasicMaterial, p: { n: THREE.Vector3; q: THREE.Quaternion }, shown: number, drag: number) {
+  // pressed flat just inside the glass, sliding down a touch as it drags
+  m.position.copy(p.n).multiplyScalar(GLASS_IN);
+  m.position.y -= drag * 0.02;
+  m.quaternion.copy(p.q);
+  // fully there at 0.05; at 1 nothing is left
+  mat.alphaTest = 0.05 + (1 - shown) * 0.95;
+  m.visible = shown > 0.01;
 }

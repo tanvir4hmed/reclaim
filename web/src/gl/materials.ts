@@ -24,6 +24,19 @@ export const M = {
   wood: () => mat('wood', { surface: 'wood', color: '#7a4a28', roughness: 0.45, clearcoat: 0.5, hauntedColor: '#3b2a1e', decay: { age: 0.6, dust: 0.6 } }),
   woodLight: () => mat('woodLight', { surface: 'wood', color: '#c79a64', roughness: 0.5, clearcoat: 0.3, hauntedColor: '#6b5640', decay: { age: 0.6, dust: 0.5 } }),
   gilt: () => mat('gilt', { surface: 'metal', color: '#c8a24c', metalness: 0.9, roughness: 0.32, hauntedColor: '#5e4c2c', decay: { age: 0.7, dust: 0.6 } }),
+  /** Old upholstery cloth: off-white like ghee by day; yellowed, greyed and grubby after the Reveal. */
+  upholstery: () =>
+    mat('upholstery', { surface: 'fabric', color: '#ebdfc3', roughness: 0.92, sheen: 0.35, sheenColor: '#fff6e0', hauntedColor: '#a59a83', decay: { age: 0.6, dust: 0.5, tear: 0.08 } }),
+  /** The doll's dress and hat: deep red velvet by day; after the Reveal faded, dusty, dark red. */
+  dollVelvet: () =>
+    mat('dollVelvet', { surface: 'fabric', color: '#7e0c14', roughness: 0.82, sheen: 0.55, sheenColor: '#c43a40', hauntedColor: '#5a161b', decay: { age: 0.5, dust: 0.55, tear: 0.2 } }),
+  /** White fur trim: snowy by day, grey-beige and matted after the Reveal. */
+  dollFur: () => mat('dollFur', { surface: 'fur', color: '#f6f2ea', roughness: 1, sheen: 0.8, sheenColor: '#ffffff', hauntedColor: '#a19784', decay: { dust: 0.7, age: 0.4 } }),
+  /** Her ringlets: golden brown by day; dull, dusty brown after the Reveal. */
+  dollHair: () => mat('dollHair', { surface: 'fur', color: '#b47a3c', roughness: 0.55, sheen: 0.9, sheenColor: '#ffd59a', hauntedColor: '#6b5236', decay: { dust: 0.6 } }),
+  /** Her porcelain: warm and smooth by day; grey and grimy after the Reveal. */
+  dollPorcelain: () =>
+    mat('dollPorcelain', { surface: 'ceramic', color: '#f6e2d4', roughness: 0.28, clearcoat: 0.6, hauntedColor: '#c9c1b4', decay: { age: 0.6, dust: 0.45 } }),
   velvetRed: () => mat('velvetRed', { surface: 'fabric', color: '#8e1620', roughness: 0.85, sheen: 1, sheenColor: '#ff9a9a', hauntedColor: '#3a0d10', decay: { age: 0.5, dust: 0.4, tear: 0.1 } }),
   porcelain: () => mat('porcelain', { surface: 'ceramic', color: '#f7e7dc', roughness: 0.3, clearcoat: 0.8, hauntedColor: '#a89a8a', decay: { age: 0.7, dust: 0.4 } }),
   hair: () => mat('hair', { surface: 'fur', color: '#6a3b1f', roughness: 0.75, sheen: 0.6, hauntedColor: '#2a1f18', decay: { dust: 0.5 } }),

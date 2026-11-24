@@ -1,4 +1,4 @@
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { drawWitch, useCanvasTexture } from '../../gl/canvasTex';
@@ -9,6 +9,26 @@ import { CAMERA } from './cameraTiming';
 
 const REST: [number, number, number] = [0.15, -0.45, 0];
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+/** The print slot's height on the body. */
+const SLOT_Y = -0.36;
+const DOWN = new THREE.Vector3(0, -1, 0);
+const tmpN = new THREE.Vector3();
+const tmpP = new THREE.Vector3();
+const tmpQ = new THREE.Quaternion();
+
+/** Keep only what is below the slot, wherever the camera has turned (outside the component). */
+function clipAtSlot(body: THREE.Object3D, plane: THREE.Plane) {
+  body.updateWorldMatrix(true, false);
+  body.getWorldQuaternion(tmpQ);
+  tmpN.copy(DOWN).applyQuaternion(tmpQ);
+  tmpP.set(0, SLOT_Y, 0.4);
+  body.localToWorld(tmpP);
+  plane.setFromNormalAndCoplanarPoint(tmpN, tmpP);
+}
+
+function enableLocalClipping(gl: THREE.WebGLRenderer) {
+  gl.localClippingEnabled = true;
+}
 
 /**
  * The print: the same picture as before (a doorway behind you, your own dark shape in front),
@@ -77,6 +97,9 @@ export function InstantCamera() {
     return () => clearInterval(id);
   }, [taken, since]);
   const photo = useCanvasTexture(256, 304, (g, w, h) => drawPrint(g, w, h, taken ? dev : 1), [dev, taken]);
+  const gl = useThree((s) => s.gl);
+  const [slotPlane] = useState(() => new THREE.Plane());
+  useEffect(() => enableLocalClipping(gl), [gl]);
   useFrame(() => {
     const s = since();
     const k = taken ? progress(s, CAMERA.turnFor, CAMERA.turnFrom) : 0;
@@ -91,10 +114,11 @@ export function InstantCamera() {
     if (print.current) {
       const out = taken ? progress(s, CAMERA.printFor, CAMERA.printFrom) : 0;
       print.current.visible = taken && out > 0;
-      // It starts inside the body (hidden behind the front) and slides down out of the slot
-      // until its top edge is at the slot.
+      // It starts inside the body and slides down out of the slot until its top edge is at the
+      // slot; everything of it above the slot is cut away, so only what has come out shows.
       print.current.position.set(0, 0.35 - out * 0.71, 0.39);
       print.current.rotation.x = -0.06 * out;
+      if (body.current) clipAtSlot(body.current, slotPlane);
     }
   });
   return (
@@ -104,11 +128,19 @@ export function InstantCamera() {
         <mesh material={M.enamel()} position-y={0.12}>
           <boxGeometry args={[1.3, 0.62, 0.7]} />
         </mesh>
-        <mesh material={M.bakelite()} position={[0, -0.24, 0.04]}>
-          <boxGeometry args={[1.3, 0.3, 0.72]} />
+        {/*
+          The lower body, with the print slot, is the same cream as the top: on the dark shop
+          after the Reveal a black base vanished into the background, from the lens down.
+        */}
+        <mesh material={M.enamel()} position={[0, -0.24, 0]}>
+          <boxGeometry args={[1.3, 0.3, 0.7]} />
         </mesh>
-        <mesh material={M.bakelite()} position={[0, 0.06, 0.36]}>
-          <boxGeometry args={[1.26, 0.72, 0.04]} />
+        <mesh material={M.bakelite()} position={[0, 0.12, 0.36]}>
+          <boxGeometry args={[1.26, 0.6, 0.04]} />
+        </mesh>
+        {/* a bright steel trim along the bottom edge of the black front */}
+        <mesh material={M.silver()} position={[0, -0.18, 0.385]}>
+          <boxGeometry args={[1.26, 0.018, 0.012]} />
         </mesh>
         {/* the rainbow stripe down the front */}
         {['#c8352e', '#e07b2c', '#e8c23a', '#3e8e4a', '#2f63a8'].map((c, i) => (
@@ -149,15 +181,9 @@ export function InstantCamera() {
         <group ref={print} visible={false}>
           <mesh position-y={-0.355}>
             <planeGeometry args={[0.6, 0.71]} />
-            <meshStandardMaterial map={photo} roughness={0.55} />
+            <meshStandardMaterial map={photo} roughness={0.55} clippingPlanes={[slotPlane]} />
           </mesh>
         </group>
-        {haunted && !taken && (
-          // the old print that has always hung out of it
-          <mesh material={M.paperDark()} position={[0, -0.62, 0.42]} rotation-x={-0.1}>
-            <planeGeometry args={[0.56, 0.5]} />
-          </mesh>
-        )}
       </group>
     </group>
   );

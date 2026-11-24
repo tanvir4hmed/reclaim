@@ -58,8 +58,9 @@ function drawReflection(g: CanvasRenderingContext2D, w: number, h: number, haunt
   if (face > 0) {
     // She has come forward and is looking out: no face, just two pale glints in the dark (Req 18.3).
     g.save();
-    g.filter = 'blur(1.2px)';
-    g.globalAlpha = Math.min(1, face * 1.1);
+    // At full strength from the first moment (she does not "grow" them as she comes forward).
+    g.filter = 'blur(1px)';
+    g.globalAlpha = 1;
     g.fillStyle = '#cfd6e6';
     for (const dx of [-0.028, 0.028]) {
       g.beginPath();

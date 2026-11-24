@@ -83,17 +83,43 @@ function Cushion({
     g.computeVertexNormals();
   });
   useEffect(() => () => geo.dispose(), [geo]);
-  return <mesh ref={mesh} geometry={geo} material={M.velvetRed()} {...place} />;
+  return <mesh ref={mesh} geometry={geo} material={M.upholstery()} {...place} />;
 }
 
-const SEAT: { size: [number, number, number]; segs: [number, number, number] } = { size: [0.64, 0.06, 0.54], segs: [24, 1, 20] };
-const BACK: typeof SEAT = { size: [0.05, 0.72, 0.42], segs: [1, 24, 16] };
-const ARM: typeof SEAT = { size: [0.42, 0.03, 0.075], segs: [18, 1, 4] };
+/**
+ * Upholstery, not foam: a thin pad covered in woven cloth, finished with a corded piping round
+ * its edge and a row of brass tacks, as an old chair is. `w` × `d` in the plane it lies in.
+ */
+function Piping({ w, d, position, rotation }: { w: number; d: number; position: [number, number, number]; rotation?: [number, number, number] }) {
+  const geo = useMemo(() => {
+    const s = new THREE.Shape();
+    const r = 0.04;
+    s.moveTo(-w / 2 + r, -d / 2);
+    s.lineTo(w / 2 - r, -d / 2);
+    s.quadraticCurveTo(w / 2, -d / 2, w / 2, -d / 2 + r);
+    s.lineTo(w / 2, d / 2 - r);
+    s.quadraticCurveTo(w / 2, d / 2, w / 2 - r, d / 2);
+    s.lineTo(-w / 2 + r, d / 2);
+    s.quadraticCurveTo(-w / 2, d / 2, -w / 2, d / 2 - r);
+    s.lineTo(-w / 2, -d / 2 + r);
+    s.quadraticCurveTo(-w / 2, -d / 2, -w / 2 + r, -d / 2);
+    const pts = s.getSpacedPoints(80).map((p) => new THREE.Vector3(p.x, 0, p.y));
+    return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, true), 160, 0.011, 8, true);
+  }, [w, d]);
+  useEffect(() => () => geo.dispose(), [geo]);
+  return <mesh geometry={geo} material={M.upholstery()} position={position} rotation={rotation} />;
+}
 
-// Deep enough to read at product-view distance: the seat is 0.06 thick, so 0.05 nearly bottoms out.
+const SEAT: { size: [number, number, number]; segs: [number, number, number] } = { size: [0.64, 0.06, 0.54], segs: [32, 1, 28] };
+const BACK: typeof SEAT = { size: [0.05, 0.72, 0.42], segs: [1, 32, 22] };
+const ARM: typeof SEAT = { size: [0.42, 0.026, 0.075], segs: [18, 1, 4] };
+
+// The shape of someone sitting: two hollows under the hips, shallower under the thighs; the
+// shoulder blades and the small of the back in the back. Deep enough to read at product-view
+// distance, but inside the thin upholstered pads (0.045 and 0.04 thick).
 const SEAT_DENTS: Dent[] = [
-  [-0.1, -0.1, 0.1, 0.05],
-  [-0.1, 0.1, 0.1, 0.05],
+  [-0.1, -0.1, 0.1, 0.048],
+  [-0.1, 0.1, 0.1, 0.048],
   [0.12, -0.09, 0.08, 0.03],
   [0.12, 0.09, 0.08, 0.03],
 ];
@@ -103,8 +129,8 @@ const BACK_DENTS: Dent[] = [
   [-0.16, 0, 0.11, 0.032],
 ];
 const ARM_DENTS: Dent[] = [
-  [0.14, 0, 0.05, 0.022],
-  [-0.06, 0, 0.08, 0.014],
+  [0.14, 0, 0.05, 0.016],
+  [-0.06, 0, 0.08, 0.01],
 ];
 
 /**
@@ -166,8 +192,16 @@ export function RockingChair() {
           <boxGeometry args={[0.72, 0.06, 0.62]} />
         </mesh>
         <Cushion {...SEAT} axis="y" dents={SEAT_DENTS} press={seat} position={[0.02, 0.64, 0]} />
-        {/* the pad tied to the back, leaning with the posts */}
+        <Piping w={0.64} d={0.54} position={[0.02, 0.668, 0]} />
+        {/* brass tacks along the front edge of the seat */}
+        {Array.from({ length: 11 }, (_, i) => (
+          <mesh key={i} material={M.brass()} position={[0.345, 0.6, -0.25 + i * 0.05]} rotation-z={Math.PI / 2}>
+            <sphereGeometry args={[0.011, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2]} />
+          </mesh>
+        ))}
+        {/* the upholstered back, set between the posts and leaning with them */}
         <Cushion {...BACK} axis="x" dents={BACK_DENTS} press={back} position={[-0.335, 1.0, 0]} rotation={[0, 0, 0.163]} />
+        <Piping w={0.72} d={0.42} position={[-0.316, 1.003, 0]} rotation={[0, 0, 0.163 + Math.PI / 2]} />
         {/* back posts, spindles and the carved top rail */}
         {[-0.24, 0.24].map((z) => (
           <Rod key={z} a={[-0.3, 0.58, z]} b={[-0.46, 1.55, z * 1.05]} r={0.032} />

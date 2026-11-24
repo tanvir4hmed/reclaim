@@ -303,102 +303,19 @@
 }
 
 /*
- * The candle goes out and takes the window with it. The flame is the pointer now, and its
- * light is the only way to find anything (the close button included).
+ * The candle goes out, and the product view's light was its light: the view dims (not black),
+ * everything still there, the close button still findable. The smoke ghost is in the model.
  */
-.candle-dark {
+.candle-dim {
   position: fixed;
   inset: 0;
   z-index: 2147483000;
   pointer-events: none;
-  background: radial-gradient(circle at var(--cx, 50%) var(--cy, 50%), rgb(255 170 90 / 0.06) 0, rgb(10 5 2 / 0.3) 60px, rgb(4 2 1 / 0.75) 130px, rgb(0 0 0 / 0.96) 190px, #000 260px);
-  animation: candleOut 0.35s ease-in both;
+  background: radial-gradient(ellipse at 50% 42%, rgb(6 7 12 / 0.38), rgb(2 3 7 / 0.62));
+  animation: candleDim 1.1s ease-out both;
 }
 
-@keyframes candleOut { from { opacity: 0; } }
+@keyframes candleDim { from { opacity: 0; } }
 
-.candle-dark-out {
-  animation: candleBack 0.9s ease-out forwards;
-}
+.candle-dim-still { animation: none; }
 
-@keyframes candleBack { to { opacity: 0; } }
-
-.candle-dark-out .candle-rake { animation: none; opacity: 1; }
-
-html.candle-cursor,
-html.candle-cursor * {
-  cursor: none !important;
-}
-
-/* A warm flicker of light around the flame. */
-.candle-light {
-  position: absolute;
-  left: var(--cx, 50%);
-  top: var(--cy, 50%);
-  width: 300px;
-  height: 300px;
-  translate: -50% -50%;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgb(255 180 100 / 0.13), transparent 62%);
-  animation: candleFlicker 2.3s ease-in-out infinite;
-}
-
-@keyframes candleFlicker {
-  30% { opacity: 0.75; scale: 0.96; }
-  55% { opacity: 1; scale: 1.03; }
-  80% { opacity: 0.85; scale: 0.99; }
-}
-
-.candle-flame {
-  position: absolute;
-  left: var(--cx, 50%);
-  top: var(--cy, 50%);
-  width: 30px;
-  height: 50px;
-  /* the hotspot is the wick, just below the flame */
-  translate: -50% -86%;
-  overflow: visible;
-  filter: drop-shadow(0 0 8px rgb(255 170 80 / 0.8));
-}
-
-.candle-flame-body {
-  transform-box: fill-box;
-  transform-origin: 50% 100%;
-  animation: flameLick 0.9s ease-in-out infinite alternate;
-}
-
-@keyframes flameLick {
-  33% { transform: scale(0.94, 1.06) skewX(3deg); }
-  66% { transform: scale(1.04, 0.95) skewX(-2deg); }
-  100% { transform: scale(0.97, 1.04) skewX(1deg); }
-}
-
-/* The claws: each one thuds into the glass out of the dark and stays there. */
-.candle-claws {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.candle-rake {
-  opacity: 0;
-  transform-box: fill-box;
-  transform-origin: 50% 20%;
-  animation: rakeThud 0.28s cubic-bezier(0.5, 0, 0.8, 1.4) forwards;
-}
-
-.candle-rake .claw-gash { animation: none; fill: #94141a; filter: drop-shadow(0 0 1.5px rgb(255 70 40 / 0.55)); }
-
-@keyframes rakeThud {
-  0% { opacity: 0; transform: scale(1.25); }
-  60% { opacity: 1; transform: scale(0.97) translate(0.4px, 0.6px); }
-  100% { opacity: 1; transform: none; }
-}
-
-.candle-dark-still,
-.candle-dark-still * {
-  animation-duration: 1ms !important;
-  animation-delay: 0s !important;
-  animation-iteration-count: 1 !important;
-}

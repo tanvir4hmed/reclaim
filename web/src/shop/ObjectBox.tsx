@@ -3,6 +3,7 @@ import { LiveView } from '../gl/LiveView';
 import { hasWebGL2 } from '../gl/webgl';
 import { productById } from '../products/catalog';
 import { MODELS } from '../products/models';
+import { ShoePrints } from '../fx/ShoePrints';
 import { useHaunted } from '../store';
 
 /**
@@ -18,6 +19,7 @@ export function ObjectBox({ id, size = 'card' }: { id: ProductId; size?: 'card' 
     <div className={`object-box object-box-${size}`} data-object={id} data-live={live} aria-hidden="true">
       <div className="velvet" />
       {live ? <LiveView id={id} className="live-wrap" /> : size !== 'thumb' && <span className="object-placeholder">{name}</span>}
+      {id === 'shoes' && size !== 'thumb' && <ShoePrints />}
     </div>
   );
 }

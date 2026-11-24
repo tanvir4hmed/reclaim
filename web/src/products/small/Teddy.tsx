@@ -1,8 +1,9 @@
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { Decal } from '@react-three/drei';
 import { useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { seeded } from '../../director/footprints';
+import { teddyThroat } from '../../fx/scares/Slash';
 import { useCanvasTexture } from '../../gl/canvasTex';
 import { M } from '../../gl/materials';
 import { progress, useTaken } from '../../gl/useTaken';
@@ -61,6 +62,24 @@ function makeDrops(): Drop[] {
   });
 }
 
+const throatAt = new THREE.Vector3();
+
+/** Project the cut through the neck onto the screen, with the picture it is in (outside the component). */
+function publishThroat(root: THREE.Object3D, camera: THREE.Camera, canvas: HTMLCanvasElement) {
+  if (!canvas.closest('.inspection-canvas')) return;
+  root.updateWorldMatrix(true, false);
+  throatAt.set(0, NECK_Y, 0.12);
+  root.localToWorld(throatAt);
+  throatAt.project(camera);
+  const r = canvas.getBoundingClientRect();
+  teddyThroat.at = {
+    x: r.left + ((throatAt.x + 1) / 2) * r.width,
+    y: r.top + ((1 - throatAt.y) / 2) * r.height,
+    rect: { left: r.left, top: r.top, width: r.width, height: r.height },
+    when: performance.now(),
+  };
+}
+
 /**
  * Christmas teddy bear with a ribbon. Taken: one sword stroke through the throat. The head is
  * cut clean off: it slides down the slope of the cut, tips, drops and rolls onto the floor in
@@ -73,10 +92,15 @@ export function TeddyBear() {
   const head = useRef<THREE.Group>(null);
   const body = useRef<THREE.Group>(null);
   const arms = useRef<(THREE.Mesh | null)[]>([]);
+  const root = useRef<THREE.Group>(null);
+  const camera = useThree((s) => s.camera);
+  const gl = useThree((s) => s.gl);
   useFrame((st) => {
     const h = head.current;
     const b = body.current;
     if (!h || !b) return;
+    // where the throat is on screen, for the sword stroke (product view only, before the cut)
+    if (root.current && (!taken || since() < 0.2)) publishThroat(root.current, camera, gl.domElement);
     if (!taken) {
       h.position.set(0, NECK_Y, 0);
       h.rotation.set(0, 0, 0);
@@ -109,7 +133,7 @@ export function TeddyBear() {
     });
   });
   return (
-    <group position-y={0.05} rotation-y={-0.25} scale={0.9}>
+    <group ref={root} position-y={0.05} rotation-y={-0.25} scale={0.9}>
       <group ref={body}>
         {BODY.map(([x, y, z, r], i) => (
           <mesh key={i} material={M.plush()} position={[x, y, z]}>

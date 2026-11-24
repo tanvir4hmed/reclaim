@@ -1,0 +1,17 @@
+# Round 11: full views, Take events, the doll and the letter (summary of Tanvir's request)
+
+1. In every product's full view (Christmas and haunted) the object's top or bottom was cut off. Fit it whole, with breathing space round it.
+2. Shoes: the prints are too small; they should be at least an inch long. Blood seeps out from under the shoes, one or two slow prints, then five or six left-right prints, then stop. Only inside the full view; back on the shop, only inside the shoes' own card.
+3. Mirror: the ghost's eyes start small and grow; make them their full size from the start.
+4. Family portrait: a crack in the frame's glass, at the same moment she appears.
+5. Typewriter: the sheet is too big; half of it stays inside the machine, lines are typed and the paper feeds up at each new line, like a real typewriter. Two or three lines. "Please, Help!!" stays, in the blank space under the lines.
+6. Telephone: older and more realistic, by day and haunted. Taken, the receiver lifts at a normal speed, all the way up as if to an ear, upright, so the blood runs down the receiver and drips off it. No blood on the dial.
+7. Advent calendar: the cross at a person's speed, top left to bottom right, then a slightly bigger stroke top right to bottom left, following the calendar's own tilt. "Saint Nicholas" higher, in the middle of the empty space, aligned with the calendar, written left to right and rising a little, not like straight typing, larger, in blood but only subtly. Instead of four claw marks, one thin cut (thinner than the thinnest claw mark) through the middle of the name.
+8. Instant camera: no print hanging out before the take. Taken, it turns to the middle a bit faster, captures, flashes, then the print comes out as now, slightly faster. On the dark background its lower part blended in; fix the colours.
+9. Rocking chair: no foam and no pink; vintage fabric upholstery in an off-white like ghee, matched to the chair. Taken, the seat and back sink in the shape of someone sitting, and it keeps rocking.
+10. Snow globe: the ghost's thrashing looks out of place. Show only two hands, pressed on the glass from inside, wanting out, beating on it; visible only where they touch the glass.
+11. Music box: the skull that comes at the screen must be one of the skulls springing in the box; its empty spring stays behind and the rest keep bouncing.
+12. Candle: when it goes out, dim the view a little (it was the candle's light), not black, with no flame cursor; the close button stays visible. The main event: its smoke rises from the wick for a while, takes the shape of a ghost, and dissipates. Smooth.
+13. Teddy: keep the cut inside the bear's picture in the full view, and exactly at the throat.
+14. Doll: rebuild both versions (Christmas and Halloween) from the attached reference images, with the attached reconstruction brief. Taken: her tilted head comes upright and blood runs down.
+15. Letter: rebuild the closed envelope and the opened letter from the two attached references and brief: the seal cracks and breaks, the flap opens on its fold first, then the letter rises from inside until about two thirds shows, never visible through or under the envelope; a photo of a long-haired ghost pinned at its top left (larger than the reference), blood lettering smaller than the reference, clear of the photo. Tanvir's final note: instead of "YOU KILLED ME", write "REMEMBER ME?" in the same blood stain, and drop "I am behind you". (The brief itself said "DON'T KILL ME"; the later note was followed.)

@@ -103,4 +103,24 @@ test.describe('visual capture of the Take scares', () => {
       await page.waitForTimeout(id === 'shoes' ? 8000 : 2500);
     }
   });
+
+  // By day, before any Reveal: every product's full view, to check it is framed whole.
+  test('Christmas product views, framed whole', async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop', 'desktop only');
+    test.setTimeout(600_000);
+    await fresh(page);
+    for (const id of process.env.DAY_IDS?.split(',') ?? []) {
+      const link = page.locator(`.card[data-product="${id}"] .card-title a`);
+      await link.evaluate((el) => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+      await page.waitForTimeout(500);
+      await link.evaluate((el) => (el as HTMLElement).click());
+      const view = page.getByTestId('product-view');
+      await expect(view).toBeVisible({ timeout: 15_000 });
+      await page.waitForTimeout(1800);
+      await page.screenshot({ path: `${OUT}/day-${id}.jpeg`, type: 'jpeg', quality: 60, scale: 'css' });
+      await view.getByRole('button', { name: 'Close', exact: true }).click({ force: true });
+      await expect(view).toHaveCount(0, { timeout: 15_000 });
+      await page.waitForTimeout(600);
+    }
+  });
 });

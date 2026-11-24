@@ -13,8 +13,12 @@ const MONTHS = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 
  * it in). After the Reveal door 25 stands ajar (Requirement 39). Taken: today's date is struck
  * through with a red cross, as if someone has marked the day it happens.
  */
-/** Seconds into the calendar's Take: the cross, then the name, then the claws. */
-const CAL = { crossFrom: 0.3, crossFor: 2.6, nameFrom: 3.1, nameFor: 2, clawFrom: 5.6, end: 6.6 };
+/**
+ * Seconds into the calendar's Take. The cross at the speed a person draws one: a stroke from
+ * top left to bottom right, a breath, a second one (a little bigger) from top right to bottom
+ * left. Then the name, written by hand. Then one thin cut through the middle of it.
+ */
+const CAL = { cross1: 0.3, cross1For: 0.36, cross2: 0.82, cross2For: 0.4, nameFrom: 1.5, nameFor: 2.3, cutFrom: 4.05, cutFor: 0.35, end: 4.6 };
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 
 /** A stroke written in blood with a finger: uneven width, darker at the edges, no drips. */
@@ -48,56 +52,91 @@ function wobbly(a: [number, number], b: [number, number], seed: number): [number
   });
 }
 
-/** Four claw gashes torn through the paper; black where the calendar is ripped open. */
-function clawTear(g: CanvasRenderingContext2D, cx: number, cy: number, k: number) {
-  for (let i = 0; i < 4; i++) {
-    const kk = clamp01((k - i * 0.12) / 0.5);
-    if (kk <= 0) continue;
-    const ox = cx - 80 + i * 44;
-    const len = 150 * kk;
-    const ang = -0.95;
-    const dx = Math.cos(ang);
-    const dy = -Math.sin(ang);
-    const x0 = ox - dx * 75;
-    const y0 = cy - dy * 75;
-    const x1 = x0 + dx * len;
-    const y1 = y0 + dy * len;
-    const wide = 5 + (i % 2) * 2.5;
-    // the torn opening: a long narrow lens, ragged along both edges
-    g.fillStyle = '#040202';
+const NAME = 'Saint Nicholas';
+/** The name climbs a little as it goes, the way a hand writes on a board it is not used to. */
+const NAME_RISE = -0.075;
+
+/**
+ * "Saint Nicholas" written by hand in blood across the empty space under the days, letter by
+ * letter, left to right, the line rising a little: each letter its own slight tilt and height.
+ * Dark and thin, only just recognisable as blood. Returns where the line ran, for the cut.
+ */
+function writeName(g: CanvasRenderingContext2D, w: number, midY: number, k: number, haunted: boolean) {
+  g.save();
+  g.font = 'italic 74px "Brush Script MT", "Segoe Script", cursive';
+  g.textAlign = 'left';
+  const widths = NAME.split('').map((c) => g.measureText(c).width * 0.94);
+  const total = widths.reduce((a, b) => a + b, 0);
+  const x0 = w / 2 - (total * Math.cos(NAME_RISE)) / 2;
+  // the baseline a little under the middle, so the letters themselves sit centred in the space
+  const y0 = midY + 12 - (total * Math.sin(NAME_RISE)) / 2;
+  const shown = k * NAME.length;
+  let adv = 0;
+  NAME.split('').forEach((c, i) => {
+    const a = clamp01(shown - i);
+    if (a > 0) {
+      const x = x0 + adv * Math.cos(NAME_RISE);
+      const y = y0 + adv * Math.sin(NAME_RISE) + Math.sin(i * 2.3) * 1.6;
+      g.save();
+      g.translate(x, y);
+      g.rotate(NAME_RISE + Math.sin(i * 1.7 + 0.4) * 0.05);
+      g.globalAlpha = a;
+      // a faint wet spread under each letter, then the letter, edged a little darker
+      g.filter = 'blur(1.4px)';
+      g.fillStyle = 'rgba(96,10,12,0.35)';
+      g.fillText(c, 0, 0);
+      g.filter = 'none';
+      g.fillStyle = haunted ? '#6a0c0e' : '#5e0b0c';
+      g.fillText(c, 0, 0);
+      g.strokeStyle = 'rgba(40,4,5,0.55)';
+      g.lineWidth = 1;
+      g.strokeText(c, 0, 0);
+      g.restore();
+    }
+    adv += widths[i] ?? 0;
+  });
+  g.restore();
+  return { x0, y0, len: total };
+}
+
+/**
+ * One thin cut straight through the middle of the name, left to right: a narrow ragged slit,
+ * black where the board shows through, a few torn fibres at its lips. Finer than a claw mark.
+ */
+function thinCut(g: CanvasRenderingContext2D, line: { x0: number; y0: number; len: number }, k: number) {
+  if (k <= 0) return;
+  const dx = Math.cos(NAME_RISE);
+  const dy = Math.sin(NAME_RISE);
+  // through the middle of the letters' height, a little past both ends
+  const sx = line.x0 - dx * 22 + dy * 20;
+  const sy = line.y0 - dy * 22 - dx * 20;
+  const len = (line.len + 44) * k;
+  const steps = 26;
+  g.fillStyle = '#050303';
+  g.beginPath();
+  g.moveTo(sx, sy);
+  for (let s = 1; s <= steps; s++) {
+    const t = s / steps;
+    const half = Math.sin(t * Math.PI) * 1.4 * (0.7 + ((s * 37) % 5) / 10);
+    g.lineTo(sx + dx * len * t - dy * half, sy + dy * len * t + dx * half);
+  }
+  for (let s = steps - 1; s >= 0; s--) {
+    const t = s / steps;
+    const half = Math.sin(t * Math.PI) * 1.2 * (0.7 + ((s * 53) % 5) / 10);
+    g.lineTo(sx + dx * len * t + dy * half, sy + dy * len * t - dx * half);
+  }
+  g.closePath();
+  g.fill();
+  g.strokeStyle = 'rgba(214,196,160,0.7)';
+  g.lineWidth = 0.7;
+  for (let s = 2; s < steps; s += 3) {
+    const t = s / steps;
+    const px = sx + dx * len * t;
+    const py = sy + dy * len * t;
+    const side = s % 2 ? 1 : -1;
     g.beginPath();
-    g.moveTo(x0, y0);
-    for (let s = 1; s <= 12; s++) {
-      const t = s / 12;
-      const w2 = Math.sin(t * Math.PI) * wide * (0.8 + ((s * 37) % 5) / 10);
-      g.lineTo(x0 + (x1 - x0) * t - dy * w2, y0 + (y1 - y0) * t + dx * w2);
-    }
-    for (let s = 11; s >= 0; s--) {
-      const t = s / 12;
-      const w2 = Math.sin(t * Math.PI) * wide * (0.75 + ((s * 53) % 5) / 10);
-      g.lineTo(x0 + (x1 - x0) * t + dy * w2, y0 + (y1 - y0) * t - dx * w2);
-    }
-    g.closePath();
-    g.fill();
-    // paper fibres torn up along the edges, and a little blood in the bottom of each gash
-    g.strokeStyle = 'rgba(214,196,160,0.85)';
-    g.lineWidth = 1;
-    for (let s = 1; s < 12; s++) {
-      const t = s / 12;
-      const w2 = Math.sin(t * Math.PI) * wide + 1;
-      const px = x0 + (x1 - x0) * t;
-      const py = y0 + (y1 - y0) * t;
-      const side = s % 2 ? 1 : -1;
-      g.beginPath();
-      g.moveTo(px - dy * w2 * side, py + dx * w2 * side);
-      g.lineTo(px - dy * (w2 + 3) * side + dx * 2, py + dx * (w2 + 3) * side + dy * 2);
-      g.stroke();
-    }
-    g.strokeStyle = 'rgba(110,6,8,0.7)';
-    g.lineWidth = 1.5;
-    g.beginPath();
-    g.moveTo(x0 + dx * 6, y0 + dy * 6);
-    g.lineTo(x1 - dx * 6, y1 - dy * 6);
+    g.moveTo(px - dy * 1.5 * side, py + dx * 1.5 * side);
+    g.lineTo(px - dy * 3.5 * side + dx * 1.5, py + dx * 3.5 * side + dy * 1.5);
     g.stroke();
   }
 }
@@ -117,9 +156,10 @@ export function AdventCalendar() {
     }, 50);
     return () => clearInterval(id);
   }, [taken, since]);
-  const cross = taken ? clamp01((t - CAL.crossFrom) / CAL.crossFor) : 0;
+  const stroke1 = taken ? clamp01((t - CAL.cross1) / CAL.cross1For) : 0;
+  const stroke2 = taken ? clamp01((t - CAL.cross2) / CAL.cross2For) : 0;
   const named = taken ? clamp01((t - CAL.nameFrom) / CAL.nameFor) : 0;
-  const clawed = taken ? clamp01((t - CAL.clawFrom) / 0.5) : 0;
+  const cut = taken ? clamp01((t - CAL.cutFrom) / CAL.cutFor) : 0;
   const face = useCanvasTexture(
     512,
     480,
@@ -151,30 +191,27 @@ export function AdventCalendar() {
         g.fillStyle = haunted ? '#a8987c' : '#f6e7c4';
         g.font = 'bold 22px "Fraunces Variable", Georgia, serif';
         g.fillText(String(d), cx + cw / 2, cy + 32);
-        if (cross > 0 && d === today.getDate()) {
-          // Two strokes in blood, drawn slowly with a finger, one after the other. No drips.
+        if (stroke1 > 0 && d === today.getDate()) {
+          // Two strokes in blood with a finger, on the door itself: corner to corner, the
+          // second reaching a little further than the first. No drips.
           g.save();
-          bloodStroke(g, wobbly([cx - 6, cy - 6], [cx + cw + 6, cy + ch + 6], 1), clamp01(cross * 2), 7);
-          bloodStroke(g, wobbly([cx + cw + 6, cy - 6], [cx - 6, cy + ch + 6], 4), clamp01(cross * 2 - 1), 7);
+          bloodStroke(g, wobbly([cx + 4, cy + 3], [cx + cw - 3, cy + ch - 4], 1), stroke1, 6);
+          bloodStroke(g, wobbly([cx + cw + 5, cy - 5], [cx - 6, cy + ch + 6], 4), stroke2, 7);
           g.restore();
         }
       }
+      // The empty space under the days: from the bottom of the last row to the foot of the board.
+      const rows = Math.ceil((first + days) / 7);
+      const lastBottom = 90 + (rows - 1) * 51 + ch;
+      const midY = (lastBottom + h) / 2;
       if (named > 0) {
-        // In the empty space under the days, a name is written: the one who comes in the night.
-        g.save();
-        g.beginPath();
-        g.rect(0, 0, 70 + (w - 140) * named, h);
-        g.clip();
-        g.fillStyle = haunted ? '#6e0a0c' : '#5a0a0a';
-        g.font = 'italic 50px "Brush Script MT", "Segoe Script", cursive';
-        g.textAlign = 'center';
-        g.fillText('Saint Nicholas', w / 2, h - 30);
-        g.restore();
+        // the name of the one who comes in the night, written by hand, rising as it goes
+        const line = writeName(g, w, midY, named, haunted);
+        // then one thin cut through the middle of it
+        thinCut(g, line, cut);
       }
-      // Then something with claws rakes straight through the middle of it, tearing the calendar.
-      if (clawed > 0) clawTear(g, w / 2, h - 44, clawed);
     },
-    [haunted, cross, named, clawed, today],
+    [haunted, stroke1, stroke2, named, cut, today],
   );
   // A taller board, with a strip of plain wood under the days (where the name is written).
   return (

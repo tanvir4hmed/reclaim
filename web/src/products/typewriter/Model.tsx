@@ -1,9 +1,30 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useFrame } from '@react-three/fiber';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import * as THREE from 'three';
 import { useCanvasTexture } from '../../gl/canvasTex';
 import { M } from '../../gl/materials';
 import { useHaunted, useStory } from '../../store';
 import { cartedTime } from '../../director/consequences';
 import { KEY_ROWS, confession, keyFor } from './confession';
+
+/** The sheet: smaller than before, about half of it still inside the machine at the end. */
+const PAPER_W = 0.74;
+const PAPER_H = 0.72;
+const PAPER_PX_W = 512;
+const PAPER_PX_H = Math.round((PAPER_PX_W * PAPER_H) / PAPER_W);
+/** Texture px: the first line's baseline, the line spacing, how far it is fed at the end. */
+const TOP_MARGIN = 58;
+const LINE = 34;
+const FEED_END = TOP_MARGIN + 2 * LINE + 3.2 * LINE;
+/** "Please, Help!!" sits in the blank space between the last typed line and the platen. */
+const BLOOD_Y = TOP_MARGIN + 2 * LINE + 72;
+/** The platen's top, in the carriage's frame, where the line being typed sits. */
+const PLATEN_TOP = 0.07;
+
+/** The sheet's centre height when `feed` px of it are out above the platen. */
+function paperY(feed: number) {
+  return PLATEN_TOP + feed * (PAPER_H / PAPER_PX_H) - PAPER_H / 2;
+}
 
 /**
  * Typewriter that types tomorrow's confession one letter at a time. Each letter's key presses
@@ -17,7 +38,8 @@ export default function Typewriter() {
     const t = played ? cartedTime('typewriter') : null;
     return confession(now, played ? (t !== null ? new Date(t) : now) : null);
   }, [played, now]);
-  const text = lines.join('\n');
+  // Three lines are enough on a sheet this size: the date, and two lines of the confession.
+  const text = [lines[0], lines[2], lines[4]].join('\n');
   const [n, setN] = useState(0);
   const typed = haunted ? Math.min(n, text.length) : 0;
   // Taken: it stops dead. Then, with no key moving, words seep into the paper in blood.
@@ -42,44 +64,58 @@ export default function Typewriter() {
   const line = shown.length - 1;
   const col = (shown[line] ?? '').length;
 
+  // How far the sheet has been fed up out of the machine: the line being typed sits on the
+  // platen; each carriage return feeds it up one line; once the three lines are done (or the
+  // moment it is taken) it is fed on, so the blank part under the words comes up too.
+  const done = typed >= text.length;
+  const feed = !haunted || played || done ? FEED_END : TOP_MARGIN + line * LINE;
+  const paper = useRef<THREE.Mesh>(null);
+  useFrame((_, dt) => {
+    const m = paper.current;
+    if (!m) return;
+    const target = paperY(feed);
+    m.position.y += (target - m.position.y) * Math.min(1, dt * 9);
+  });
+
   const tex = useCanvasTexture(
-    512,
-    420,
-    (g, w, h) => {
+    PAPER_PX_W,
+    PAPER_PX_H,
+    (g, w) => {
       g.fillStyle = haunted ? '#d8c8a6' : '#f7f1e3';
-      g.fillRect(0, 0, w, h);
-      g.font = '22px "Courier New", monospace';
+      g.fillRect(0, 0, w, PAPER_PX_H);
+      g.font = '21px "Courier New", monospace';
       g.fillStyle = '#2a1e18';
       if (!haunted) {
-        g.fillText('Dear Santa,', 40, 70);
+        g.fillText('Dear Santa,', 40, TOP_MARGIN);
         return;
       }
-      shown.forEach((l, i) => g.fillText(l, 36, 60 + i * 34));
+      shown.forEach((l, i) => g.fillText(l, 34, TOP_MARGIN + i * LINE));
       if (blood > 0) {
-        // "Please, Help!!" seeps up through the paper from behind, as if written with a finger
-        // on the other side: a faint stain first, then the letters, then it runs down the page.
+        // "Please, Help!!" seeps up through the blank part of the sheet under the typed lines,
+        // as if written with a finger on the other side: a stain first, the letters, then runs.
         const a = blood;
         const ink = Math.min(1, a * 1.6);
+        const y = BLOOD_Y;
         g.save();
         g.textAlign = 'center';
-        g.font = 'bold 66px "Brush Script MT", "Segoe Script", cursive';
-        // the stain spreading round the words
+        g.font = 'bold 52px "Brush Script MT", "Segoe Script", cursive';
         g.globalAlpha = 0.35 * ink;
         g.fillStyle = '#7a1a12';
-        g.filter = 'blur(6px)';
-        g.fillText('Please, Help!!', w / 2, h * 0.62);
+        g.filter = 'blur(5px)';
+        g.fillText('Please, Help!!', w / 2, y);
         g.filter = 'none';
         g.globalAlpha = ink;
         g.fillStyle = '#6e0909';
-        g.fillText('Please, Help!!', w / 2, h * 0.62);
+        g.fillText('Please, Help!!', w / 2, y);
+        // short runs down toward the platen (the sheet ends there, inside the machine)
         const run = Math.max(0, (a - 0.45) / 0.55);
-        for (let i = 0; i < 12; i++) {
-          const x = w * 0.12 + i * w * 0.066;
-          const len = (20 + ((i * 53) % 64)) * run;
+        for (let i = 0; i < 10; i++) {
+          const x = w * 0.18 + i * w * 0.07;
+          const len = (8 + ((i * 53) % 26)) * run;
           if (len < 1) continue;
-          g.fillRect(x, h * 0.62 - 4, 3.5, len);
+          g.fillRect(x, y - 2, 3, len);
           g.beginPath();
-          g.arc(x + 1.75, h * 0.62 - 4 + len, 4, 0, Math.PI * 2);
+          g.arc(x + 1.5, y - 2 + len, 3.4, 0, Math.PI * 2);
           g.fill();
         }
         g.restore();
@@ -101,9 +137,13 @@ export default function Typewriter() {
         <mesh material={M.silver()} rotation-z={Math.PI / 2}>
           <cylinderGeometry args={[0.07, 0.07, 1.5, 24]} />
         </mesh>
-        <mesh position={[0, 0.3, -0.02]} rotation-x={-0.15}>
-          <planeGeometry args={[0.95, 0.78]} />
-          <meshStandardMaterial map={tex} roughness={0.9} />
+        {/*
+          The sheet, rolled round behind the platen: only what has been fed up shows above it;
+          the rest is down inside the machine, behind the platen and the body.
+        */}
+        <mesh ref={paper} position={[0, paperY(FEED_END), -0.03]} rotation-x={-0.12}>
+          <planeGeometry args={[PAPER_W, PAPER_H]} />
+          <meshStandardMaterial map={tex} roughness={0.9} side={THREE.DoubleSide} />
         </mesh>
       </group>
       {KEY_ROWS.map((row, r) =>
