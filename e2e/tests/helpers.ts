@@ -36,7 +36,12 @@ export async function catchBat(page: Page, info: TestInfo, via: 'pointer' | 'key
     }));
     throw new Error(`Reveal did not finish: ${JSON.stringify(why)}\n${String(e)}`);
   }
-  await expect(page.getByTestId('lunge')).toHaveCount(0, { timeout: 15_000 });
+  try {
+    await expect(page.getByTestId('lunge')).toHaveCount(0, { timeout: 15_000 });
+  } catch (e) {
+    const step = await page.evaluate(() => document.querySelector('[data-testid="lunge"]')?.className ?? 'none');
+    throw new Error(`The lunge did not end (step: ${step})\n${String(e)}`);
+  }
 }
 
 export async function add(page: Page, id: string) {

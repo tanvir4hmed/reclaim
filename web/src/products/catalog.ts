@@ -67,7 +67,7 @@ export const CATALOG: readonly ProductMeta[] = [
     },
     haunted: {
       name: 'Stopped Pocket Watch',
-      blurb: 'It stopped at 4:17 and has kept that time ever since. The engraving has been scratched out.',
+      blurb: 'It still keeps your time, to the second. The engraving has been scratched out.',
       price: 'One hour, every night',
       hours: 365,
     },

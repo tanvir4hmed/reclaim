@@ -1,9 +1,10 @@
 import type { ProductId } from '../core';
 import { fx } from '../fx/fxStore';
-import { dispatch, useStory, useUi } from '../store';
-import { nav } from './bridge';
+import { dispatch } from '../store';
 import { footprintPath, seeded, type Print } from './footprints';
-import { pageCenter, playLight, reducedMotion, wait } from './runtime';
+import { reducedMotion, wait } from './runtime';
+import { markWatchTaken } from '../products/pocket-watch/watchClock';
+import { CAMERA } from '../products/small/cameraTiming';
 
 const cartedAt: Partial<Record<ProductId, number>> = {};
 
@@ -28,53 +29,75 @@ async function flag(name: string, ms: number) {
   fx().unflag(name);
 }
 
-/** A wandering walk across the visible page: from `start` through random points, never resting. */
-function wanderPath(start: { x: number; y: number }, rand: () => number, legs: number): Print[] {
+/** A wandering walk inside `area` (page coordinates): from `start` through random points. */
+function wanderPath(start: { x: number; y: number }, area: DOMRect, rand: () => number, legs: number, stride: number): Print[] {
   const prints: Print[] = [];
   let from = start;
+  const pad = Math.min(50, area.width * 0.15);
   for (let i = 0; i < legs; i++) {
     const to = {
-      x: window.scrollX + 60 + rand() * (window.innerWidth - 120),
-      y: window.scrollY + 90 + rand() * (window.innerHeight - 160),
+      x: area.left + window.scrollX + pad + rand() * (area.width - pad * 2),
+      y: area.top + window.scrollY + pad + rand() * (area.height - pad * 2),
     };
-    // Big prints, a child's stride.
-    prints.push(...footprintPath(from, to, rand, 64, 15));
+    prints.push(...footprintPath(from, to, rand, stride, stride * 0.24));
     from = to;
   }
-  return prints;
+  // The walk jitters its heading, so a print can stray past the edge; keep every one (with
+  // room for its heel and smear) inside the area. A print off the side of a phone screen
+  // widens the page, and the whole haunted shop re-lays out and repaints.
+  const m = Math.min(28, area.width / 4);
+  const x0 = area.left + window.scrollX + m;
+  const x1 = area.right + window.scrollX - m;
+  const y0 = area.top + window.scrollY + m;
+  const y1 = area.bottom + window.scrollY - m;
+  return prints.map((p) => ({ ...p, x: Math.min(x1, Math.max(x0, p.x)), y: Math.min(y1, Math.max(y0, p.y)) }));
 }
 
-let shoesWalking = false;
+/** Time between one print and the next (kept in step with the `.print` animation delays). */
+const PRINT_MS = 220;
+
+/** The prints walked so far become lasting marks, exactly where they are. */
+function keepPrints(prints: readonly Print[]) {
+  for (const p of prints) mark(p.foot === 'left' ? 'footprint' : 'footprint-r', p.x, p.y, p.angle, 1, 'shoes');
+  fx().set({ prints: [] });
+}
 
 /**
- * Shoes (Requirement 13.3–13.4, revised): the moment they are taken, bloody prints walk out of
- * the card and wander the page, turning at random. Long after, they start again from where
- * they stopped, now and then, for as long as the shop is haunted.
+ * Shoes (Requirement 13.3–13.4, revised again): the moment they are taken, bloody prints walk
+ * out of the boots, round and round inside the window they were taken in (the product view,
+ * or the card on the shelf). Close the view and they stop where they are: what they walked
+ * stays, exactly as far as it got, and no more appear.
  */
 async function shoes() {
-  // From the boots you just took: the product view's picture if it is open, else the card.
+  const view = document.querySelector<HTMLDialogElement>('dialog.product-view[open]');
+  const box = (view ?? card('shoes'))?.getBoundingClientRect();
+  if (!box) return;
   const seen = objectCentre('shoes');
-  const from = card('shoes');
-  const start = seen ? { x: seen.x + window.scrollX, y: seen.y + window.scrollY } : from ? pageCenter(from) : null;
-  if (!start) return;
+  const start = seen
+    ? { x: seen.x + window.scrollX, y: seen.y + window.scrollY }
+    : { x: box.left + box.width / 2 + window.scrollX, y: box.top + box.height / 2 + window.scrollY };
   const rand = seeded(Date.now() & 0xffff);
-  let prints = wanderPath(start, rand, 3);
-  fx().set({ prints: reducedMotion() ? prints.slice(-6) : prints });
-  // Hold the Stage while they first walk; the prints fade on their own afterwards.
-  await wait(Math.min(9000, prints.length * 220) + 600);
-  for (const p of prints.slice(-2)) mark(p.foot === 'left' ? 'footprint' : 'footprint-r', p.x, p.y, p.angle, 1, 'shoes');
-  if (shoesWalking || reducedMotion()) return;
-  shoesWalking = true;
-  void (async () => {
-    while (useStory.getState().story.phase === 'haunted') {
-      await wait(14000 + rand() * 18000);
-      if (useStory.getState().story.phase !== 'haunted') break;
-      const last = prints[prints.length - 1];
-      const start = last && Math.abs(last.y - (window.scrollY + window.innerHeight / 2)) < window.innerHeight ? last : { x: window.scrollX + window.innerWidth * rand(), y: window.scrollY + window.innerHeight * 0.9 };
-      prints = wanderPath(start, rand, 2);
-      fx().set({ prints });
+  const prints = view ? wanderPath(start, box, rand, 4, 60) : wanderPath(start, box, rand, 2, 40);
+  fx().set({ prints });
+  const t0 = performance.now();
+  const walk = prints.length * PRINT_MS + 300;
+  const shown = () => (reducedMotion() ? prints.length : Math.min(prints.length, Math.floor((performance.now() - t0) / PRINT_MS) + 1));
+  // The Stage is held while they walk.
+  while (performance.now() - t0 < walk && !reducedMotion()) {
+    if (view && !view.open) {
+      keepPrints(prints.slice(0, shown()));
+      return;
     }
-    shoesWalking = false;
+    await wait(120);
+  }
+  if (!view) {
+    keepPrints(prints);
+    return;
+  }
+  // Walked out, in the open view: they stay drawn over it until it closes, then stay on the page.
+  void (async () => {
+    while (view.open && view.isConnected) await wait(200);
+    keepPrints(prints);
   })();
 }
 
@@ -105,22 +128,22 @@ async function candle() {
   await Promise.race([end, wait(reducedMotion() ? 3000 : 7000)]);
 }
 
+/** Every door on the shelves slams shut; the calendar's own view stays open to watch (Tier A). */
 async function advent() {
-  // Every door slams shut, and every open drawer or quick view with it (Tier A).
-  useUi.getState().setCartOpen(false);
-  useUi.getState().setFiltersOpen(false);
-  if (window.location.pathname.startsWith('/product/')) nav.go(`/${window.location.search}`);
   await flag('doors-slam', 2200);
 }
 
+/** The camera turns to you (in the model), then flashes once; the print comes out after. */
 async function camera() {
-  if (!reducedMotion()) await playLight([{ t: 0, level: 1 }, { t: 40, level: 0.15 }, { t: 900, level: 1 }]);
-  await flag('camera-flash', 600);
+  await wait(reducedMotion() ? 0 : CAMERA.flashAt * 1000);
+  await Promise.all([flag('camera-flash', 600), scare('instant-camera', 600)]);
+  await wait(reducedMotion() ? 0 : (CAMERA.printFrom + CAMERA.printFor - CAMERA.flashAt) * 1000 - 600);
 }
 
+/** The music stops dead; the skulls come out, and the biggest one comes at you. */
 async function musicBox() {
   fx().set({ quiet: true });
-  await wait(1300);
+  await scare('music-box', 1500);
   fx().set({ quiet: false });
 }
 
@@ -156,19 +179,23 @@ const CONSEQUENCES: Partial<Record<ProductId, () => Promise<void>>> = {
   // Shoes: bloody prints walk out of the card and keep wandering the page.
   shoes,
   // The watch whips its hands backward, hours in a second, then runs backward for good.
-  'pocket-watch': () => flag('watch-shudder', 1600),
+  // Every hand whips back to ten to three; from then on it runs backward (in the model).
+  'pocket-watch': () => {
+    markWatchTaken();
+    return flag('watch-shudder', 1600);
+  },
   doll: () => flag('doll-look', 2000),
   mirror: () => flag('mirror-face', 4000),
   // The envelope opens; her photograph and "YOU KILLED ME" slide out (in the model).
-  letter: () => flag('letter-carted', 2500),
-  // It stops typing; KILL ME seeps into the paper in blood (in the model).
+  letter: () => flag('letter-carted', 3200),
+  // It stops typing; "Please, Help!!" seeps into the paper in blood (in the model).
   typewriter: () => flag('typewriter-carted', 3000),
   // She is standing in the middle of the family (in the model).
   'photo-frame': () => flag('photo-shift', 3000),
   // One bite, far too wide; the fly leaves for the search bar.
   cake: async () => {
     fx().set({ flyPerch: '#site-search' });
-    await flag('fly-takeoff', 1800);
+    await flag('fly-takeoff', 2000);
   },
   telephone,
   // Today is crossed out on the calendar (in the model); every door slams shut.
@@ -177,7 +204,8 @@ const CONSEQUENCES: Partial<Record<ProductId, () => Promise<void>>> = {
   'tin-soldier': () => flag('soldiers-march', reducedMotion() ? 800 : 7000),
   // Someone unseen tunes it, station by station, to the red mark (in the model); roll call.
   'valve-radio': () => flag('roll-call', 4000),
-  'instant-camera': withScare('instant-camera', 4000, camera),
+  // It turns to look at you, flashes once, and prints the picture (in the model).
+  'instant-camera': camera,
   // The lid blows off: a skull with burning eyes; the bat shut in with it gets out.
   'unopened-gift': giftBat,
   // It starts rocking on its own and never stops (in the model).
@@ -185,9 +213,9 @@ const CONSEQUENCES: Partial<Record<ProductId, () => Promise<void>>> = {
   // It bursts: springs and gears fly out like fireworks (in the model).
   'music-box': musicBox,
   // A sword stroke flashes across the window; its head comes off and falls (in the model).
-  'teddy-bear': withScare('teddy-bear', 1600),
-  // Her reflection is in it the instant you take it.
-  'glass-ornament': withScare('glass-ornament', 3400),
+  'teddy-bear': withScare('teddy-bear', 2400),
+  // She is inside the bauble the instant you take it (in the model).
+  'glass-ornament': () => flag('ornament-ghost', 1500),
   // It goes out, and so does everything else: only the candle is left, barely.
   candle,
   // A black ghost is trapped inside, throwing itself at the glass (in the model).

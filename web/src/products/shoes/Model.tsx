@@ -84,10 +84,10 @@ function Boot({ position, rotation }: { position: [number, number, number]; rota
       </mesh>
       {eyelets.map(([l, r], i) => (
         <group key={i}>
-          <mesh material={M.brass()} position={l}>
+          <mesh material={M.eyelet()} position={l}>
             <torusGeometry args={[0.014, 0.005, 6, 12]} />
           </mesh>
-          <mesh material={M.brass()} position={r}>
+          <mesh material={M.eyelet()} position={r}>
             <torusGeometry args={[0.014, 0.005, 6, 12]} />
           </mesh>
           {i < eyelets.length - 1 && (

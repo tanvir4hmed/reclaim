@@ -51,16 +51,15 @@
   opacity: 0.35;
 }
 
+/* Each print is pressed in, one after another, and stays. */
 .print {
   opacity: 0;
-  animation: printIn 10s ease-out forwards;
+  animation: printIn 0.3s ease-out forwards;
 }
 
 @keyframes printIn {
-  0% { opacity: 0; transform-box: fill-box; }
-  4% { opacity: 1; }
-  70% { opacity: 0.8; }
-  100% { opacity: 0; }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .decal-blood-print,
@@ -672,24 +671,43 @@
   transition: opacity 0.8s;
 }
 
+/* The fly: big enough to see it is a fly, dark on light and light-rimmed on dark. */
 .fly {
   position: fixed;
   z-index: 12;
-  width: 18px;
-  height: 13px;
+  width: 26px;
+  height: 22px;
+  translate: -50% -50%;
   pointer-events: none;
   transition: transform 0.25s;
+  filter: drop-shadow(0 0 1px rgb(255 240 220 / 0.6)) drop-shadow(0 2px 2px rgb(0 0 0 / 0.5));
 }
 
 .fly.dodge {
   transform: translate(26px, -22px);
 }
 
+.fly.is-flying {
+  z-index: 2147482500;
+  transition: none;
+  transform: rotate(var(--fly-turn, 0deg));
+}
+
 .fly-wing {
-  fill: rgb(200 210 220 / 0.5);
+  fill: rgb(200 210 220 / 0.45);
   transform-box: fill-box;
-  transform-origin: 50% 100%;
+  transform-origin: 50% 20%;
   animation: flick 2.6s steps(2) infinite;
+}
+
+/* in flight the wings are a buzzing blur */
+.fly.is-flying .fly-wing {
+  animation: buzz 0.05s linear infinite alternate;
+  fill: rgb(200 210 220 / 0.3);
+}
+
+@keyframes buzz {
+  to { transform: scaleY(-0.7); }
 }
 
 @keyframes flick {

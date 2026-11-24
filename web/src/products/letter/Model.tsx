@@ -79,20 +79,32 @@ export default function Letter() {
     [],
   );
   const sheet = useRef<THREE.Group>(null);
-  const lid = useRef<THREE.Mesh>(null);
+  const lid = useRef<THREE.Group>(null);
+  const sealHalf = useRef<THREE.Group>(null);
   useFrame(() => {
     const s = since();
-    const k = taken ? progress(s, 1.4, 0.3) : 0;
+    // The seal tears first (it shudders and splits), then the flap folds open, then the page
+    // rises out of the envelope until the words in blood and the run under them show; the
+    // rest of the page stays inside.
+    const tear = taken ? progress(s, 0.35, 0.15) : 0;
+    const open = taken ? progress(s, 0.8, 0.5) : 0;
+    const rise = taken ? progress(s, 1.6, 1.3) : 0;
+    if (sealHalf.current) {
+      const shake = taken && s < 0.5 ? Math.sin(s * 70) * 0.01 * (1 - s / 0.5) : 0;
+      sealHalf.current.position.x = shake + tear * 0.012;
+    }
+    // Up and over to the back, so it stands open behind the page instead of covering it.
+    if (lid.current) lid.current.rotation.x = open * 2.75;
     if (sheet.current) {
       sheet.current.visible = taken;
-      // Starts hidden inside the envelope (top edge below the opening), slides up and out.
-      sheet.current.position.y = -0.3 + k * 1.55;
+      // Starts hidden inside (top edge under the opening at y 0.57); stops with its edge
+      // a little below the blood still inside the envelope.
+      sheet.current.position.y = -0.3 + rise * 1.25;
     }
-    if (lid.current) lid.current.rotation.x = taken ? -progress(s, 0.4) * 2.6 : 0;
   });
   return (
-    // Taken, the whole thing sits lower and smaller in the frame so the page that comes out shows.
-    <group rotation={taken ? [-0.2, 0.1, 0.06] : [-0.55, 0.15, 0.12]} position-y={taken ? -0.55 : 0.05} scale={taken ? 0.62 : 1}>
+    // Taken, it sits a little lower and smaller in the frame so the page and the open flap show.
+    <group rotation={taken ? [-0.2, 0.1, 0.06] : [-0.55, 0.15, 0.12]} position-y={taken ? -0.45 : 0.05} scale={taken ? 0.7 : 1}>
       <group ref={sheet} position-z={0.005} visible={false}>
         <mesh>
           <planeGeometry args={[1.2, 1.6]} />
@@ -106,15 +118,29 @@ export default function Letter() {
         <planeGeometry args={[1.8, 1.14]} />
         <meshStandardMaterial map={tex} roughness={0.9} />
       </mesh>
-      <group position={[0, 0.57, 0.017]}>
-        <mesh ref={lid} material={M.paperDark()} geometry={flap} />
+      {/* the flap, hinged at the top edge; it folds up and back and stays open (both sides drawn) */}
+      <group ref={lid} position={[0, 0.57, 0.017]}>
+        <mesh geometry={flap}>
+          <meshStandardMaterial color={haunted ? '#8d7553' : '#d9c8a6'} roughness={0.9} side={THREE.DoubleSide} />
+        </mesh>
+        {/* the half of the seal that tears away with the flap's tip */}
+        <group position={[0, -0.59, 0.013]}>
+          <mesh material={M.wax()} rotation-x={Math.PI / 2}>
+            <cylinderGeometry args={[0.14, 0.15, 0.05, 28, 1, false, 0, Math.PI]} />
+          </mesh>
+        </group>
       </group>
-      <mesh material={M.wax()} position={[0, -0.02, 0.03]} rotation-x={Math.PI / 2}>
-        <cylinderGeometry args={[0.14, 0.15, 0.05, 28]} />
-      </mesh>
-      <mesh material={M.wax()} position={[0, -0.02, 0.058]}>
-        <torusGeometry args={[0.1, 0.012, 8, 28]} />
-      </mesh>
+      {/* the half that stays on the envelope */}
+      <group ref={sealHalf} position={[0, -0.02, 0.03]}>
+        <mesh material={M.wax()} rotation-x={Math.PI / 2}>
+          <cylinderGeometry args={[0.14, 0.15, 0.05, 28, 1, false, Math.PI, Math.PI]} />
+        </mesh>
+      </group>
+      {!taken && (
+        <mesh material={M.wax()} position={[0, -0.02, 0.058]}>
+          <torusGeometry args={[0.1, 0.012, 8, 28]} />
+        </mesh>
+      )}
     </group>
   );
 }

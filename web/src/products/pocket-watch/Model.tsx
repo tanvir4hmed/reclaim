@@ -3,41 +3,20 @@ import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { M } from '../../gl/materials';
 import { useFx } from '../../fx/fxStore';
-import { useHaunted } from '../../store';
 import { useTaken } from '../../gl/useTaken';
-import { reducedMotion } from '../../director/runtime';
+import { watchSeconds } from './watchClock';
 
-/** Stopped at 4:17 in the Haunted state (copy: "It stopped at 4:17"). */
-const STOPPED = { h: 4, m: 17, s: 0 };
-
+/** The watch's time, shared by every view of it (watchClock); redrawn as it ticks. */
 function useWatchTime() {
-  const haunted = useHaunted();
-  // Backward only once it has been taken (after the Reveal), on the card and in the full
-  // view alike; before that it runs forward everywhere.
-  const { taken: reverse } = useTaken('pocket-watch');
+  const { taken } = useTaken('pocket-watch');
+  const whirling = useFx((s) => s.flags['watch-shudder'] !== undefined);
   const invalidate = useThree((s) => s.invalidate);
-  const t = useRef(STOPPED.h * 3600 + STOPPED.m * 60);
+  // Redraw every second for the ticks, and smoothly while the hands whip back.
   useEffect(() => {
-    const id = setInterval(() => invalidate(), 1000);
+    const id = setInterval(() => invalidate(), whirling ? 33 : 1000);
     return () => clearInterval(id);
-  }, [invalidate]);
-  return (dt: number, whirl = false) => {
-    if (!haunted) {
-      const d = new Date();
-      return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
-    }
-    // Haunted, on show: it ticks forward, the right way, from 4:17, as if nothing were wrong.
-    // The moment you take it, every hand whips backward, hours in a second, as if winding your
-    // time off; from then on it races backward (Req 14.2–14.3).
-    // Real seconds, even where the view only redraws once a second (the full view), so it
-    // keeps time there too; capped so a long pause (a hidden tab) does not jump it hours.
-    const step = Math.min(dt, 1.5);
-    if (whirl) t.current -= Math.min(dt, 0.1) * 2400;
-    else if (reverse) t.current -= step * 4;
-    else t.current += step;
-    // Second hand jumps in whole seconds, like a real escapement.
-    return reverse ? t.current : Math.ceil(t.current);
-  };
+  }, [invalidate, whirling]);
+  return () => watchSeconds(taken);
 }
 
 export default function PocketWatch() {
@@ -45,7 +24,6 @@ export default function PocketWatch() {
   const minute = useRef<THREE.Mesh>(null);
   const second = useRef<THREE.Mesh>(null);
   const time = useWatchTime();
-  const shudder = useFx((s) => s.flags['watch-shudder'] !== undefined);
   const chain = useMemo(() => {
     const pts = [
       new THREE.Vector3(0, 0.78, 0),
@@ -66,13 +44,12 @@ export default function PocketWatch() {
     [],
   );
 
-  useFrame((_, dt) => {
-    const s = time(reducedMotion() ? 0 : dt, shudder);
-    if (second.current) second.current.rotation.z = -((s % 60) / 60) * Math.PI * 2;
-    if (minute.current) minute.current.rotation.z = -(((s / 60) % 60) / 60) * Math.PI * 2;
-    if (hour.current) hour.current.rotation.z = -(((s / 3600) % 12) / 12) * Math.PI * 2;
-    // Carted: the hands stop and shudder once before running backward (Req 14.3).
-    if (shudder && minute.current) minute.current.rotation.z += Math.sin(performance.now() / 18) * 0.08;
+  useFrame(() => {
+    const s = time();
+    const turn = (v: number, per: number) => -((((v / per) % 60) + 60) % 60 / 60) * Math.PI * 2;
+    if (second.current) second.current.rotation.z = turn(s, 1);
+    if (minute.current) minute.current.rotation.z = turn(s, 60);
+    if (hour.current) hour.current.rotation.z = -(((((s / 3600) % 12) + 12) % 12) / 12) * Math.PI * 2;
   });
 
   return (

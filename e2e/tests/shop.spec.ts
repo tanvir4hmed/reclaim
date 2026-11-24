@@ -17,7 +17,8 @@ test('search, category, product view, cart and the paused Day checkout (Req 3–
 
   await page.getByRole('link', { name: 'Christmas Cream Cake' }).click();
   const view = page.getByTestId('product-view');
-  await expect(view).toBeVisible();
+  // The first product view on a cold dev server compiles every product model (software WebGL).
+  await expect(view).toBeVisible({ timeout: 15_000 });
   await expect(view.getByRole('button', { name: /Inspect/ })).toBeVisible();
   await view.getByTestId('pv-add').click();
   await page.keyboard.press('Escape');
@@ -53,7 +54,8 @@ test('works by keyboard alone: search, open a product, add it', async ({ page },
   await link.focus();
   await expect(link).toBeFocused();
   await page.keyboard.press('Enter');
-  await expect(page.getByTestId('product-view')).toBeVisible();
+  // The first product view on a cold dev server compiles every product model (software WebGL).
+  await expect(page.getByTestId('product-view')).toBeVisible({ timeout: 15_000 });
   await page.getByTestId('pv-add').focus();
   await page.keyboard.press('Enter');
   await page.keyboard.press('Escape');

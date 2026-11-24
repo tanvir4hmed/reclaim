@@ -5,17 +5,32 @@ import { M } from '../../gl/materials';
 import { progress, useTaken } from '../../gl/useTaken';
 import { useHaunted, useStory } from '../../store';
 
-/** When she looks, blood runs from both eyes down the porcelain, slowly, and keeps running. */
+/**
+ * When she looks at you, blood seeps out of both eyes: first the lower lids darken and well up,
+ * then it creeps down the porcelain, slowly (like the words seeping into the typewriter's
+ * paper), a bead gathering at the end of each run, and it keeps running.
+ */
 function BloodTears() {
   const { since } = useTaken('doll');
   const runs = useRef<(THREE.Mesh | null)[]>([]);
+  const lids = useRef<(THREE.Mesh | null)[]>([]);
+  const beads = useRef<(THREE.Mesh | null)[]>([]);
   useFrame(() => {
-    const k = progress(since(), 3, 0.4);
+    const s = since();
+    const well = progress(s, 1.6, 0.8);
+    lids.current.forEach((m) => m?.scale.setScalar(Math.max(0.05, well)));
     runs.current.forEach((m, i) => {
       if (!m) return;
+      // Slow and uneven: each run starts at its own moment and creeps for seconds.
+      const k = progress(s, 6 + (i % 3), 2 + i * 0.45);
       const len = (i % 2 ? 0.09 : 0.13) * Math.max(0.02, k);
       m.scale.y = len / 0.2;
       m.position.y = -0.02 - len / 2;
+      const b = beads.current[i];
+      if (b) {
+        b.position.y = -0.02 - len;
+        b.scale.setScalar(Math.max(0.05, Math.min(1, k * 1.5)));
+      }
     });
   });
   return (
@@ -23,29 +38,37 @@ function BloodTears() {
       {[-0.08, 0.08].map((x, i) => (
         // tipped back so the runs follow the curve of her cheek instead of standing off it
         <group key={x} position={[x + (i ? -0.006 : 0.006), 0, 0.222]} rotation-x={-0.45}>
-          {/* the lower lid, red and wet */}
-          <mesh position-y={-0.02}>
+          {/* the lower lid, red and wet, welling up */}
+          <mesh
+            ref={(m) => {
+              lids.current[i] = m;
+            }}
+            position-y={-0.02}
+          >
             <sphereGeometry args={[0.016, 10, 8]} />
             <meshStandardMaterial color="#5c0508" roughness={0.2} />
           </mesh>
-          <mesh
-            ref={(m) => {
-              runs.current[i * 2] = m;
-            }}
-            position-y={-0.04}
-          >
-            <boxGeometry args={[0.012, 0.2, 0.006]} />
-            <meshStandardMaterial color="#4a0306" roughness={0.55} envMapIntensity={0.25} />
-          </mesh>
-          <mesh
-            ref={(m) => {
-              runs.current[i * 2 + 1] = m;
-            }}
-            position={[0.012, -0.04, -0.004]}
-          >
-            <boxGeometry args={[0.007, 0.2, 0.005]} />
-            <meshStandardMaterial color="#3e0204" roughness={0.55} envMapIntensity={0.25} />
-          </mesh>
+          {[0, 1].map((j) => (
+            <group key={j} position={j ? [0.012, 0, -0.004] : [0, 0, 0]}>
+              <mesh
+                ref={(m) => {
+                  runs.current[i * 2 + j] = m;
+                }}
+                position-y={-0.04}
+              >
+                <boxGeometry args={[j ? 0.007 : 0.012, 0.2, j ? 0.005 : 0.006]} />
+                <meshStandardMaterial color={j ? '#3e0204' : '#4a0306'} roughness={0.55} envMapIntensity={0.25} />
+              </mesh>
+              <mesh
+                ref={(m) => {
+                  beads.current[i * 2 + j] = m;
+                }}
+              >
+                <sphereGeometry args={[j ? 0.006 : 0.009, 8, 6]} />
+                <meshStandardMaterial color="#4a0306" roughness={0.3} />
+              </mesh>
+            </group>
+          ))}
         </group>
       ))}
     </>
@@ -56,11 +79,50 @@ function BloodTears() {
  * Porcelain doll in red velvet; damaged and unstitched after the Reveal (Requirement 15).
  * She stays perfectly still. Only once you take her do her eyes move, once, and stay there.
  */
+/**
+ * Pupil offsets on the eyeball. Before: off to the top corner, at nothing. Taken: straight out
+ * of the screen at the visitor, corrected for the turn of her body and the tilt of her head.
+ */
+const EYE_AWAY = { x: -0.02, y: 0.016 };
+const EYE_AT_YOU = { x: 0.0068, y: -0.0024 };
+
+function Eyes({ haunted }: { haunted: boolean }) {
+  const { taken, since } = useTaken('doll');
+  const pupils = useRef<(THREE.Mesh | null)[]>([]);
+  useFrame(() => {
+    // By day she looks ahead like any doll. After the Reveal her eyes are off in the corner;
+    // taken, they make one slow turn to you and stay there.
+    const from = haunted ? EYE_AWAY : { x: 0, y: 0 };
+    const k = taken ? progress(since(), 0.9, 0.2) : 0;
+    const x = from.x + (EYE_AT_YOU.x - from.x) * k;
+    const y = from.y + (EYE_AT_YOU.y - from.y) * k;
+    for (const p of pupils.current) p?.position.set(x, y, Math.sqrt(Math.max(0, 0.034 ** 2 - x * x - y * y)));
+  });
+  return (
+    <>
+      {[-0.08, 0.08].map((x, i) => (
+        <group key={x} position={[x, 0.01, 0.2]}>
+          <mesh material={M.enamel()}>
+            <sphereGeometry args={[0.045, 16, 12]} />
+          </mesh>
+          <mesh
+            ref={(m) => {
+              pupils.current[i] = m;
+            }}
+            material={M.ink()}
+            position={[EYE_AWAY.x, EYE_AWAY.y, 0.026]}
+          >
+            <sphereGeometry args={[0.022, 12, 10]} />
+          </mesh>
+        </group>
+      ))}
+    </>
+  );
+}
+
 export default function Doll() {
   const haunted = useHaunted();
   const looking = useStory((s) => s.story.played.doll === true);
-  // Eyes turn toward the empty place in the family photo, which hangs up and to the right (Req 15.3).
-  const eye = looking ? { x: 0.018, y: 0.012 } : { x: 0, y: 0 };
   return (
     <group position-y={-0.22} rotation-y={-0.2} scale={0.82}>
       <mesh material={M.cloth()} position-y={-0.2}>
@@ -85,16 +147,7 @@ export default function Doll() {
         <mesh material={M.hair()} position={[0, 0.06, -0.03]} scale={[1.08, 1, 1.05]}>
           <sphereGeometry args={[0.25, 32, 20, 0, Math.PI * 2, 0, Math.PI * 0.55]} />
         </mesh>
-        {[-0.08, 0.08].map((x) => (
-          <group key={x} position={[x, 0.01, 0.2]}>
-            <mesh material={M.enamel()}>
-              <sphereGeometry args={[0.045, 16, 12]} />
-            </mesh>
-            <mesh material={M.ink()} position={[eye.x, eye.y, 0.034]}>
-              <sphereGeometry args={[0.022, 12, 10]} />
-            </mesh>
-          </group>
-        ))}
+        <Eyes haunted={haunted} />
         <mesh material={M.wax()} position={[0, -0.1, 0.215]} scale={[1.4, 0.6, 0.6]}>
           <sphereGeometry args={[0.03, 12, 8]} />
         </mesh>

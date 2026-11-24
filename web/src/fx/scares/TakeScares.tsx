@@ -3,19 +3,20 @@ import { reducedMotion } from '../../director/runtime';
 import { useFx } from '../fxStore';
 import { TopLayer } from '../TopLayer';
 import { ChildDrawing } from './Marks';
-import { CameraPolaroid, OrnamentReflection } from './Presence';
+import { CameraFlash } from './Presence';
 import { TeddySlash } from './Slash';
+import { MusicSkullPass } from './SkullPass';
 
 /**
- * The few Take events that cannot happen inside the object's own picture: the Polaroid the
- * camera takes of you (she is behind you in it), her reflection in the bauble the instant you
- * take it, and the crayon family drawing you in last. Every other product does its thing in its
+ * The few Take events that reach out of the object's own picture: the camera's one flash, the
+ * music-box skull that comes through the middle of the screen, the sword stroke across the
+ * window, and the crayon family drawing you in last. Everything else happens in the product's
  * model (see products/*). The consequence sets the flag `scare-<id>`.
- * Never blocks input, never flashes; reduced motion shows the end state.
+ * Never blocks input; one flash at most; reduced motion shows the end state (and no flash).
  */
-const SCARES: Record<string, () => ReactElement> = {
-  'instant-camera': CameraPolaroid,
-  'glass-ornament': OrnamentReflection,
+const SCARES: Record<string, () => ReactElement | null> = {
+  'instant-camera': CameraFlash,
+  'music-box': MusicSkullPass,
   'childs-drawing': ChildDrawing,
   'teddy-bear': TeddySlash,
 };

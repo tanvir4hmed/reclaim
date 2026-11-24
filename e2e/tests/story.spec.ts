@@ -27,7 +27,8 @@ test('consequences leave lasting marks (Req 12–21)', async ({ page }, info) =>
   await expect(page.getByTestId('shop-clock')).toHaveAttribute('data-direction', '-1');
 
   await add(page, 'shoes');
-  await expect(page.locator('.print').first()).toBeAttached();
+  // Walking prints, or (reduced motion: the end state at once) the marks they leave.
+  await expect(page.locator('.print, .decal-footprint, .decal-footprint-r').first()).toBeAttached();
 
   await page.getByTestId('letter-open').click();
   await expect(page.getByTestId('sorry')).toHaveText('Sorry.');

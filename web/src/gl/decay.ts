@@ -36,6 +36,11 @@ export interface MatParams {
   decay?: DecayParams;
   /** Code-made surface detail: grain, weave, pores, scratches (gl/surfaces.ts). */
   surface?: SurfaceKind;
+  /**
+   * 0..1: after the Reveal, how completely it loses its shine (clearcoat, specular) and how its
+   * burn marks go cold (char, no glowing embers). For old, dusty, worn things.
+   */
+  matte?: number;
 }
 
 const NOISE = /* glsl */ `
@@ -50,6 +55,7 @@ uniform float uDust;
 uniform float uAge;
 uniform vec3 uHaunted;
 uniform float uHasHaunted;
+uniform float uMatte;
 float rcHash(vec3 p){ p=fract(p*0.3183099+0.1); p*=17.0; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
 float rcNoise(vec3 x){ vec3 i=floor(x); vec3 f=fract(x); f=f*f*(3.0-2.0*f);
   return mix(mix(mix(rcHash(i),rcHash(i+vec3(1,0,0)),f.x),mix(rcHash(i+vec3(0,1,0)),rcHash(i+vec3(1,1,0)),f.x),f.y),
@@ -92,6 +98,7 @@ function build(p: MatParams): THREE.MeshPhysicalMaterial {
     uAge: { value: d.age ?? 0.6 },
     uHaunted: { value: new THREE.Color(p.hauntedColor ?? p.color) },
     uHasHaunted: { value: p.hauntedColor ? 1 : 0 },
+    uMatte: { value: p.matte ?? 0 },
   };
   m.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, decayUniforms, own);
@@ -122,7 +129,15 @@ function build(p: MatParams): THREE.MeshPhysicalMaterial {
       .replace(
         '#include <roughnessmap_fragment>',
         `#include <roughnessmap_fragment>
-        roughnessFactor = mix(roughnessFactor, 0.95, clamp(uAge * uDecay * 0.6 + uBurn * uDecay, 0.0, 1.0));`,
+        roughnessFactor = mix(roughnessFactor, 0.95, clamp(uAge * uDecay * 0.6 + uBurn * uDecay + uMatte * uDecay, 0.0, 1.0));`,
+      )
+      .replace(
+        '#include <lights_physical_fragment>',
+        `#include <lights_physical_fragment>
+        #ifdef USE_CLEARCOAT
+          material.clearcoat *= 1.0 - uMatte * uDecay;
+        #endif
+        material.specularColor *= 1.0 - 0.75 * uMatte * uDecay;`,
       )
       .replace(
         '#include <emissivemap_fragment>',
@@ -130,7 +145,7 @@ function build(p: MatParams): THREE.MeshPhysicalMaterial {
         float rcEdge = uBurn * uDecay;
         float rcN2 = rcFbm(vRcPos * 9.0);
         float rcEmber = smoothstep(1.0 - rcEdge - 0.06, 1.0 - rcEdge - 0.02, rcN2) - smoothstep(1.0 - rcEdge - 0.02, 1.0 - rcEdge + 0.01, rcN2);
-        totalEmissiveRadiance += vec3(1.0, 0.35, 0.08) * rcEmber * 1.6 * (0.7 + 0.3 * sin(uTime * 3.0 + rcN2 * 20.0));`,
+        totalEmissiveRadiance += vec3(1.0, 0.35, 0.08) * rcEmber * 1.6 * (1.0 - uMatte) * (0.7 + 0.3 * sin(uTime * 3.0 + rcN2 * 20.0));`,
       );
   };
   m.customProgramCacheKey = () => 'reclaim-decay';

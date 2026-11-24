@@ -31,7 +31,8 @@ export default function Typewriter() {
 
   useEffect(() => {
     if (!haunted || !played) return;
-    const t = setInterval(() => setBlood((b) => (b >= 1 ? 1 : Math.min(1, b + 0.025))), 100);
+    // Slowly: about eight seconds from the first stain to the full words and their runs.
+    const t = setInterval(() => setBlood((b) => (b >= 1 ? 1 : Math.min(1, b + 0.0125))), 100);
     return () => clearInterval(t);
   }, [haunted, played]);
 
@@ -55,20 +56,30 @@ export default function Typewriter() {
       }
       shown.forEach((l, i) => g.fillText(l, 36, 60 + i * 34));
       if (blood > 0) {
-        // KILL ME, straight and heavy, as if written with a finger; it runs down the page.
+        // "Please, Help!!" seeps up through the paper from behind, as if written with a finger
+        // on the other side: a faint stain first, then the letters, then it runs down the page.
         const a = blood;
+        const ink = Math.min(1, a * 1.6);
         g.save();
-        g.globalAlpha = Math.min(1, a * 1.4);
-        g.fillStyle = '#6e0909';
-        g.font = 'bold 92px "Brush Script MT", "Segoe Script", cursive';
         g.textAlign = 'center';
-        g.fillText('KILL ME', w / 2, h * 0.62);
-        for (let i = 0; i < 11; i++) {
-          const x = w * 0.18 + i * w * 0.062;
-          const len = (24 + ((i * 53) % 70)) * a;
-          g.fillRect(x, h * 0.62 - 4, 4, len);
+        g.font = 'bold 66px "Brush Script MT", "Segoe Script", cursive';
+        // the stain spreading round the words
+        g.globalAlpha = 0.35 * ink;
+        g.fillStyle = '#7a1a12';
+        g.filter = 'blur(6px)';
+        g.fillText('Please, Help!!', w / 2, h * 0.62);
+        g.filter = 'none';
+        g.globalAlpha = ink;
+        g.fillStyle = '#6e0909';
+        g.fillText('Please, Help!!', w / 2, h * 0.62);
+        const run = Math.max(0, (a - 0.45) / 0.55);
+        for (let i = 0; i < 12; i++) {
+          const x = w * 0.12 + i * w * 0.066;
+          const len = (20 + ((i * 53) % 64)) * run;
+          if (len < 1) continue;
+          g.fillRect(x, h * 0.62 - 4, 3.5, len);
           g.beginPath();
-          g.arc(x + 2, h * 0.62 - 4 + len, 4.5, 0, Math.PI * 2);
+          g.arc(x + 1.75, h * 0.62 - 4 + len, 4, 0, Math.PI * 2);
           g.fill();
         }
         g.restore();

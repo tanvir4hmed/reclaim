@@ -1,11 +1,10 @@
 import { useFrame } from '@react-three/fiber';
-import { useEffect, useRef, useState, type RefObject } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { useCanvasTexture } from '../../gl/canvasTex';
 import { M } from '../../gl/materials';
 import { progress, useTaken } from '../../gl/useTaken';
-import { useHaunted, useStory } from '../../store';
-import { FaceUpSkull } from './Skull';
+import { useHaunted } from '../../store';
 
 const MONTHS = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
 
@@ -14,19 +13,116 @@ const MONTHS = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 
  * it in). After the Reveal door 25 stands ajar (Requirement 39). Taken: today's date is struck
  * through with a red cross, as if someone has marked the day it happens.
  */
+/** Seconds into the calendar's Take: the cross, then the name, then the claws. */
+const CAL = { crossFrom: 0.3, crossFor: 2.6, nameFrom: 3.1, nameFor: 2, clawFrom: 5.6, end: 6.6 };
+const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+
+/** A stroke written in blood with a finger: uneven width, darker at the edges, no drips. */
+function bloodStroke(g: CanvasRenderingContext2D, pts: [number, number][], k: number, width: number) {
+  if (k <= 0) return;
+  const n = Math.max(1, Math.floor((pts.length - 1) * k));
+  for (const [color, wd] of [
+    ['#3a0406', width + 2.5],
+    ['#8a0b0f', width],
+    ['#b3161a', width * 0.4],
+  ] as const) {
+    g.strokeStyle = color;
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+    g.lineWidth = wd;
+    g.beginPath();
+    pts.slice(0, n + 1).forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+    g.stroke();
+  }
+}
+
+/** A finger-drawn line from a to b, wobbling a little (fixed wobble, so redraws match). */
+function wobbly(a: [number, number], b: [number, number], seed: number): [number, number][] {
+  return Array.from({ length: 24 }, (_, i) => {
+    const t = i / 23;
+    const off = Math.sin(t * 9 + seed) * 2.2 + Math.sin(t * 23 + seed * 2) * 1;
+    const nx = -(b[1] - a[1]);
+    const ny = b[0] - a[0];
+    const l = Math.hypot(nx, ny) || 1;
+    return [a[0] + (b[0] - a[0]) * t + (nx / l) * off, a[1] + (b[1] - a[1]) * t + (ny / l) * off];
+  });
+}
+
+/** Four claw gashes torn through the paper; black where the calendar is ripped open. */
+function clawTear(g: CanvasRenderingContext2D, cx: number, cy: number, k: number) {
+  for (let i = 0; i < 4; i++) {
+    const kk = clamp01((k - i * 0.12) / 0.5);
+    if (kk <= 0) continue;
+    const ox = cx - 80 + i * 44;
+    const len = 150 * kk;
+    const ang = -0.95;
+    const dx = Math.cos(ang);
+    const dy = -Math.sin(ang);
+    const x0 = ox - dx * 75;
+    const y0 = cy - dy * 75;
+    const x1 = x0 + dx * len;
+    const y1 = y0 + dy * len;
+    const wide = 5 + (i % 2) * 2.5;
+    // the torn opening: a long narrow lens, ragged along both edges
+    g.fillStyle = '#040202';
+    g.beginPath();
+    g.moveTo(x0, y0);
+    for (let s = 1; s <= 12; s++) {
+      const t = s / 12;
+      const w2 = Math.sin(t * Math.PI) * wide * (0.8 + ((s * 37) % 5) / 10);
+      g.lineTo(x0 + (x1 - x0) * t - dy * w2, y0 + (y1 - y0) * t + dx * w2);
+    }
+    for (let s = 11; s >= 0; s--) {
+      const t = s / 12;
+      const w2 = Math.sin(t * Math.PI) * wide * (0.75 + ((s * 53) % 5) / 10);
+      g.lineTo(x0 + (x1 - x0) * t + dy * w2, y0 + (y1 - y0) * t - dx * w2);
+    }
+    g.closePath();
+    g.fill();
+    // paper fibres torn up along the edges, and a little blood in the bottom of each gash
+    g.strokeStyle = 'rgba(214,196,160,0.85)';
+    g.lineWidth = 1;
+    for (let s = 1; s < 12; s++) {
+      const t = s / 12;
+      const w2 = Math.sin(t * Math.PI) * wide + 1;
+      const px = x0 + (x1 - x0) * t;
+      const py = y0 + (y1 - y0) * t;
+      const side = s % 2 ? 1 : -1;
+      g.beginPath();
+      g.moveTo(px - dy * w2 * side, py + dx * w2 * side);
+      g.lineTo(px - dy * (w2 + 3) * side + dx * 2, py + dx * (w2 + 3) * side + dy * 2);
+      g.stroke();
+    }
+    g.strokeStyle = 'rgba(110,6,8,0.7)';
+    g.lineWidth = 1.5;
+    g.beginPath();
+    g.moveTo(x0 + dx * 6, y0 + dy * 6);
+    g.lineTo(x1 - dx * 6, y1 - dy * 6);
+    g.stroke();
+  }
+}
+
 export function AdventCalendar() {
   const haunted = useHaunted();
-  const played = useStory((s) => s.story.played['advent-calendar'] === true);
+  const { taken, since } = useTaken('advent-calendar');
   const [today] = useState(() => new Date());
-  const [cross, setCross] = useState(() => (haunted && played ? 1 : 0));
+  // Seconds into the Take, stepped for the canvas; the end state at once on reload or reduced motion.
+  const [t, setT] = useState(() => (taken ? since() : 0));
   useEffect(() => {
-    if (!haunted || !played) return;
-    const t = setInterval(() => setCross((c) => (c >= 1 ? 1 : Math.min(1, c + 0.08))), 60);
-    return () => clearInterval(t);
-  }, [haunted, played]);
+    if (!taken) return;
+    const id = setInterval(() => {
+      const s = since();
+      setT(s);
+      if (s > CAL.end) clearInterval(id);
+    }, 50);
+    return () => clearInterval(id);
+  }, [taken, since]);
+  const cross = taken ? clamp01((t - CAL.crossFrom) / CAL.crossFor) : 0;
+  const named = taken ? clamp01((t - CAL.nameFrom) / CAL.nameFor) : 0;
+  const clawed = taken ? clamp01((t - CAL.clawFrom) / 0.5) : 0;
   const face = useCanvasTexture(
     512,
-    400,
+    480,
     (g, w, h) => {
       const y = today.getFullYear();
       const m = today.getMonth();
@@ -56,49 +152,50 @@ export function AdventCalendar() {
         g.font = 'bold 22px "Fraunces Variable", Georgia, serif';
         g.fillText(String(d), cx + cw / 2, cy + 32);
         if (cross > 0 && d === today.getDate()) {
-          // Two strokes in blood, pressed hard, running at the ends.
+          // Two strokes in blood, drawn slowly with a finger, one after the other. No drips.
           g.save();
-          g.strokeStyle = '#b00d0d';
-          g.lineCap = 'round';
-          g.lineWidth = 7;
-          const k = cross;
-          g.beginPath();
-          g.moveTo(cx - 6, cy - 6);
-          g.lineTo(cx - 6 + (cw + 12) * Math.min(1, k * 2), cy - 6 + (ch + 12) * Math.min(1, k * 2));
-          if (k > 0.5) {
-            const k2 = (k - 0.5) * 2;
-            g.moveTo(cx + cw + 6, cy - 6);
-            g.lineTo(cx + cw + 6 - (cw + 12) * k2, cy - 6 + (ch + 12) * k2);
-          }
-          g.stroke();
-          g.fillStyle = '#8a0a0a';
-          g.fillRect(cx + cw + 2, cy + ch + 4, 4, 22 * k);
-          g.fillRect(cx - 8, cy + ch + 4, 4, 30 * k);
+          bloodStroke(g, wobbly([cx - 6, cy - 6], [cx + cw + 6, cy + ch + 6], 1), clamp01(cross * 2), 7);
+          bloodStroke(g, wobbly([cx + cw + 6, cy - 6], [cx - 6, cy + ch + 6], 4), clamp01(cross * 2 - 1), 7);
           g.restore();
         }
       }
+      if (named > 0) {
+        // In the empty space under the days, a name is written: the one who comes in the night.
+        g.save();
+        g.beginPath();
+        g.rect(0, 0, 70 + (w - 140) * named, h);
+        g.clip();
+        g.fillStyle = haunted ? '#6e0a0c' : '#5a0a0a';
+        g.font = 'italic 50px "Brush Script MT", "Segoe Script", cursive';
+        g.textAlign = 'center';
+        g.fillText('Saint Nicholas', w / 2, h - 30);
+        g.restore();
+      }
+      // Then something with claws rakes straight through the middle of it, tearing the calendar.
+      if (clawed > 0) clawTear(g, w / 2, h - 44, clawed);
     },
-    [haunted, cross, today],
+    [haunted, cross, named, clawed, today],
   );
+  // A taller board, with a strip of plain wood under the days (where the name is written).
   return (
-    <group rotation={[-0.1, -0.3, 0]}>
+    <group rotation={[-0.1, -0.3, 0]} position-y={-0.08} scale={0.92}>
       <mesh material={M.woodLight()}>
-        <boxGeometry args={[1.5, 1.1, 0.1]} />
+        <boxGeometry args={[1.5, 1.4, 0.1]} />
       </mesh>
-      <mesh material={M.woodLight()} position={[0, 0.72, 0]} rotation-z={Math.PI / 4}>
+      <mesh material={M.woodLight()} position={[0, 0.87, 0]} rotation-z={Math.PI / 4}>
         <boxGeometry args={[0.75, 0.75, 0.1]} />
       </mesh>
       <mesh position={[0, 0, 0.052]}>
-        <planeGeometry args={[1.42, 1.04]} />
+        <planeGeometry args={[1.42, 1.33]} />
         <meshStandardMaterial map={face} roughness={0.8} />
       </mesh>
-      <group position={[0, 0.7, 0.06]} rotation-y={haunted ? -0.9 : 0}>
+      <group position={[0, 0.85, 0.06]} rotation-y={haunted ? -0.9 : 0}>
         <mesh material={M.gilt()} position-x={0.1}>
           <boxGeometry args={[0.2, 0.2, 0.03]} />
         </mesh>
       </group>
       {haunted && (
-        <mesh material={M.glow()} position={[0, 0.7, 0.04]}>
+        <mesh material={M.glow()} position={[0, 0.85, 0.04]}>
           <planeGeometry args={[0.18, 0.18]} />
         </mesh>
       )}
@@ -334,150 +431,8 @@ function drawDial(g: CanvasRenderingContext2D, w: number, h: number, haunted: bo
   g.fillText('Hz', rx + 30, h * 0.86);
 }
 
-/** Instant camera; after the Reveal a print hangs out of it. */
-export function InstantCamera() {
-  const haunted = useHaunted();
-  return (
-    <group rotation={[0.15, -0.45, 0]} position-y={-0.05}>
-      <mesh material={M.enamel()}>
-        <boxGeometry args={[1.3, 0.85, 0.6]} />
-      </mesh>
-      <mesh material={M.bakelite()} position={[0, -0.25, 0]}>
-        <boxGeometry args={[1.32, 0.36, 0.62]} />
-      </mesh>
-      <mesh material={M.bakelite()} position={[0, 0.02, 0.33]} rotation-x={Math.PI / 2}>
-        <cylinderGeometry args={[0.26, 0.28, 0.12, 40]} />
-      </mesh>
-      <mesh material={M.glass()} position={[0, 0.02, 0.4]}>
-        <circleGeometry args={[0.18, 32]} />
-      </mesh>
-      <mesh material={M.ink()} position={[0, 0.02, 0.395]}>
-        <circleGeometry args={[0.12, 32]} />
-      </mesh>
-      <mesh material={M.glow()} position={[0.42, 0.28, 0.305]}>
-        <planeGeometry args={[0.28, 0.12]} />
-      </mesh>
-      {haunted && (
-        <mesh material={M.paperDark()} position={[0, -0.6, 0.2]} rotation-x={-0.2}>
-          <boxGeometry args={[0.6, 0.62, 0.01]} />
-        </mesh>
-      )}
-    </group>
-  );
-}
 
-/** Wrapped gift with a gold ribbon and a "To: Dad" tag; the sender burns away. */
-export function UnopenedGift() {
-  const haunted = useHaunted();
-  const tag = useCanvasTexture(
-    256,
-    128,
-    (g, w, h) => {
-      g.fillStyle = haunted ? '#a48c66' : '#f6eedc';
-      g.fillRect(0, 0, w, h);
-      g.fillStyle = '#3a2a1c';
-      g.font = 'italic 34px "Fraunces Variable", Georgia, serif';
-      g.fillText('To: Dad', 20, 50);
-      if (!haunted) g.fillText('From: Ellie', 20, 100);
-      else {
-        g.fillStyle = '#140d09';
-        g.beginPath();
-        g.ellipse(w * 0.55, h * 0.78, 120, 30, -0.1, 0, Math.PI * 2);
-        g.fill();
-      }
-    },
-    [haunted],
-  );
-  // Taken: the lid blows off; inside, a skull with burning eyes, and the bat that was shut in
-  // with it bursts out (the bat is drawn by the FX layer, flying off the card).
-  const { taken, since } = useTaken('unopened-gift');
-  const lid = useRef<THREE.Group>(null);
-  const eyes = useRef<(THREE.MeshBasicMaterial | null)[]>([]);
-  useFrame((st) => {
-    const s = since();
-    if (lid.current) {
-      const k = taken ? progress(s, 0.7) : 0;
-      lid.current.position.set(k * 0.9, 0.34 + Math.sin(k * Math.PI) * 0.6 - k * 0.55, k * 0.2);
-      lid.current.rotation.set(k * 0.4, 0, -k * 1.9);
-    }
-    const f = 0.8 + Math.sin(st.clock.elapsedTime * 9) * 0.15 + Math.sin(st.clock.elapsedTime * 23) * 0.08;
-    for (const m of eyes.current) m?.color.setRGB(2.2 * f, 0.5 * f, 0.1 * f);
-  });
-  return (
-    <group rotation={[0.35, -0.6, 0]} position-y={-0.15}>
-      {!taken ? (
-        <>
-          <mesh material={M.giftPaper()}>
-            <boxGeometry args={[0.95, 0.75, 0.95]} />
-          </mesh>
-          <mesh material={M.ribbon()}>
-            <boxGeometry args={[0.97, 0.77, 0.14]} />
-          </mesh>
-          <mesh material={M.ribbon()}>
-            <boxGeometry args={[0.14, 0.77, 0.97]} />
-          </mesh>
-        </>
-      ) : (
-        <GiftOpen eyes={eyes} />
-      )}
-      <group ref={lid} position-y={0.34}>
-        <mesh material={M.giftPaper()} position-y={0.02} visible={taken}>
-          <boxGeometry args={[1.0, 0.1, 1.0]} />
-        </mesh>
-        {[-1, 1].map((s) => (
-          <mesh key={s} material={M.ribbon()} position={[s * 0.15, 0.11, 0]} rotation={[Math.PI / 2, 0, s * 0.5]} scale={[1, 0.6, 1]}>
-            <torusGeometry args={[0.13, 0.04, 10, 24]} />
-          </mesh>
-        ))}
-      </group>
-      <mesh position={[0.3, 0.1, 0.49]} rotation-z={-0.2}>
-        <planeGeometry args={[0.42, 0.21]} />
-        <meshStandardMaterial map={tag} roughness={0.9} />
-      </mesh>
-    </group>
-  );
-}
-
-/** The opened gift: four walls, a scorched inside, and the skull that was waiting in it. */
-function GiftOpen({ eyes }: { eyes: RefObject<(THREE.MeshBasicMaterial | null)[]> }) {
-  const walls: [number, number, number, number, number][] = [
-    [0, 0, 0.465, 0.95, 0.02],
-    [0, 0, -0.465, 0.95, 0.02],
-    [0.465, 0, 0, 0.02, 0.95],
-    [-0.465, 0, 0, 0.02, 0.95],
-  ];
-  return (
-    <group position-y={-0.04}>
-      {walls.map(([x, y, z, w, d], i) => (
-        <mesh key={i} material={M.giftPaper()} position={[x, y, z]}>
-          <boxGeometry args={[w, 0.67, d]} />
-        </mesh>
-      ))}
-      <mesh material={M.ribbon()} position={[0, 0, 0.478]}>
-        <boxGeometry args={[0.14, 0.67, 0.01]} />
-      </mesh>
-      <mesh position-y={-0.3}>
-        <boxGeometry args={[0.9, 0.02, 0.9]} />
-        <meshStandardMaterial color="#120806" roughness={1} />
-      </mesh>
-      {/* blood-soaked tissue paper, and on it the skull, lying on its back: the empty sockets,
-          the nose hole and the teeth look straight up out of the box, eyes still burning */}
-      <mesh position-y={-0.02}>
-        <boxGeometry args={[0.9, 0.5, 0.9]} />
-        <meshStandardMaterial color="#2c0b09" roughness={0.6} />
-      </mesh>
-      {/* lying back on the paper, high in the box and tipped a little toward you, so you look
-          straight into its face over the rim */}
-      <group position={[0, 0.2, 0.06]} rotation={[0.5, 0.6, 0]} scale={0.95}>
-        <FaceUpSkull
-          embers={[0, 1].map((i) => (m: THREE.MeshBasicMaterial | null) => {
-            eyes.current[i] = m;
-          })}
-        />
-      </group>
-      <pointLight position={[0.3, 0.9, 0.5]} intensity={0.45} distance={2} color="#ff6a2a" />
-    </group>
-  );
-}
-
+export { InstantCamera } from './InstantCamera';
+export { UnopenedGift } from './SurpriseGift';
 export { RockingChair } from './RockingChair';
+

@@ -14,8 +14,12 @@ export const M = {
   paper: () => mat('paper', { surface: 'paper', color: '#efe4cc', roughness: 0.9, hauntedColor: '#8a7250', decay: { age: 1, tear: 0.35, dust: 0.3 } }),
   paperDark: () => mat('paperDark', { surface: 'paper', color: '#d9c8a6', roughness: 0.9, hauntedColor: '#8d7553', decay: { age: 1, tear: 0.3 } }),
   wax: () => mat('wax', { surface: 'wax', color: '#9b1b24', roughness: 0.35, clearcoat: 0.6, hauntedColor: '#4a0f13', decay: { age: 0.3 } }),
-  leather: () => mat('leather', { surface: 'leather', color: '#6b3a22', roughness: 0.55, clearcoat: 0.4, hauntedColor: '#2c1d14', decay: { burn: 0.55, tear: 0.12, dust: 0.5 } }),
-  leatherSole: () => mat('leatherSole', { surface: 'leather', color: '#2b1c14', roughness: 0.7, decay: { burn: 0.3 } }),
+  // After the Reveal: old leather, not polished. Matte, greyed with dust, scuffed and cold-scorched.
+  leather: () =>
+    mat('leather', { surface: 'leather', color: '#6b3a22', roughness: 0.55, clearcoat: 0.4, hauntedColor: '#2e241d', matte: 1, decay: { burn: 0.22, tear: 0.12, dust: 0.45, age: 0.7 } }),
+  leatherSole: () => mat('leatherSole', { surface: 'leather', color: '#2b1c14', roughness: 0.7, hauntedColor: '#221a15', matte: 1, decay: { burn: 0.15, dust: 0.8, age: 1 } }),
+  /** Boot eyelets: brass by day, tarnished nearly black after the Reveal. */
+  eyelet: () => mat('eyelet', { surface: 'metal', color: '#c9a14a', metalness: 0.9, roughness: 0.35, hauntedColor: '#2c2822', matte: 1, decay: { age: 1, dust: 0.8 } }),
   lace: () => mat('lace', { color: '#f4efe6', roughness: 0.8, hauntedColor: '#5a5248', decay: { burn: 0.25 } }),
   wood: () => mat('wood', { surface: 'wood', color: '#7a4a28', roughness: 0.45, clearcoat: 0.5, hauntedColor: '#3b2a1e', decay: { age: 0.6, dust: 0.6 } }),
   woodLight: () => mat('woodLight', { surface: 'wood', color: '#c79a64', roughness: 0.5, clearcoat: 0.3, hauntedColor: '#6b5640', decay: { age: 0.6, dust: 0.5 } }),

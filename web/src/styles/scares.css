@@ -184,6 +184,14 @@
 .ts-crack-line { fill: none; stroke: rgb(232 236 242 / 0.8); stroke-width: 1.6; stroke-dasharray: 4000; stroke-dashoffset: 4000; filter: drop-shadow(0 0 3px rgb(255 255 255 / 0.5)); animation: tsCrack 0.7s steps(7) 0.3s forwards; }
 @keyframes tsCrack { to { stroke-dashoffset: 0; } }
 
+/* Music box: one skull on its spring through the middle of the screen */
+.ts-skull-pass { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.ts-skull-spring { fill: none; stroke: #b9b6ae; stroke-linejoin: round; filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.6)); }
+
+/* Camera: one flash, from the camera, once it is facing you */
+.ts-flash { position: absolute; inset: 0; background: #fff; opacity: 0; animation: tsFlash 0.5s ease-out forwards; }
+@keyframes tsFlash { 0% { opacity: 0.92; } 100% { opacity: 0; } }
+
 /* Teddy: one sword stroke across the window */
 .ts-slash { position: absolute; inset: 0; overflow: visible; }
 .ts-slash path { fill: none; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; }
@@ -200,6 +208,11 @@
 }
 @keyframes slashDraw { to { stroke-dashoffset: 0; } }
 @keyframes slashGone { to { opacity: 0; } }
+/* blood on the glass: it hits with the stroke, a few drops run, then it fades with the scene */
+.ts-spatter g { fill: #6e0709; opacity: 0; animation: spatHit 0.08s ease-out forwards, slashGone 0.9s ease-in 1.4s forwards; }
+.ts-spatter .ts-run { transform-box: fill-box; transform-origin: 50% 0; transform: scaleY(0); animation: spatRun 1.2s ease-in 0.35s forwards; }
+@keyframes spatHit { from { opacity: 0; transform-box: fill-box; } to { opacity: 0.92; } }
+@keyframes spatRun { to { transform: scaleY(1); } }
 
 /* Teddy: the seam opens */
 .ts-seam { width: min(72vmin, 620px); }
