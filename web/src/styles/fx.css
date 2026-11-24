@@ -522,36 +522,19 @@
   position: absolute;
   left: 0;
   top: 0;
-  aspect-ratio: 244 / 152;
+  aspect-ratio: 332 / 152;
   margin-left: calc(var(--w, 0px) * -0.5);
   translate: -50% -50%;
   /* No will-change: it would freeze the raster at the small starting size (blurry close-up). */
 }
 
 /*
- * Coming at you, wings spread wide, it beats them gently: slow, shallow strokes from the
- * shoulder, so the whole spread shape and the face stay readable all the way in.
+ * Coming at you, its wing beats are driven by CatchLunge (day flapping at take-off, slowing
+ * into wide, shallow strokes as it nears), so the stylesheet's loops are switched off here.
  */
-.lunge .bat-fly .wing-left {
-  animation: flapLungeL 0.6s ease-in-out infinite alternate;
-}
-
-.lunge .bat-fly .wing-right {
-  animation: flapLungeR 0.6s ease-in-out infinite alternate;
-}
-
-@keyframes flapLungeL {
-  from { transform: rotate(-5deg); }
-  to { transform: rotate(8deg) scaleY(0.95); }
-}
-
-@keyframes flapLungeR {
-  from { transform: rotate(5deg); }
-  to { transform: rotate(-8deg) scaleY(0.95); }
-}
-
+.lunge .bat-fly .wing,
 .lunge .bat-fly .bat-body {
-  animation: bob 0.6s ease-in-out infinite alternate;
+  animation: none;
 }
 
 /* Its throat: black, with a dark crimson edge, opening out until it covers everything. */
@@ -571,16 +554,6 @@
 
 @keyframes caughtShake {
   50% { rotate: 6deg; }
-}
-
-.lunge-turn .lunge-bat .bat-rig {
-  /* Head jerks round: the hanging bat swings upright to face the visitor. */
-  animation: jerkUp 0.5s cubic-bezier(0.6, -0.4, 0.4, 1.4) both;
-}
-
-@keyframes jerkUp {
-  from { transform: rotate(180deg); }
-  to { transform: none; }
 }
 
 .lunge-dark .lunge-shade,

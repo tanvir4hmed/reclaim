@@ -37,8 +37,12 @@ export function hangBox(x: number, y: number) {
  * body is smaller. It does not grow or shrink in flight.
  */
 export const BAT_UNIT = HANG_W / 76;
-export const FLY_W = 244 * BAT_UNIT;
-export const FLY_H = 152 * BAT_UNIT;
+/** The flying drawing's frame: wide, because the wings are much bigger than the body. */
+export const FLY_VB_W = 332;
+export const FLY_VB_H = 152;
+const FLY_VIEWBOX = `${-FLY_VB_W / 2} ${-FLY_VB_H / 2} ${FLY_VB_W} ${FLY_VB_H}`;
+export const FLY_W = FLY_VB_W * BAT_UNIT;
+export const FLY_H = FLY_VB_H * BAT_UNIT;
 /**
  * Flying box centred where the hanging bat's body is, so take-off and landing do not jump.
  * `k` lays the box out k times larger round the same centre (for a bat that is then scaled
@@ -123,23 +127,26 @@ function hole(cx: number, cy: number, r: number, rnd: () => number): string {
  * scalloped trailing edge falls through finger tips T2..T4 back to the hip B. The wing does
  * not reach below the body: the legs and claws hang free under it.
  */
+// Round 10: the wings reach much further out and are flatter (wide, not a round fan), so they
+// are far bigger than the body; a membrane in front of the arm runs from the neck to the wrist.
 const S: P = [19, -30];
-const W: P = [61, -63];
-const T1: P = [121, -53];
-const T2: P = [119, -27];
-const T3: P = [103, 3];
-const T4: P = [64, 23];
-const B: P = [21, 12];
+const W: P = [72, -60];
+const T1: P = [158, -50];
+const T2: P = [152, -18];
+const T3: P = [128, 10];
+const T4: P = [80, 22];
+const B: P = [21, 14];
+/** Where the membrane in front of the arm starts, behind the neck. */
+const N: P = [10, -44];
 
 const WING_OUTLINE = (() => {
   const r = seeded(17);
   const edge =
     ragged(T1, T2, W, 0.34, r) + ragged(T2, T3, W, 0.34, r) + ragged(T3, T4, W, 0.32, r) + ragged(T4, B, W, 0.26, r, 9);
-  // torn holes near the trailing edge, as in the reference
-  // (each one inside the deep scallops of the trailing edge, so none floats outside the wing)
-  const holes = hole(88, -40, 1.8, r) + hole(84, -24, 1.6, r) + hole(70, -17, 1.5, r) + hole(50, -12, 1.3, r) + hole(93, -55, 1.1, r);
-  // The top edge bows up a little as it runs out from the wrist to the outer tip.
-  return { outline: `M${S[0]} ${S[1]} Q 36 -52 ${W[0]} ${W[1]} Q 96 -66 ${T1[0]} ${T1[1]}${edge} Z`, holes };
+  // torn holes near the trailing edge, as in the reference, each well inside its panel
+  const holes = hole(120, -45, 1.9, r) + hole(112, -27, 1.7, r) + hole(91, -15, 1.6, r) + hole(59, -12, 1.4, r) + hole(138, -48, 1.1, r);
+  // The top edge rises from the neck over the arm to the wrist, then runs out to the outer tip.
+  return { outline: `M${N[0]} ${N[1]} Q 30 -68 ${W[0]} ${W[1]} Q 115 -66 ${T1[0]} ${T1[1]}${edge} Z`, holes };
 })();
 const WING = WING_OUTLINE.outline + WING_OUTLINE.holes;
 
@@ -149,9 +156,9 @@ function bonePath(a: P, b: P, bend = 0) {
 }
 const FINGERS = `${bonePath(W, T1, 3)} ${bonePath(W, T2, 2)} ${bonePath(W, T3, -2)} ${bonePath(W, T4, -3)}`;
 /** The arm: up from the shoulder to the high wrist. */
-const ARM = `M${S[0]} ${S[1]} Q 34 -54 ${W[0]} ${W[1]}`;
+const ARM = `M${S[0]} ${S[1]} Q 40 -54 ${W[0]} ${W[1]}`;
 /** Down the middle of each membrane panel, where it sags between the bones: the recesses. */
-const PANEL_MIDS = 'M61 -63 Q 95 -50 120 -40 M61 -63 Q 92 -30 112 -12 M61 -63 Q 80 -20 86 13 M56 -58 Q 42 -22 43 17 M24 -26 Q 30 -6 30 12';
+const PANEL_MIDS = 'M72 -60 Q 110 -50 141 -38 M72 -60 Q 104 -36 128 -14 M72 -60 Q 90 -26 99 4 M66 -56 Q 54 -24 53 8 M26 -26 Q 32 -6 32 12';
 
 export function BatDefs() {
   return (
@@ -298,7 +305,7 @@ export function BatDefs() {
  * a little light on the joints; a darker band round the torn edge. Soft edges come from stacked
  * low-opacity strokes, not blur filters, so the huge close-up stays smooth to animate.
  */
-function WingShape() {
+function WingShape({ detail }: { detail: boolean }) {
   const soft = (d: string, color: string, widths: number[], opacity: number) =>
     widths.map((w) => <path key={w} d={d} fill="none" stroke={color} strokeWidth={w} strokeOpacity={opacity} strokeLinecap="round" />);
   return (
@@ -306,12 +313,13 @@ function WingShape() {
       <path className="membrane" fill="url(#rc-membrane)" fillRule="evenodd" d={WING} />
       <g clipPath="url(#rc-wing-clip)">
         {/* deep crimson where the light comes through the thin membrane */}
-        <ellipse cx="92" cy="-26" rx="26" ry="16" fill="#8a1820" opacity="0.34" />
-        <ellipse cx="100" cy="-4" rx="14" ry="9" fill="#8a1820" opacity="0.3" />
-        <ellipse cx="70" cy="4" rx="16" ry="10" fill="#7a141c" opacity="0.32" />
-        <ellipse cx="42" cy="-8" rx="12" ry="14" fill="#6a1218" opacity="0.28" />
-        {/* the fine scaly grain of old skin, red in the light, lost in the shadows */}
-        <rect x="0" y="-80" width="130" height="110" fill="url(#rc-scales)" opacity="0.55" />
+        <ellipse cx="112" cy="-38" rx="34" ry="14" fill="#8a1820" opacity="0.34" />
+        <ellipse cx="120" cy="-16" rx="18" ry="9" fill="#8a1820" opacity="0.3" />
+        <ellipse cx="86" cy="-10" rx="18" ry="10" fill="#7a141c" opacity="0.32" />
+        <ellipse cx="48" cy="-12" rx="14" ry="13" fill="#6a1218" opacity="0.28" />
+        {/* the fine scaly grain of old skin, red in the light, lost in the shadows; only drawn
+            close up (at shelf size the ~2 px tiles cannot be seen and cost thousands of paths a frame) */}
+        {detail && <rect x="0" y="-80" width="170" height="110" fill="url(#rc-scales)" opacity="0.55" />}
         {/* recesses between the bones */}
         {soft(PANEL_MIDS, '#080506', [11, 6, 2.5], 0.14)}
         {/* raised membrane along the bones */}
@@ -322,20 +330,20 @@ function WingShape() {
       {/* veins branching through the thin membrane */}
       <path
         className="veins"
-        d="M66 -58 q18 4 30 -2 M70 -44 q14 6 28 2 q8 -2 14 2 M66 -32 q12 10 28 10 M62 -18 q6 12 18 18 M50 -10 q-4 10 -12 14 M80 -54 q8 -4 20 -4 M90 -8 q6 6 8 14 M98 -20 q6 -2 12 0 M74 8 q-4 4 -2 10"
+        d="M92 -52 q16 2 30 6 M88 -42 q14 6 26 14 M80 -32 q8 10 14 22 M70 -36 q-2 14 0 26 M52 -30 q-6 10 -10 22 M104 -50 q6 -2 12 0 M100 -34 q6 0 10 4 M84 -20 q4 4 4 10 M124 -42 q8 2 14 6"
       />
-      <path className="veins bright" d="M72 -40 q10 4 22 0 M66 -16 q8 8 18 10" />
+      <path className="veins bright" d="M96 -46 q10 3 18 8 M78 -26 q6 8 8 16" />
       {/* arm and finger bones, with a thin lit ridge on each */}
       <path className="bone-wing" d={ARM} />
       <path className="bone-wing thin" d={FINGERS} />
-      <path className="bone-lit" d={`M${S[0]} ${S[1] - 1} Q 34 -55 ${W[0]} ${W[1] - 1} ${FINGERS}`} />
+      <path className="bone-lit" d={`M${S[0]} ${S[1] - 1} Q 40 -55 ${W[0]} ${W[1] - 1} ${FINGERS}`} />
       <circle className="joint" cx={W[0]} cy={W[1]} r={3} />
       <circle cx={W[0] - 0.8} cy={W[1] - 0.9} r={1.1} fill="#814047" opacity="0.5" />
       {/* the long hooked thumb at the wrist, curling up and in toward the head */}
-      <path d="M58.5 -64 C57 -72 54 -78 46.5 -79.5 C51.5 -76 54 -71 55.2 -63.8 Z" fill="#1a1215" stroke="#080506" strokeWidth="0.5" strokeLinejoin="round" />
-      <path d="M57 -66 C55.6 -72 53 -76.4 48.6 -78.4" fill="none" stroke="#6a3a40" strokeWidth="0.45" strokeOpacity="0.7" />
+      <path d="M69.5 -61 C68 -69 65 -75 57.5 -76.5 C62.5 -73 65 -68 66.2 -60.8 Z" fill="#1a1215" stroke="#080506" strokeWidth="0.5" strokeLinejoin="round" />
+      <path d="M68 -63 C66.6 -69 64 -73.4 59.6 -75.4" fill="none" stroke="#6a3a40" strokeWidth="0.45" strokeOpacity="0.7" />
       {/* the outer tip: a small hooked point */}
-      <path d="M119.6 -54 C123 -57 126 -56.4 127.4 -53.4 C125 -54.6 122.6 -54 121 -52.2 Z" fill="#1a1215" />
+      <path d="M156.6 -51 C160 -54 163 -53.4 164.4 -50.4 C162 -51.6 159.6 -51 158 -49.2 Z" fill="#1a1215" />
     </>
   );
 }
@@ -674,8 +682,11 @@ export function BatSvg({
   facing = 'away',
   mouth = 'closed',
   className,
+  detail = false,
 }: {
   pose: BatPose;
+  /** Draw the fine skin grain (for the full-screen close-up only). */
+  detail?: boolean;
   eyes?: boolean;
   /** 'toward': eyes open on the visitor. 'away': resting, eyes shut unless `eyes` lights them. */
   facing?: 'away' | 'toward';
@@ -686,7 +697,7 @@ export function BatSvg({
   return (
     <svg
       className={`bat bat-${pose} bat-${facing} ${className ?? ''}`}
-      viewBox={pose === 'hang' ? HANG_VIEWBOX : '-122 -76 244 152'}
+      viewBox={pose === 'hang' ? HANG_VIEWBOX : FLY_VIEWBOX}
       aria-hidden="true"
       focusable="false"
     >
@@ -697,11 +708,11 @@ export function BatSvg({
           <>
             <g className="wing wing-left">
               <g transform="scale(-1 1)">
-                <WingShape />
+                <WingShape detail={detail} />
               </g>
             </g>
             <g className="wing wing-right">
-              <WingShape />
+              <WingShape detail={detail} />
             </g>
             <FlyBody eyes={eyes} open={open} mouth={mouth} />
           </>

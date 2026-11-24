@@ -8,8 +8,8 @@ import { nav } from './bridge';
 import { sendEcho } from './echo';
 import { playLight, reducedMotion, wait } from './runtime';
 
-/** Length of the lunge from the bat's size to full screen (kept in step with CatchLunge). */
-export const LUNGE_MS = 1550;
+/** Take-off, flight at the screen and the dark from its mouth (kept in step with CatchLunge). */
+export const LUNGE_MS = 1700;
 
 function tweenDecay(to: number, seconds: number): Promise<void> {
   return new Promise((resolve) => {
@@ -41,13 +41,11 @@ export async function revealSequence(): Promise<void> {
     await wait(700);
     set({ catchStep: 'none' });
   } else {
-    // The bony fist closes on the bat, its head jerks round to face the screen, then it flies
-    // straight at the visitor, growing smoothly from its own size until its wings blot out
-    // the whole screen. The Reveal happens in that dark.
+    // The bony fist closes on the bat; it tears free and takes off the way it flies by day,
+    // swings round and comes at the visitor, wings opening wide until they blot out the whole
+    // screen. The Reveal happens in that dark.
     set({ catchStep: 'grab' });
     await wait(420);
-    set({ catchStep: 'turn' });
-    await wait(520);
     set({ catchStep: 'lunge' });
     await wait(LUNGE_MS);
     set({ catchStep: 'dark', mains: 0.2 });

@@ -2,7 +2,7 @@ import gsap from 'gsap';
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import { LUNGE_MS } from '../director/sequences';
 import { useHaunted, useStory } from '../store';
-import { BatSvg, FLY_FACE_Y, FLY_MOUTH_Y, FLY_W } from './BatSvg';
+import { BatSvg, FLY_FACE_Y, FLY_MOUTH_Y, FLY_VB_W, FLY_W, HANG_ASPECT } from './BatSvg';
 import { BAT_W } from './DayBat';
 import { SkeletonHand } from './SkeletonHand';
 import { useFx } from './fxStore';
@@ -16,9 +16,9 @@ export function Darkness() {
 }
 
 /**
- * The catch (Req 9.6–9.9). The bony fist closes where the visitor clicked; the bat's head jerks
- * round with glowing eyes and an open, fanged mouth; then it flies straight at the screen,
- * starting at its own size and growing smoothly, wings beating, until it blots out everything.
+ * The catch (Req 9.6–9.9). The bony fist closes where the visitor clicked; the bat breaks free
+ * and takes off as it does by day, wings beating, swings round and comes at the screen from
+ * above, eyes burning and fangs bared, its wings opening wide until they blot out everything.
  */
 export function CatchLunge() {
   const step = useFx((s) => s.catchStep);
@@ -36,54 +36,102 @@ export function CatchLunge() {
     const vh = window.innerHeight;
     const x0 = from?.x ?? vw / 2;
     const y0 = from?.y ?? vh / 2;
-    // Lay the bat out at its FINAL size (wings well past both screen edges) and shrink it
-    // down to start from. The browser then draws the SVG and its fur at full resolution;
-    // scaling a small element up instead is what made the close-up blurry.
-    const final = Math.max(vw * 1.9, vh * 3);
+    // Lay the bat out at its FINAL size and shrink it down to start from, so the browser draws
+    // the SVG and its fur at full resolution (scaling a small element up made it blurry).
+    // The body keeps its old close-up size; the wings, much bigger now, reach far past the edges.
+    const unit = Math.max(vw * 1.9, vh * 3) / 244;
+    const final = FLY_VB_W * unit;
     el.style.width = `${final}px`;
     // Centre it in GSAP (CSS `translate` is dropped once GSAP owns the transform).
     el.style.translate = 'none';
-    const unit = final / 244;
     // At scale 1, the face sits this far above the bat's centre, and the open mouth this far.
     const faceOff = -FLY_FACE_Y * unit;
     const mouthOff = -FLY_MOUTH_Y * unit;
-    // Where it looks at you from: centred, eyes just above the middle of the screen.
+    // Where it ends, looking at you: centred, high (a third of the way down), so its spread
+    // wings cover the top of the screen too.
     const faceX = vw / 2;
-    const faceY = vh * 0.435;
-    const approach = (LUNGE_MS / 1000) * 0.72;
-    const engulf = (LUNGE_MS / 1000) * 0.28;
-    const tl = gsap.timeline();
+    const faceY = vh * 0.335;
+    const flight = (LUNGE_MS / 1000) * 0.74;
+    const engulf = (LUNGE_MS / 1000) * 0.26;
     const s0 = FLY_W / final;
-    // A steady, gentle glide toward the glass: it grows by the same proportion every moment
-    // (size s0^(1-t)), so it never seems to stall far off or pop up at the end.
-    const glide = (t: number) => (Math.pow(s0, 1 - t) - s0) / (1 - s0);
-    // It starts at its own flying size, where it was caught. Centre and scale share one
-    // ease, so its face travels in a straight line to the focal point while it grows.
-    tl.fromTo(
-      el,
-      { x: x0, y: y0, xPercent: -50, yPercent: -50, scale: s0, rotate: 0 },
-      {
-        x: faceX,
-        y: faceY + faceOff,
-        xPercent: -50,
-        yPercent: -50,
-        scale: 1,
-        rotate: 0,
-        duration: approach,
-        ease: glide,
-        onUpdate() {
-          const p = this.progress();
-          // A small wobble from the wing beats; it darkens a little as it blocks the light,
-          // but its face stays readable.
-          gsap.set(el, {
-            // a slow, slight sway with its wing beats as it glides in
-            rotate: Math.sin(p * Math.PI * 4) * 2 * (1 - p),
-            // only a little darker as it blocks the light: the red of its wings stays
-            filter: `brightness(${(1 - 0.18 * p).toFixed(3)}) saturate(${(1 - 0.1 * p).toFixed(3)})`,
-          });
-        },
+
+    /*
+     * It takes off the way it flies by day: drops off the perch with its wings beating, swings
+     * out, banks round and comes back in from above, at you, wings opening wide as it nears.
+     * The path is for its face (what you watch); its size grows slowly at first and then
+     * faster. Wing beats are driven here, continuously, so the fast, deep flapping of the
+     * take-off slows and flattens into wide-open gliding strokes with no jump between them.
+     */
+    const face0 = { x: x0, y: y0 - faceOff * s0 };
+    const toCentre = Math.sign(vw / 2 - x0) || 1;
+    const p1 = { x: face0.x + toCentre * 0.08 * vw, y: face0.y + 0.14 * vh };
+    const p2 = { x: faceX + toCentre * 0.22 * vw, y: faceY - 0.2 * vh };
+    const bez = (a: number, b: number, c: number, d: number, t: number) => {
+      const u = 1 - t;
+      return u * u * u * a + 3 * u * u * t * b + 3 * u * t * t * c + t * t * t * d;
+    };
+    const wingL = el.querySelector<SVGGElement>('.wing-left');
+    const wingR = el.querySelector<SVGGElement>('.wing-right');
+    const body = el.querySelector<SVGGElement>('.bat-body');
+    const beat = { amp: 1, freq: 1 / 0.48, phase: 0, last: performance.now(), on: true };
+    const flap = () => {
+      if (!beat.on) return;
+      const now = performance.now();
+      beat.phase += 2 * Math.PI * beat.freq * ((now - beat.last) / 1000);
+      beat.last = now;
+      const b = Math.sin(beat.phase);
+      const a = beat.amp;
+      const down = (1 - b) / 2;
+      // the day flight's stroke (up 16°, down −34°, the wing narrowing on the downstroke), scaled by amp
+      const r = a * (-9 + 25 * b);
+      const sy = 1.05 - 0.5 * a * down - 0.05 * (1 - a);
+      const sx = 1 - 0.08 * a * down;
+      if (wingR) wingR.style.transform = `rotate(${r.toFixed(2)}deg) scale(${sx.toFixed(3)}, ${sy.toFixed(3)})`;
+      if (wingL) wingL.style.transform = `rotate(${(-r).toFixed(2)}deg) scale(${sx.toFixed(3)}, ${sy.toFixed(3)})`;
+      if (body) body.style.transform = `translateY(${(2 * a * down).toFixed(2)}px)`;
+      requestAnimationFrame(flap);
+    };
+    requestAnimationFrame(flap);
+
+    const tl = gsap.timeline();
+    const st = { t: 0 };
+    let prevX = face0.x;
+    let prevAt = performance.now();
+    let bank = 0;
+    gsap.set(el, { x: x0, y: y0, xPercent: -50, yPercent: -50, scale: s0, rotate: 0 });
+    tl.to(st, {
+      t: 1,
+      duration: flight,
+      ease: 'none',
+      onUpdate: () => {
+        const t = st.t;
+        // along the path: quick off the perch, settling onto the focal point as it arrives
+        const q = 1 - Math.pow(1 - t, 1.5);
+        const fx = bez(face0.x, p1.x, p2.x, faceX, q);
+        const fy = bez(face0.y, p1.y, p2.y, faceY, q);
+        // size: little change while it takes off, then a steady rush toward the glass
+        const s = s0 * Math.pow(1 / s0, Math.pow(t, 1.5));
+        // banks into its turns like the day flight, levelling out as it faces you
+        const now = performance.now();
+        const vx = (fx - prevX) / Math.max(1, now - prevAt);
+        prevX = fx;
+        prevAt = now;
+        bank += (Math.max(-22, Math.min(22, vx * 40)) * (1 - t) - bank) * 0.25;
+        gsap.set(el, {
+          x: fx,
+          y: fy + faceOff * s,
+          scale: s,
+          rotate: bank,
+          // only a little darker as it blocks the light: the red of its wings stays
+          filter: `brightness(${(1 - 0.18 * t).toFixed(3)}) saturate(${(1 - 0.1 * t).toFixed(3)})`,
+        });
+        // the beats: day flapping for the take-off, then slower, flatter, wings wide open
+        const g = Math.min(1, Math.max(0, (t - 0.35) / 0.55));
+        const e = g * g * (3 - 2 * g);
+        beat.amp = 1 - 0.82 * e;
+        beat.freq = (1 - e) / 0.48 + e / 1.1;
       },
-    );
+    });
     // Then the dark comes out of it: still closing in around its open mouth, the black of
     // its throat spreads until it covers the screen.
     const mouthY = faceY + faceOff - mouthOff;
@@ -92,18 +140,22 @@ export function CatchLunge() {
       s: 1.6,
       duration: engulf,
       ease: 'power2.in',
-      onUpdate: () => gsap.set(el, { scale: k.s, y: mouthY + mouthOff * k.s }),
+      onUpdate: () => {
+        bank *= 0.8;
+        gsap.set(el, { scale: k.s, y: mouthY + mouthOff * k.s, rotate: bank });
+      },
     });
     if (maw) {
       const reach = Math.hypot(vw, vh) * 1.15;
       gsap.set(maw, { left: faceX, top: mouthY, width: reach * 2, height: reach * 2, xPercent: -50, yPercent: -50 });
-      tl.fromTo(maw, { scale: (9 * unit) / reach, opacity: 0 }, { scale: 1, opacity: 1, duration: engulf, ease: 'power2.in' }, approach);
+      tl.fromTo(maw, { scale: (9 * unit) / reach, opacity: 0 }, { scale: 1, opacity: 1, duration: engulf, ease: 'power2.in' }, flight);
     }
     // Fully black a moment before the lunge ends, so the hand-over to the dark step is seamless.
     const shade = shadeRef.current;
-    if (shade) tl.fromTo(shade, { opacity: 0 }, { opacity: 1, duration: engulf * 0.4, ease: 'power1.in' }, approach + engulf * 0.45);
+    if (shade) tl.fromTo(shade, { opacity: 0 }, { opacity: 1, duration: engulf * 0.4, ease: 'power1.in' }, flight + engulf * 0.45);
     return () => {
       tl.kill();
+      beat.on = false;
       // Hand the shade back to the stylesheet (the dark step holds it at full black).
       if (shade) gsap.set(shade, { clearProps: 'opacity' });
     };
@@ -111,7 +163,7 @@ export function CatchLunge() {
 
   if (step === 'none') return null;
   const pose = step === 'grab' ? 'hang' : 'fly';
-  const placed = from && (step === 'grab' || step === 'turn');
+  const placed = from && step === 'grab';
   return (
     <div className={`lunge lunge-${step}`} aria-hidden="true" data-testid="lunge">
       <div ref={shadeRef} className="lunge-shade" />
@@ -119,20 +171,20 @@ export function CatchLunge() {
         ref={batRef}
         className="lunge-bat"
         style={
-          // Caught hanging, it is held at its hanging size; once it turns it opens its wings at
-          // its own flying size (the same scale), and the lunge grows it from there.
+          // Caught hanging, it is held at its hanging size (its own box, not the wide flying
+          // frame); then it takes off at its own flying size, and the lunge grows it from there.
           placed
-            ? { transform: `translate(${from.x}px, ${from.y}px)`, width: step === 'turn' ? FLY_W : from.w }
+            ? { transform: `translate(${from.x}px, ${from.y}px)`, width: from.w, height: from.w * HANG_ASPECT }
             : step === 'lunge'
               ? {}
               : { width: step === 'grab' ? (from?.w ?? BAT_W) : FLY_W }
         }
       >
-        <BatSvg pose={pose} facing={step === 'grab' ? 'away' : 'toward'} eyes={step !== 'grab'} mouth={step === 'grab' ? 'closed' : 'snarl'} />
+        <BatSvg pose={pose} facing={step === 'grab' ? 'away' : 'toward'} eyes={step !== 'grab'} mouth={step === 'grab' ? 'closed' : 'snarl'} detail={step === 'lunge'} />
       </div>
       {/* the dark that comes out of its mouth at the end of the lunge */}
       {step === 'lunge' && <div ref={mawRef} className="lunge-maw" />}
-      {hand && (step === 'grab' || step === 'turn') && <SkeletonHand x={hand.x} y={hand.y} closed />}
+      {hand && step === 'grab' && <SkeletonHand x={hand.x} y={hand.y} closed />}
       {step === 'dark' && <DarkEvents />}
       {(step === 'dark' || step === 'release') && <ClawMarks />}
     </div>
