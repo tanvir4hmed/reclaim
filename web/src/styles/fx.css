@@ -87,10 +87,33 @@
   background: none;
 }
 
-/* Its box comes from hangBox() / flyBox(), the same sizes as the Christmas bat. */
+/* Its box comes from hangBox() / flyBox(), the same sizes as the Christmas bat, placed by its centre. */
 .haunted-bat {
   pointer-events: none;
+  translate: -50% -50%;
   transition: left 1.6s cubic-bezier(0.45, 0, 0.3, 1), top 1.6s cubic-bezier(0.3, -0.6, 0.5, 1.2);
+}
+
+/*
+ * In flight it is laid out FLY_NEAR (1.6) times its own flying size and scaled down to it
+ * (0.625 = 1 / 1.6): it leaves the perch at its own size, swells as it swoops close past the
+ * screen, and is back to its own size as it hooks on again.
+ */
+.haunted-bat.is-flying {
+  animation: batSwoop 1.7s ease-in-out both;
+}
+
+@keyframes batSwoop {
+  0% { transform: scale(0.625); }
+  55% { transform: scale(1); }
+  100% { transform: scale(0.625); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .haunted-bat.is-flying {
+    animation: none;
+    transform: scale(0.625);
+  }
 }
 
 .day-bat {
@@ -158,7 +181,7 @@
 .bat .fly-leg {
   fill: none;
   stroke: #1d191d;
-  stroke-width: 2;
+  stroke-width: 3.2;
   stroke-linecap: round;
 }
 
@@ -172,8 +195,8 @@
 
 .bat .fly-claw {
   fill: none;
-  stroke: #8a8076;
-  stroke-width: 0.6;
+  stroke: #3a3034;
+  stroke-width: 1.1;
   stroke-linecap: round;
 }
 
@@ -343,7 +366,7 @@
 }
 
 .bat-look-fly {
-  transform-origin: 0 -14px;
+  transform-origin: 0 -11px;
   transform: rotate(calc(var(--lx, 0) * 18deg));
 }
 
@@ -409,11 +432,14 @@
   animation: flap 0.24s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
 }
 
+/* each wing turns at its own shoulder (BatSvg's S, mirrored on the left) */
 .bat-fly .wing-left {
+  transform-origin: -19px -30px;
   animation-name: flapL;
 }
 
 .bat-fly .wing-right {
+  transform-origin: 19px -30px;
   animation-name: flapR;
 }
 
@@ -435,9 +461,13 @@
   to { transform: translateY(4px); }
 }
 
-/* In flight it only banks into its turns; it keeps the size it hangs at. */
+/*
+ * In flight it banks into its turns and swells as it swoops close past the screen (--fs, set
+ * by the flight). It is laid out 1.6 times its flying size, so 0.625 is its own size: the size
+ * it takes off and lands at.
+ */
 .day-bat.is-flying {
-  transform: rotate(var(--bank, 0deg));
+  transform: rotate(var(--bank, 0deg)) scale(var(--fs, 0.625));
 }
 
 .skeleton-hand {
@@ -499,25 +529,29 @@
 }
 
 /*
- * Coming at you, the wings beat slower and shallower, turning at the shoulder: the shape of
- * the wings and the face stay readable (no deep fold that would squash them).
+ * Coming at you, wings spread wide, it beats them gently: slow, shallow strokes from the
+ * shoulder, so the whole spread shape and the face stay readable all the way in.
  */
 .lunge .bat-fly .wing-left {
-  animation: flapLungeL 0.42s ease-in-out infinite alternate;
+  animation: flapLungeL 0.6s ease-in-out infinite alternate;
 }
 
 .lunge .bat-fly .wing-right {
-  animation: flapLungeR 0.42s ease-in-out infinite alternate;
+  animation: flapLungeR 0.6s ease-in-out infinite alternate;
 }
 
 @keyframes flapLungeL {
-  from { transform: rotate(-7deg); }
-  to { transform: rotate(13deg) scaleY(0.88); }
+  from { transform: rotate(-5deg); }
+  to { transform: rotate(8deg) scaleY(0.95); }
 }
 
 @keyframes flapLungeR {
-  from { transform: rotate(7deg); }
-  to { transform: rotate(-13deg) scaleY(0.88); }
+  from { transform: rotate(5deg); }
+  to { transform: rotate(-8deg) scaleY(0.95); }
+}
+
+.lunge .bat-fly .bat-body {
+  animation: bob 0.6s ease-in-out infinite alternate;
 }
 
 /* Its throat: black, with a dark crimson edge, opening out until it covers everything. */

@@ -2,17 +2,20 @@ import gsap from 'gsap';
 import { useEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
 import { reducedMotion, wait } from '../director/runtime';
 import { dispatch, useStory } from '../store';
-import { BatSvg, FLY_H, FLY_W, flyBox, hangBox } from './BatSvg';
+import { BatSvg, FLY_H, FLY_NEAR, FLY_W, flyBox, hangBox } from './BatSvg';
 import { useFx } from './fxStore';
 import { nearbyPerches, perchSpot, type PerchSpot } from './perches';
 import { SkeletonHand } from './SkeletonHand';
 
 /**
- * Flying, the Day bat keeps the scale it hangs at (flyBox): wings spread it is wider, its body
- * smaller, and it stays that size from take-off to landing.
+ * Flying, the Day bat takes off and lands at the scale it hangs at (FLY_W: wings spread it is
+ * wider, its body smaller). In between it swells to FLY_NEAR times that, as it swoops close
+ * past the screen, and shrinks back to land. It is laid out at the swollen size and scaled
+ * down (`--fs`), so it is never blown up from a small raster.
  */
 export const BAT_W = FLY_W;
-const BAT_H = FLY_H;
+const BIG_W = FLY_W * FLY_NEAR;
+const BIG_H = FLY_H * FLY_NEAR;
 /** From the perch line down to the middle of the hanging bat's body (the flight's centre line). */
 const BODY_DROP = flyBox(0, 0).top + FLY_H / 2;
 
@@ -189,7 +192,7 @@ export function DayBat() {
         className={`day-bat${flying ? ' is-flying' : ''}${hover ? ' is-hovered' : ''}${looking ? ' is-looking' : ''}`}
         data-testid="day-bat"
         aria-label="Something on the lights"
-        style={flying ? flyBox(spot.x, spot.y) : hangBox(spot.x, spot.y)}
+        style={flying ? flyBox(spot.x, spot.y, FLY_NEAR) : hangBox(spot.x, spot.y)}
         onPointerEnter={(e) => {
           if (e.pointerType === 'touch') return;
           setFx({ batHover: true });
@@ -245,10 +248,12 @@ function flyAlong(el: HTMLElement, from: PerchSpot, to: PerchSpot): Promise<void
         const y = u * u * from.y + 2 * u * t * c.y + t * t * to.y + Math.sin(t * Math.PI * 14) * 5 * Math.sin(t * Math.PI);
         const vx = 2 * u * (c.x - from.x) + 2 * t * (to.x - c.x);
         const bank = Math.max(-22, Math.min(22, vx / 30));
-        // Perch to perch along the body's centre line, at one constant size.
-        el.style.left = `${x - BAT_W / 2}px`;
-        el.style.top = `${y + BODY_DROP - BAT_H / 2}px`;
+        // Perch to perch along the body's centre line.
+        el.style.left = `${x - BIG_W / 2}px`;
+        el.style.top = `${y + BODY_DROP - BIG_H / 2}px`;
         el.style.setProperty('--bank', `${bank}deg`);
+        // Its own size at take-off and landing; nearer, so larger, in the middle of the swoop.
+        el.style.setProperty('--fs', ((1 + (FLY_NEAR - 1) * Math.sin(t * Math.PI)) / FLY_NEAR).toFixed(4));
       },
       onComplete: () => resolve(),
     });

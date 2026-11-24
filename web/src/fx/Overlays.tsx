@@ -53,11 +53,15 @@ export function CatchLunge() {
     const approach = (LUNGE_MS / 1000) * 0.72;
     const engulf = (LUNGE_MS / 1000) * 0.28;
     const tl = gsap.timeline();
+    const s0 = FLY_W / final;
+    // A steady, gentle glide toward the glass: it grows by the same proportion every moment
+    // (size s0^(1-t)), so it never seems to stall far off or pop up at the end.
+    const glide = (t: number) => (Math.pow(s0, 1 - t) - s0) / (1 - s0);
     // It starts at its own flying size, where it was caught. Centre and scale share one
     // ease, so its face travels in a straight line to the focal point while it grows.
     tl.fromTo(
       el,
-      { x: x0, y: y0, xPercent: -50, yPercent: -50, scale: FLY_W / final, rotate: 0 },
+      { x: x0, y: y0, xPercent: -50, yPercent: -50, scale: s0, rotate: 0 },
       {
         x: faceX,
         y: faceY + faceOff,
@@ -66,15 +70,16 @@ export function CatchLunge() {
         scale: 1,
         rotate: 0,
         duration: approach,
-        // Slow at first, then rushing at the glass: a creature flying closer, not a pop.
-        ease: 'power3.in',
+        ease: glide,
         onUpdate() {
           const p = this.progress();
           // A small wobble from the wing beats; it darkens a little as it blocks the light,
           // but its face stays readable.
           gsap.set(el, {
-            rotate: Math.sin(p * Math.PI * 9) * 3 * (1 - p),
-            filter: `brightness(${(1 - 0.35 * p).toFixed(3)}) saturate(${(1 - 0.25 * p).toFixed(3)})`,
+            // a slow, slight sway with its wing beats as it glides in
+            rotate: Math.sin(p * Math.PI * 4) * 2 * (1 - p),
+            // only a little darker as it blocks the light: the red of its wings stays
+            filter: `brightness(${(1 - 0.18 * p).toFixed(3)}) saturate(${(1 - 0.1 * p).toFixed(3)})`,
           });
         },
       },

@@ -9,7 +9,7 @@ import { sendEcho } from './echo';
 import { playLight, reducedMotion, wait } from './runtime';
 
 /** Length of the lunge from the bat's size to full screen (kept in step with CatchLunge). */
-export const LUNGE_MS = 1350;
+export const LUNGE_MS = 1550;
 
 function tweenDecay(to: number, seconds: number): Promise<void> {
   return new Promise((resolve) => {

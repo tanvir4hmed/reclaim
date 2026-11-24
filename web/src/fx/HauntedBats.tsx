@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { reducedMotion, wait } from '../director/runtime';
 import { useHaunted, useStory } from '../store';
-import { BatSvg, flyBox, hangBox } from './BatSvg';
+import { BatSvg, FLY_NEAR, flyBox, hangBox } from './BatSvg';
 import { useFx } from './fxStore';
 import { nearbyPerches, perchSpot, type PerchSpot } from './perches';
 
@@ -93,9 +93,14 @@ export function HauntedBats() {
       {bats.map((b, i) => {
         const spot: PerchSpot | null = perchSpot(b.perch, b.seed);
         if (!spot) return null;
+        // Placed by its centre (CSS translates it back by half its size): the hanging and the
+        // flying box share that centre, so taking off changes the size without a slide.
+        const box = b.flying ? flyBox(spot.x, spot.y, FLY_NEAR) : hangBox(spot.x, spot.y);
+        const style = { left: box.left + box.width / 2, top: box.top + box.height / 2, width: box.width, height: box.height };
         return (
-          // Exactly the Christmas bat's sizes and anchor, hanging (hangBox) and in flight (flyBox).
-          <div key={i} className={`haunted-bat${b.flying ? ' is-flying' : ''}`} style={b.flying ? flyBox(spot.x, spot.y) : hangBox(spot.x, spot.y)} aria-hidden="true" data-testid="haunted-bat">
+          // Exactly the Christmas bat's sizes and anchor, hanging (hangBox) and in flight (flyBox,
+          // laid out at its swollen size and scaled down: it swells mid-flight like the Day bat).
+          <div key={i} className={`haunted-bat${b.flying ? ' is-flying' : ''}`} style={style} aria-hidden="true" data-testid="haunted-bat">
             <BatSvg pose={b.flying ? 'fly' : 'hang'} eyes={b.eyes} />
           </div>
         );

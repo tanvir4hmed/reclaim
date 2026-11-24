@@ -39,6 +39,10 @@ async function enlarge(page: Page, selector: string, file: string) {
     wrap.id = 'bat-zoom';
     wrap.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;gap:40px;align-items:center;justify-content:center;background:#9a8f80';
     const big = svg.cloneNode(true) as SVGSVGElement;
+    // held still at rest (wings spread, not caught mid-beat), so its shape can be compared
+    big.querySelectorAll<SVGElement>('.wing, .bat-body').forEach((e) => {
+      e.style.animation = 'none';
+    });
     const vb = (svg as SVGSVGElement).viewBox.baseVal;
     const bigW = vb.width > vb.height ? 1100 : 300;
     big.setAttribute('style', `width:${bigW}px;height:${(bigW * vb.height) / vb.width}px;overflow:visible`);
@@ -72,13 +76,29 @@ test.describe('visual capture of the bat', () => {
     if (r) await page.screenshot({ path: `${OUT}/bat-${tag}-christmas-insitu.png`, clip: { x: Math.max(0, r.x - 60), y: Math.max(0, r.y - 30), width: 180, height: 180 } });
     // In flight: the same scale, wings spread. Wait for it to take off on its own.
     let flying: unknown = null;
+    let flight: unknown[] = [];
     if (info.project.name === 'desktop') {
+      // Its drawn width through one whole flight, every frame: own size, swell, own size.
+      await page.evaluate(() => {
+        const out: { ms: number; w: number; flying: boolean }[] = [];
+        (window as unknown as { __flight: unknown[] }).__flight = out;
+        let t0 = 0;
+        const tick = () => {
+          const el = document.querySelector<HTMLElement>('[data-testid="day-bat"]');
+          const flying = !!el?.classList.contains('is-flying');
+          if (flying && !t0) t0 = performance.now();
+          if (t0 && el) out.push({ ms: Math.round(performance.now() - t0), w: Math.round(el.getBoundingClientRect().width), flying });
+          if (!t0 || performance.now() - t0 < 4500) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      });
       await expect(day).toHaveClass(/is-flying/, { timeout: 30_000 });
       await page.waitForTimeout(300);
       flying = await measure(page, '[data-testid="day-bat"]');
       await enlarge(page, '[data-testid="day-bat"]', `${OUT}/bat-${tag}-flying.png`);
       await expect(day).not.toHaveClass(/is-flying/, { timeout: 10_000 });
       await page.waitForTimeout(500);
+      flight = await page.evaluate(() => (window as unknown as { __flight: unknown[] }).__flight.filter((_, i) => i % 6 === 0));
     }
     // The hand over the bat, then the catch and the lunge, frame by frame.
     let hand: unknown = null;
@@ -116,11 +136,11 @@ test.describe('visual capture of the bat', () => {
         requestAnimationFrame(tick);
       });
       await day.click();
-      for (let i = 0; i < 4; i++) {
-        await page.waitForTimeout(350);
+      for (let i = 0; i < 8; i++) {
+        await page.waitForTimeout(260);
         await page.screenshot({ path: `${OUT}/bat-${tag}-lunge-${String(i).padStart(2, '0')}.jpeg`, type: 'jpeg', quality: 60, scale: 'css' });
       }
-      await page.waitForTimeout(2600);
+      await page.waitForTimeout(1500);
       lunge.push(...(await page.evaluate(() => (window as unknown as { __lunge: unknown[] }).__lunge)));
       await expect(page.locator('html')).toHaveAttribute('data-state', 'haunted', { timeout: 20_000 });
       await expect(page.getByTestId('lunge')).toHaveCount(0, { timeout: 15_000 });
@@ -134,6 +154,6 @@ test.describe('visual capture of the bat', () => {
     await enlarge(page, '[data-testid="haunted-bat"]:not(.is-flying)', `${OUT}/bat-${tag}-haunted.png`);
     const h = await page.locator('[data-testid="haunted-bat"]:not(.is-flying)').first().boundingBox();
     if (h) await page.screenshot({ path: `${OUT}/bat-${tag}-haunted-insitu.png`, clip: { x: Math.max(0, h.x - 60), y: Math.max(0, h.y - 30), width: 180, height: 180 } });
-    writeFileSync(`${OUT}/bat-${tag}.json`, JSON.stringify({ christmas, flying, hand, lunge, haunted }, null, 2));
+    writeFileSync(`${OUT}/bat-${tag}.json`, JSON.stringify({ christmas, flying, flight, hand, lunge, haunted }, null, 2));
   });
 });
