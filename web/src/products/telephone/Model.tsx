@@ -133,44 +133,60 @@ function drawNumbers(g: CanvasRenderingContext2D, w: number, h: number) {
   g.fillText('1934', c, c + w * 0.04);
 }
 
-/** Blood: out of the earpiece, down the handle and off the mouthpiece in drops, into a pool. */
+/** The earpiece's cup in the handset's frame: its face (with the holes) and how wide it is. */
+const EAR_FACE = new V3(0.44, -0.127, 0);
+const EAR_R = 0.115 * 0.82;
+/** Lifted, the earpiece cup faces sideways (to the ear); this is the lowest point of its face. */
+const EAR_LIP = new V3(0.44 - EAR_R * 0.92, -0.13, 0);
+
+/**
+ * Blood: out of the earpiece holes. It wells up out of them and spreads over the face of the
+ * cup, runs down that face to its lowest edge and gathers there, and drips off it, drop by
+ * drop, onto the table.
+ */
 function HandsetBlood({ since }: { since: () => number }) {
   const run = useMemo(() => {
-    // in the handset's frame: along the front of the handle from the earpiece to the mouthpiece
-    const pts = Array.from({ length: 14 }, (_, i) => {
-      const t = i / 13;
-      const x = 0.4 - t * 0.82;
-      return new V3(x, 0.03 - Math.abs(x) * 0.15 + Math.sin(t * 9) * 0.004, 0.043 + Math.sin(t * 5) * 0.004);
+    // from the middle hole down the cup's face to its lower lip (local x is up once lifted)
+    const pts = Array.from({ length: 8 }, (_, i) => {
+      const t = i / 7;
+      return new V3(EAR_FACE.x - t * (EAR_FACE.x - EAR_LIP.x), EAR_FACE.y - 0.002 - t * 0.003, Math.sin(t * 4) * 0.006);
     });
-    return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 60, 0.011, 6, false);
+    return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, 0.008, 6, false);
   }, []);
   useEffect(() => () => run.dispose(), [run]);
+  const film = useRef<THREE.Mesh>(null);
   const cap = useRef<THREE.Mesh>(null);
   useFrame(() => {
     const s = since();
-    const k = progress(s, 2.2, LIFT_S + 0.25);
-    run.setDrawRange(0, Math.floor(60 * k) * 6 * 6);
-    if (cap.current) cap.current.scale.setScalar(Math.max(0.01, progress(s, 0.8, LIFT_S)));
+    // it comes out of the holes as soon as it is held to the ear, and spreads over the face
+    if (film.current) film.current.scale.setScalar(Math.max(0.01, progress(s, 1.4, LIFT_S + 0.1)));
+    run.setDrawRange(0, Math.floor(24 * progress(s, 0.9, LIFT_S + 0.9)) * 6 * 6);
+    if (cap.current) cap.current.scale.setScalar(Math.max(0.01, progress(s, 0.6, LIFT_S + 1.5)));
   });
   return (
     <group>
-      {/* welling over the rim of the earpiece */}
-      <mesh ref={cap} position={[0.42, -0.02, 0.06]} scale={0.01}>
-        <sphereGeometry args={[0.05, 14, 10]} />
-        <meshStandardMaterial color="#4e0406" roughness={0.12} />
+      {/* the wet face of the cup, over the holes */}
+      <mesh ref={film} position={[EAR_FACE.x, EAR_FACE.y - 0.002, EAR_FACE.z]} rotation-x={Math.PI / 2} scale={0.01}>
+        <circleGeometry args={[EAR_R * 0.95, 28]} />
+        <meshStandardMaterial color="#4e0406" roughness={0.1} side={THREE.DoubleSide} />
       </mesh>
       <mesh geometry={run}>
         <meshStandardMaterial color="#560509" roughness={0.12} metalness={0.05} />
+      </mesh>
+      {/* gathering on the lower lip, where it drips from */}
+      <mesh ref={cap} position={[EAR_LIP.x, EAR_LIP.y, EAR_LIP.z]} scale={0.01}>
+        <sphereGeometry args={[0.022, 12, 10]} />
+        <meshStandardMaterial color="#4e0406" roughness={0.12} />
       </mesh>
     </group>
   );
 }
 
-/** The drops that fall from the bottom of the lifted handset, and the pool they make. */
+/** The drops that fall from the earpiece of the lifted handset, and the pool they make. */
 function Drips({ since, from }: { since: () => number; from: THREE.Vector3 }) {
   const drops = useRef<(THREE.Mesh | null)[]>([]);
   const pool = useRef<THREE.Mesh>(null);
-  const START = LIFT_S + 2.2;
+  const START = LIFT_S + 2.0;
   useFrame(() => {
     const s = since();
     const fall = from.y - TABLE_Y;
@@ -217,8 +233,8 @@ function Drips({ since, from }: { since: () => number; from: THREE.Vector3 }) {
 /**
  * The telephone (Requirement 21): the handset rattles in its cradle while it rings. Taken, the
  * receiver is picked up by no one, at the speed a hand would lift it, all the way up and
- * upright, held to an ear that is not there; then blood comes out of the earpiece, runs down
- * the receiver and drips off the bottom of it, drop by drop, onto the table. The dial is not
+ * upright, held to an ear that is not there; then blood comes out of the earpiece holes, runs
+ * down the face of the cup and drips off its edge, drop by drop, onto the table. The dial is not
  * touched by it; someone unseen keeps trying the dial, a little this way, a little that way.
  */
 export default function Telephone({ open = false }: { open?: boolean }) {
@@ -240,10 +256,10 @@ export default function Telephone({ open = false }: { open?: boolean }) {
     },
     [body, wheelGeo, handle],
   );
-  // where the drops fall from: the bottom of the lifted handset (its mouthpiece end)
+  // where the drops fall from: the lower lip of the earpiece's face, the handset lifted
   const dripFrom = useMemo(() => {
     const m = new THREE.Matrix4().compose(LIFTED, new THREE.Quaternion().setFromEuler(LIFTED_ROT), new V3(1, 1, 1));
-    return new V3(-0.48, -0.06, 0).applyMatrix4(m);
+    return EAR_LIP.clone().add(new V3(0, -0.012, 0)).applyMatrix4(m);
   }, []);
   useFrame((st) => {
     const h = handset.current;

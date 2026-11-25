@@ -14,8 +14,11 @@ import { progress, useTaken } from '../../gl/useTaken';
  */
 const NECK_Y = 0.11;
 const FLOOR = -0.79;
-/** When the blade goes through, in seconds after the take (the stroke on screen lands at 0.2 s). */
-const CUT_AT = 0.22;
+/**
+ * When the blade goes through, in seconds after the take: the stroke on screen starts at 0.12 s
+ * and crosses the throat (the middle of the picture) at about 0.19 s; the neck parts right then.
+ */
+const CUT_AT = 0.19;
 const GRAV = 3.2;
 
 const BODY: [number, number, number, number][] = [
@@ -111,8 +114,10 @@ export function TeddyBear() {
     const s = since();
     const t = s === Infinity ? 9 : s - CUT_AT;
     if (t <= 0) return;
-    // the head: it slides off down the cut (to its right, a little down), tips, falls, bounces, rolls
-    const slide = progress(t, 0.2);
+    // the head: it slides off down the cut (to its right, a little down), tips, falls, bounces,
+    // rolls. The slide starts at full speed, so the neck is seen to part the instant the blade is through.
+    const k = Math.min(1, t / 0.16);
+    const slide = 1 - (1 - k) ** 3;
     const fall = Math.min(1, Math.max(0, (t - 0.18) / 0.42));
     const roll = progress(t, 0.55, 0.6);
     const bounce = t > 0.6 && t < 0.95 ? Math.sin(((t - 0.6) / 0.35) * Math.PI) * 0.06 : 0;

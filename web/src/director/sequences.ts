@@ -125,7 +125,7 @@ export async function acceptedSequence(): Promise<void> {
   if (left) void sendEcho(left);
   decayUniforms.uDecay.value = 0;
   dispatch({ type: 'RETURN_DONE' });
-  set({ quiet: false, acceptedShown: false, flyPerch: null, prints: [], batPerch: 'hero-echo', flags: {} });
+  set({ quiet: false, acceptedShown: false, prints: [], batPerch: 'hero-echo', flags: {} });
   glBus.invalidate();
   nav.go('/');
   window.scrollTo({ top: 0 });

@@ -13,9 +13,9 @@ test('search, category, product view, cart and the paused Day checkout (Req 3–
 
   await page.getByRole('button', { name: /Sweets/ }).first().click();
   await expect(page).toHaveURL(/cat=sweets/);
-  await expect(page.getByTestId('product-grid').getByRole('article')).toHaveCount(3);
+  await expect(page.getByTestId('product-grid').getByRole('article')).toHaveCount(2);
 
-  await page.getByRole('link', { name: 'Christmas Cream Cake' }).click();
+  await page.getByRole('link', { name: 'Festive Truffle Box, 24' }).click();
   const view = page.getByTestId('product-view');
   // The first product view on a cold dev server compiles every product model (software WebGL).
   await expect(view).toBeVisible({ timeout: 15_000 });
@@ -25,10 +25,10 @@ test('search, category, product view, cart and the paused Day checkout (Req 3–
   await expect(view).toBeHidden();
 
   await openCart(page);
-  await expect(page.getByTestId('line-cake')).toBeVisible();
-  await expect(page.getByTestId('cart-total')).toHaveText('$42.00');
+  await expect(page.getByTestId('line-chocolate-box')).toBeVisible();
+  await expect(page.getByTestId('cart-total')).toHaveText('$29.00');
   await page.getByTestId('cart-drawer').getByRole('button', { name: 'Increase quantity' }).click();
-  await expect(page.getByTestId('cart-total')).toHaveText('$84.00');
+  await expect(page.getByTestId('cart-total')).toHaveText('$58.00');
   await page.getByTestId('checkout').click();
   await expect(page.getByRole('heading', { name: 'Checkout' })).toBeVisible();
   await expect(page.getByRole('checkbox', { name: /gift wrap/ })).toBeChecked();

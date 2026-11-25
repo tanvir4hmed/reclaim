@@ -15,6 +15,40 @@ const DOWN = new THREE.Vector3(0, -1, 0);
 const tmpN = new THREE.Vector3();
 const tmpP = new THREE.Vector3();
 const tmpQ = new THREE.Quaternion();
+const REST_Q = new THREE.Quaternion().setFromEuler(new THREE.Euler(...REST));
+const aimQ = new THREE.Quaternion();
+const aimM = new THREE.Matrix4();
+const aimAt = new THREE.Vector3();
+const ORIGIN = new THREE.Vector3();
+const UP = new THREE.Vector3(0, 1, 0);
+
+/**
+ * Turns the body from its resting angle toward the viewer, `k` of the way: its lens (+z) is
+ * aimed at the camera that is looking at it, worked out in the body's parent space, so it
+ * faces you square on however the card has turned it or the product view has been orbited.
+ */
+function aimBody(body: THREE.Object3D, camera: THREE.Camera, k: number) {
+  const parent = body.parent;
+  if (!parent) return;
+  parent.updateWorldMatrix(true, false);
+  aimAt.copy(camera.position);
+  parent.worldToLocal(aimAt).sub(body.position);
+  if (aimAt.lengthSq() < 1e-6) return;
+  aimM.lookAt(aimAt, ORIGIN, UP);
+  aimQ.setFromRotationMatrix(aimM);
+  body.quaternion.copy(REST_Q).slerp(aimQ, k);
+}
+
+/** The lens cover's two leaves: how far each has slid aside (0 shut, 1 open). */
+function coverOpen(s: number, taken: boolean, haunted: boolean): number {
+  // by day the cover is open; after the Reveal it stays shut over the lens, until it is taken
+  if (!haunted) return 1;
+  if (!taken) return 0;
+  if (s === Infinity) return 0;
+  const open = clamp01((s - CAMERA.coverAt) / CAMERA.coverFor);
+  const close = clamp01((s - CAMERA.closeAt) / 0.22);
+  return open * (1 - close);
+}
 
 /** Keep only what is below the slot, wherever the camera has turned (outside the component). */
 function clipAtSlot(body: THREE.Object3D, plane: THREE.Plane) {
@@ -37,9 +71,9 @@ function enableLocalClipping(gl: THREE.WebGLRenderer) {
 function drawPrint(g: CanvasRenderingContext2D, w: number, h: number, dev: number) {
   g.fillStyle = '#ebe6da';
   g.fillRect(0, 0, w, h);
-  const x0 = 16;
-  const y0 = 16;
-  const s = w - 32;
+  const x0 = Math.round(w * 0.06);
+  const y0 = x0;
+  const s = w - 2 * x0;
   const room = g.createLinearGradient(0, y0, 0, y0 + s);
   room.addColorStop(0, '#2a2622');
   room.addColorStop(1, '#0f0d0b');
@@ -67,17 +101,20 @@ function drawPrint(g: CanvasRenderingContext2D, w: number, h: number, dev: numbe
   // developing: dark and brownish at first, clearing to the picture
   g.fillStyle = `rgba(20,14,8,${(1 - clamp01(dev)) * 0.96})`;
   g.fillRect(x0, y0, s, s);
-  g.fillStyle = '#3a3330';
-  g.font = '26px "Segoe Script", "Brush Script MT", cursive';
+  // the caption, written on the white strip in dark pen: big enough to read on the card
+  g.fillStyle = '#17110e';
+  g.font = `bold ${Math.round(w * 0.135)}px "Segoe Script", "Brush Script MT", cursive`;
   g.textAlign = 'center';
-  g.fillText('you, tonight', w / 2, h - 26);
+  g.textBaseline = 'middle';
+  g.fillText('you, tonight', w / 2, y0 + s + (h - y0 - s) / 2 + 2);
 }
 
 /**
  * Instant camera, the kind that prints its picture: a cream body, a black front with a rainbow
  * stripe, a big lens, the flash window at the top and the print slot under the lens. After the
- * Reveal a print hangs out of it. Taken: whatever way it was turned, it slowly turns to look
- * straight out of the screen at you, flashes once, and the photograph slides out of the slot.
+ * Reveal its lens cover is shut. Taken: whatever way it was turned (or you have turned it), it
+ * comes round to face you square on, the cover slides open, it flashes once, the cover shuts,
+ * and the photograph slides out of the slot.
  */
 export function InstantCamera() {
   const haunted = useHaunted();
@@ -96,17 +133,23 @@ export function InstantCamera() {
     }, 100);
     return () => clearInterval(id);
   }, [taken, since]);
-  const photo = useCanvasTexture(256, 304, (g, w, h) => drawPrint(g, w, h, taken ? dev : 1), [dev, taken]);
+  const photo = useCanvasTexture(512, 606, (g, w, h) => drawPrint(g, w, h, taken ? dev : 1), [dev, taken]);
   const gl = useThree((s) => s.gl);
+  const leaves = useRef<(THREE.Group | null)[]>([]);
   const [slotPlane] = useState(() => new THREE.Plane());
   useEffect(() => enableLocalClipping(gl), [gl]);
-  useFrame(() => {
+  useFrame((st) => {
     const s = since();
     const k = taken ? progress(s, CAMERA.turnFor, CAMERA.turnFrom) : 0;
     if (body.current) {
-      body.current.rotation.set(REST[0] * (1 - k), REST[1] * (1 - k), REST[2] * (1 - k));
       body.current.position.y = 0.18 * k;
+      // it comes round to look straight at you before it takes the picture, and keeps doing so
+      aimBody(body.current, st.camera, k);
     }
+    const c = coverOpen(s, taken, haunted);
+    leaves.current.forEach((l, i) => {
+      if (l) l.position.x = (i ? 1 : -1) * (0.125 + 0.27 * c);
+    });
     // One flash, a quarter of a second, once it is looking at you.
     const f = taken && s !== Infinity && s > CAMERA.flashAt && s < CAMERA.flashAt + 0.25 ? 1 - (s - CAMERA.flashAt) / 0.25 : 0;
     if (flashLight.current) flashLight.current.intensity = f * 30;
@@ -135,8 +178,10 @@ export function InstantCamera() {
         <mesh material={M.enamel()} position={[0, -0.24, 0]}>
           <boxGeometry args={[1.3, 0.3, 0.7]} />
         </mesh>
-        <mesh material={M.bakelite()} position={[0, 0.12, 0.36]}>
+        {/* the black front: matte, so when it faces you square on it does not mirror the room */}
+        <mesh position={[0, 0.12, 0.36]}>
           <boxGeometry args={[1.26, 0.6, 0.04]} />
+          <meshStandardMaterial color="#060505" roughness={0.75} metalness={0} envMapIntensity={0.3} />
         </mesh>
         {/* a bright steel trim along the bottom edge of the black front */}
         <mesh material={M.silver()} position={[0, -0.18, 0.385]}>
@@ -162,6 +207,38 @@ export function InstantCamera() {
         <mesh material={M.ink()} position={[0.12, 0.08, 0.488]}>
           <circleGeometry args={[0.11, 32]} />
         </mesh>
+        {/* the lens cover: two ribbed leaves in a track that slide apart to uncover the lens */}
+        <group position={[0.12, 0.08, 0.52]}>
+          {[0, 1].map((i) => (
+            <group
+              key={i}
+              ref={(g) => {
+                leaves.current[i] = g;
+              }}
+              position-x={(i ? 1 : -1) * 0.395}
+            >
+              <mesh>
+                <boxGeometry args={[0.25, 0.5, 0.016]} />
+                <meshStandardMaterial color="#0c0b0a" roughness={0.6} metalness={0.1} envMapIntensity={0.4} />
+              </mesh>
+              {[-0.08, -0.04, 0, 0.04, 0.08].map((x) => (
+                <mesh key={x} position={[x, 0, 0.01]}>
+                  <boxGeometry args={[0.012, 0.46, 0.006]} />
+                  <meshStandardMaterial color="#1a1816" roughness={0.5} metalness={0.2} envMapIntensity={0.4} />
+                </mesh>
+              ))}
+              <mesh material={M.silver()} position={[(i ? -1 : 1) * 0.123, 0, 0.004]}>
+                <boxGeometry args={[0.008, 0.5, 0.02]} />
+              </mesh>
+            </group>
+          ))}
+          {/* the track, above and below */}
+          {[0.262, -0.262].map((y) => (
+            <mesh key={y} material={M.silver()} position={[0, y, -0.004]}>
+              <boxGeometry args={[1.02, 0.022, 0.02]} />
+            </mesh>
+          ))}
+        </group>
         {/* flash window, viewfinder, shutter button */}
         <mesh position={[-0.28, 0.33, 0.385]}>
           <planeGeometry args={[0.34, 0.12]} />

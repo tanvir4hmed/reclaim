@@ -6,18 +6,21 @@ const ONLY = process.env.SCARE_IDS?.split(',');
 
 const IDS = [
   'letter',
-  'cake',
   'photo-frame',
   'typewriter',
   'advent-calendar',
-  'tin-soldier',
   'valve-radio',
   'unopened-gift',
   'rocking-chair',
   'snow-globe',
   'chocolate-box',
   'music-box',
-  'glass-ornament',
+  'hourglass',
+  'sleigh',
+  'oil-lamp',
+  'jack-in-the-box',
+  'nutcracker',
+  'spirit-board',
   'candle',
   'teddy-bear',
   'shoes',
@@ -45,7 +48,7 @@ test.describe('visual capture of the Take scares', () => {
   });
 
   // Taken from the product view: every event must play right there, not after it is closed.
-  const PV_IDS = ['shoes', 'instant-camera', 'glass-ornament', 'candle', 'teddy-bear', 'unopened-gift', 'chocolate-box', 'doll', 'telephone', 'pocket-watch', 'letter', 'mirror', 'tin-soldier'];
+  const PV_IDS = ['shoes', 'instant-camera', 'candle', 'teddy-bear', 'unopened-gift', 'chocolate-box', 'doll', 'telephone', 'pocket-watch', 'letter', 'mirror'];
 
   test('Take events play inside the product view', async ({ page }, info) => {
     test.skip(info.project.name !== 'desktop', 'desktop only');
@@ -80,7 +83,7 @@ test.describe('visual capture of the Take scares', () => {
       await page.waitForTimeout(2500);
       await page.screenshot({ path: `${OUT}/pv-${id}-d.jpeg`, type: 'jpeg', quality: 60, scale: 'css' });
       // The slow ones are still going: one more, later.
-      if (['typewriter', 'advent-calendar', 'instant-camera', 'doll', 'chocolate-box', 'telephone'].includes(id)) {
+      if (['typewriter', 'advent-calendar', 'instant-camera', 'doll', 'chocolate-box', 'telephone', 'hourglass', 'oil-lamp', 'spirit-board', 'sleigh'].includes(id)) {
         await page.waitForTimeout(4000);
         await page.screenshot({ path: `${OUT}/pv-${id}-e.jpeg`, type: 'jpeg', quality: 60, scale: 'css' });
       }
@@ -122,5 +125,75 @@ test.describe('visual capture of the Take scares', () => {
       await expect(view).toHaveCount(0, { timeout: 15_000 });
       await page.waitForTimeout(600);
     }
+  });
+
+  // A Take frame by frame, inside the product view: a burst of small shots of the picture only.
+  test('take burst', async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop' || !process.env.BURST_IDS, 'set BURST_IDS to capture');
+    test.setTimeout(600_000);
+    await fresh(page);
+    await catchBat(page, info);
+    await page.waitForTimeout(2000);
+    for (const id of (process.env.BURST_IDS?.split(',') ?? []).map((s) => s.trim()).filter(Boolean)) {
+      const link = page.locator(`.card[data-product="${id}"] .card-title a`);
+      await link.evaluate((el) => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+      await page.waitForTimeout(500);
+      await link.evaluate((el) => (el as HTMLElement).click());
+      const view = page.getByTestId('product-view');
+      await expect(view).toBeVisible({ timeout: 15_000 });
+      await page.waitForTimeout(4000);
+      const box = await page.getByTestId('inspection-canvas').boundingBox();
+      await page.getByTestId('pv-add').click();
+      const t0 = Date.now();
+      for (let i = 0; i < Number(process.env.BURST_N ?? 6); i++) {
+        const t = ((Date.now() - t0) / 1000).toFixed(1);
+        await page.screenshot({ path: `${OUT}/burst-${id}-${String(i).padStart(2, '0')}-${t}s.jpeg`, type: 'jpeg', quality: 55, scale: 'css', ...(box ? { clip: box } : {}) });
+        await page.waitForTimeout(250);
+      }
+      await view.getByRole('button', { name: 'Close', exact: true }).click({ force: true });
+      await expect(view).toHaveCount(0, { timeout: 15_000 });
+      await page.waitForTimeout(1500);
+    }
+  });
+
+  // The haunted shop as a whole: the hero, the shelves while scrolling (the 3D must stay on its
+  // cards), the graveyard at the bottom, and the shop in the dark.
+  test('haunted shop overview', async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop' || !process.env.OVERVIEW, 'set OVERVIEW to capture');
+    test.setTimeout(300_000);
+    await fresh(page);
+    await catchBat(page, info);
+    await page.waitForTimeout(4000);
+    await page.screenshot({ path: `${OUT}/ov-hero.jpeg`, type: 'jpeg', quality: 70, scale: 'css' });
+    await page.waitForTimeout(9000);
+    await page.screenshot({ path: `${OUT}/ov-hero-b.jpeg`, type: 'jpeg', quality: 70, scale: 'css' });
+    // the shelves, scrolled by wheel in steps; shot right after each step
+    await page.mouse.move(700, 450);
+    for (let i = 0; i < 4; i++) {
+      await page.mouse.wheel(0, 380);
+      await page.waitForTimeout(120);
+      await page.screenshot({ path: `${OUT}/ov-scroll-${i}.jpeg`, type: 'jpeg', quality: 70, scale: 'css' });
+    }
+    const card = await page.evaluate(() => {
+      const el = document.querySelector('.card[data-product="candle"] [data-object="candle"]');
+      const r = el?.getBoundingClientRect();
+      return r ? { top: r.top, left: r.left, w: r.width, h: r.height, sy: window.scrollY } : null;
+    });
+    console.log('candle card', JSON.stringify(card));
+    // the bottom of the shop: the graveyard and its skeletons
+    await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' }));
+    await page.waitForTimeout(2500);
+    await page.screenshot({ path: `${OUT}/ov-bottom.jpeg`, type: 'jpeg', quality: 70, scale: 'css' });
+    await page.waitForTimeout(3000);
+    await page.screenshot({ path: `${OUT}/ov-bottom-b.jpeg`, type: 'jpeg', quality: 70, scale: 'css' });
+    // the grid in the dark (the lights fail): nothing on the shelves may glow on its own
+    await page.evaluate(() => window.scrollTo({ top: 900, behavior: 'instant' }));
+    await page.waitForTimeout(800);
+    await page.evaluate(() => {
+      const d = document.querySelector<HTMLElement>('.darkness');
+      if (d) d.style.opacity = '0.85';
+    });
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: `${OUT}/ov-dark.jpeg`, type: 'jpeg', quality: 70, scale: 'css' });
   });
 });

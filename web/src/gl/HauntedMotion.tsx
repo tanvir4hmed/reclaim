@@ -7,7 +7,7 @@ import { useHaunted } from '../store';
 
 /**
  * After the Reveal nothing on the shelves is quite still (Requirement 31, haunted idle life).
- * Each object moves the way its owner would have made it move: the soldier turns to look, the
+ * Each object moves the way its owner would have made it move: the nutcracker turns to look, the
  * gift knocks from inside, the phone trembles before it rings. Motion is small and deniable,
  * comes in short bursts with long quiet gaps, and is off under reduced motion.
  * The doll is deliberately still: she only looks once you take her (her model). The watch
@@ -41,13 +41,10 @@ const MOTION: Partial<Record<ProductId, (t: number) => Pose>> = {
   // The music box rattles, the tune trying to start.
   'music-box': (t) => ({ rx: shake(t, 48) * burst(t, 8, 0.7, 0.2) * 0.035 }),
   'chocolate-box': (t) => ({ y: burst(t, 9, 0.4, 0.8) * 0.02 }),
-  // The soldier turns his head to the visitor, stiff, in steps, then back to attention.
-  'tin-soldier': (t) => ({ ry: Math.round(burst(t, 9, 4, 0.4) * 5) / 5 * 0.55 }),
   // The shoes shuffle a step toward the door and back.
   shoes: (t) => ({ x: burst(t, 10, 2, 0.7) * 0.06, rz: shake(t, 9) * burst(t, 10, 2, 0.7) * 0.02 }),
   // The frame hangs crooked and keeps swinging, though no one touched it.
   'photo-frame': (t) => ({ rz: Math.sin(t * 0.9) * 0.05 }),
-  'glass-ornament': (t) => ({ ry: t * 0.25, rz: Math.sin(t * 0.7) * 0.06 }),
   // The globe turns slowly, keeping its burnt house facing you.
   'snow-globe': (t) => ({ ry: Math.sin(t * 0.35) * 0.35 }),
   'valve-radio': (t) => ({ s: 1 + Math.sin(t * 50) * 0.002 + burst(t, 7, 0.5, 0.1) * 0.01 }),
@@ -56,8 +53,18 @@ const MOTION: Partial<Record<ProductId, (t: number) => Pose>> = {
   letter: (t) => ({ rx: Math.sin(t * 2.1) * 0.03 * burst(t, 6, 2.5, 0.2) }),
   'advent-calendar': (t) => ({ rz: burst(t, 9, 3, 0.6) * 0.04 }),
   'childs-drawing': (t) => ({ rx: Math.sin(t * 1.3) * 0.04 }),
-  cake: (t) => ({ s: 1 - burst(t, 11, 3, 0.5) * 0.015 }),
   candle: (t) => ({ rz: Math.sin(t * 0.8) * 0.015 }),
+  // The hourglass leans, as if something inside shifted its weight.
+  hourglass: (t) => ({ rz: burst(t, 9, 2.4, 0.3) * 0.03 }),
+  // The sleigh creeps forward an inch and settles back.
+  sleigh: (t) => ({ x: burst(t, 10, 2.2, 0.5) * 0.04 }),
+  // The lamp rocks on its base, the lid rattling.
+  'oil-lamp': (t) => ({ rz: shake(t, 36) * burst(t, 7, 0.6, 0.4) * 0.03 }),
+  // The box twitches: the lid straining against the latch.
+  'jack-in-the-box': (t) => ({ y: burst(t, 6.5, 0.35, 0.7) * 0.03 }),
+  // The guard turns his head a little toward you, then back to attention.
+  nutcracker: (t) => ({ ry: burst(t, 8, 3, 0.2) * 0.18 }),
+  // The board is still; only the pointer drifts (in the model).
 };
 
 export function HauntedMotion({ id, children }: { id: ProductId; children: ReactNode }) {

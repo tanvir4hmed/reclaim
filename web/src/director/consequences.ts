@@ -3,6 +3,7 @@ import { fx } from '../fx/fxStore';
 import { reducedMotion, wait } from './runtime';
 import { markWatchTaken } from '../products/pocket-watch/watchClock';
 import { CAMERA } from '../products/small/cameraTiming';
+import { TAKE_MS } from '../products/takeTiming';
 
 const cartedAt: Partial<Record<ProductId, number>> = {};
 
@@ -41,7 +42,7 @@ async function candle() {
       fx().unflag('candle-dark');
     })();
   }
-  await wait(reducedMotion() ? 0 : 5000);
+  await wait(reducedMotion() ? 0 : 5600);
 }
 
 /** Every door on the shelves slams shut; the calendar's own view stays open to watch (Tier A). */
@@ -59,8 +60,8 @@ async function camera() {
 /** The music stops dead; the skulls come out, and the biggest one comes at you. */
 async function musicBox() {
   fx().set({ quiet: true });
-  // long enough for the skull to leave its spring (0.45 s) and fly past you (1.4 s more)
-  await scare('music-box', 2100);
+  // long enough for the skull to leave its spring (0.45 s) and fly past you (0.85 s more)
+  await scare('music-box', 1500);
   fx().set({ quiet: false });
 }
 
@@ -109,16 +110,9 @@ const CONSEQUENCES: Partial<Record<ProductId, () => Promise<void>>> = {
   typewriter: () => flag('typewriter-carted', 3000),
   // She is standing in the middle of the family (in the model).
   'photo-frame': () => flag('photo-shift', 3000),
-  // One bite, far too wide; the fly leaves for the search bar.
-  cake: async () => {
-    fx().set({ flyPerch: '#site-search' });
-    await flag('fly-takeoff', 2000);
-  },
   telephone,
   // Today is crossed out on the calendar (in the model); every door slams shut.
   'advent-calendar': advent,
-  // He snaps in two at 90 degrees (in the model); the others march off the footer.
-  'tin-soldier': () => flag('soldiers-march', reducedMotion() ? 800 : 7000),
   // Someone unseen tunes it, station by station, to the red mark (in the model); roll call.
   'valve-radio': () => flag('roll-call', 4000),
   // It turns to look at you, flashes once, and prints the picture (in the model).
@@ -131,8 +125,6 @@ const CONSEQUENCES: Partial<Record<ProductId, () => Promise<void>>> = {
   'music-box': musicBox,
   // A sword stroke flashes across the window; its head comes off and falls (in the model).
   'teddy-bear': withScare('teddy-bear', 2400),
-  // She is inside the bauble the instant you take it (in the model).
-  'glass-ornament': () => flag('ornament-ghost', 1500),
   // It goes out; its smoke becomes a ghost and drifts away; the light it gave is gone.
   candle,
   // A black ghost is trapped inside, throwing itself at the glass (in the model).
@@ -140,7 +132,19 @@ const CONSEQUENCES: Partial<Record<ProductId, () => Promise<void>>> = {
   'childs-drawing': withScare('childs-drawing', 3800),
   // Every truffle is a tiny skull now, face up in its cup, bloody (in the model).
   'chocolate-box': () => flag('heads', 1500),
+  // The new pieces: each Take plays in its own model; the Stage is held while it does.
+  hourglass: hold(TAKE_MS.hourglass),
+  sleigh: hold(TAKE_MS.sleigh),
+  'oil-lamp': hold(TAKE_MS['oil-lamp']),
+  'jack-in-the-box': hold(TAKE_MS['jack-in-the-box']),
+  nutcracker: hold(TAKE_MS.nutcracker),
+  'spirit-board': hold(TAKE_MS['spirit-board']),
 };
+
+/** Holds the Stage for a Take that happens entirely in the model (none under reduced motion). */
+function hold(ms: number): () => Promise<void> {
+  return () => (reducedMotion() ? Promise.resolve() : wait(ms));
+}
 
 /** The gift: the lid blows off and a bat that was shut in the box bursts out of the card. */
 async function giftBat() {

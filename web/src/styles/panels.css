@@ -219,6 +219,22 @@ dialog::backdrop {
   touch-action: none;
 }
 
+/* Shown once the camera has framed the object, so it never jumps into place (gl/InspectionCanvas). */
+.inspection-canvas > div {
+  opacity: 0;
+  transition: opacity 0.18s ease-out;
+}
+
+.inspection-canvas[data-fitted='true'] > div {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inspection-canvas > div {
+    transition: none;
+  }
+}
+
 .pv-info {
   display: grid;
   gap: 12px;

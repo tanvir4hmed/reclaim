@@ -56,6 +56,13 @@
   scroll-margin-top: 90px;
 }
 
+/* The shelves take the column they are given: a card's content (a long title, a live 3D box)
+   must never widen the track, or the whole grid reflows and nothing on it holds still. */
+.shop-main,
+.grid > li {
+  min-width: 0;
+}
+
 .sidebar {
   position: sticky;
   top: 90px;

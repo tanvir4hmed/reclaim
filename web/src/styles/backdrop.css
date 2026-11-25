@@ -50,16 +50,161 @@
   background: linear-gradient(180deg, rgb(8 6 7 / 0.88) 0%, rgb(8 6 7 / 0.7) 30%, rgb(8 6 7 / 0.45) 70%, rgb(8 6 7 / 0.2) 100%);
 }
 
-/* The graveyard along the bottom of the scene, right-aligned so the graves stay round the lantern. */
-.shop-graveyard {
+/* The graveyard along the bottom of the scene, right-aligned so the graves stay round the lantern.
+   The skeletons' SVG (shop/world/GraveSkeletons) has the same box; its viewBox is the canvas's
+   1600 x 420 and 'xMaxYMax slice' crops it the way cover + 100% 100% crops the canvas, so the
+   bones stay on the painted ground at any width. */
+.shop-graveyard,
+.grave-bones {
   position: absolute;
   left: 0;
   bottom: 0;
   width: 100%;
   height: clamp(200px, 26.25vw, 460px);
+}
+
+.shop-graveyard {
   object-fit: cover;
   object-position: 100% 100%;
 }
+
+.grave-bones {
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* The exhumation, a 6 s loop: lean back and heave, the buried one comes up a few units, slips
+   back a little, heave again, then it sinks back. Earth falls off it at each heave. All parts
+   share one timeline; pivots are in the figure's own units. */
+.gs-heave,
+.gs-risen,
+.gs-reach,
+.gs-strain {
+  transform-box: view-box;
+  animation: 6s ease-in-out infinite;
+}
+
+.gs-heave { animation-name: gsHeave; }
+.gs-risen { animation-name: gsRise; }
+.gs-reach { transform-origin: 7px -17px; animation-name: gsReach; }
+.gs-strain { transform-origin: -1.5px -52px; animation-name: gsStrain; }
+
+@keyframes gsHeave {
+  0%, 6% { transform: rotate(0deg); }
+  28%, 36% { transform: rotate(7deg); }
+  48% { transform: rotate(3deg); }
+  70%, 78% { transform: rotate(8deg); }
+  92%, 100% { transform: rotate(0deg); }
+}
+
+@keyframes gsRise {
+  0%, 6% { transform: translateY(0); }
+  28%, 36% { transform: translateY(-5px); }
+  48% { transform: translateY(-2px); }
+  70%, 78% { transform: translateY(-6px); }
+  92%, 100% { transform: translateY(0); }
+}
+
+@keyframes gsReach {
+  0%, 6% { transform: rotate(0deg); }
+  28%, 36% { transform: rotate(4deg); }
+  48% { transform: rotate(1.5deg); }
+  70%, 78% { transform: rotate(4.5deg); }
+  92%, 100% { transform: rotate(0deg); }
+}
+
+@keyframes gsStrain {
+  0%, 6% { transform: rotate(0deg); }
+  28%, 36% { transform: rotate(5deg); }
+  48% { transform: rotate(1deg); }
+  70%, 78% { transform: rotate(6deg); }
+  92%, 100% { transform: rotate(0deg); }
+}
+
+.gs-clod {
+  opacity: 0;
+  animation: gsClod 6s ease-in infinite;
+}
+
+@keyframes gsClod {
+  0% { opacity: 0; transform: translate(0, 0); }
+  4% { opacity: 1; }
+  16% { opacity: 1; transform: translate(var(--dx, 0px), 14px); }
+  18%, 100% { opacity: 0; transform: translate(var(--dx, 0px), 14px); }
+}
+
+/* The crawler: 40 s from just short of the lantern to a quarter of the width further left
+   (--crawl-from / --crawl-to, measured in GraveSkeletons), fading in and out at the ends.
+   Each arm reaches, digs in, pulls back and lifts over 3.6 s; the far arm half a beat behind. */
+.gs-crawl {
+  animation: gsCrawl 40s linear infinite;
+}
+
+@keyframes gsCrawl {
+  0% { transform: translateX(var(--crawl-from)); opacity: 0; }
+  7%, 92% { opacity: 1; }
+  100% { transform: translateX(var(--crawl-to)); opacity: 0; }
+}
+
+.gs-body,
+.gs-drag,
+.gs-crawl-head,
+.gs-arm-upper,
+.gs-arm-fore {
+  transform-box: view-box;
+}
+
+.gs-body { animation: gsSurge 1.8s ease-in-out infinite; }
+.gs-drag { transform-origin: 40px -17px; animation: gsDrag 1.8s ease-in-out -0.6s infinite; }
+.gs-crawl-head { transform-origin: 9px -15px; animation: gsNod 3.6s ease-in-out infinite; }
+.gs-arm-upper { transform-origin: 16px -16px; animation: gsUpper 3.6s ease-in-out infinite; }
+.gs-arm-fore { transform-origin: 6px -2px; animation: gsFore 3.6s ease-in-out infinite; }
+.gs-arm-far :is(.gs-arm-upper, .gs-arm-fore) { animation-delay: -1.8s; }
+
+@keyframes gsSurge {
+  0%, 100% { transform: translate(0, 0); }
+  55% { transform: translate(-2.5px, -0.8px); }
+}
+
+@keyframes gsDrag {
+  0%, 100% { transform: rotate(-2deg); }
+  50% { transform: rotate(3deg); }
+}
+
+@keyframes gsNod {
+  0%, 100% { transform: rotate(2deg); }
+  45%, 55% { transform: rotate(-4deg); }
+}
+
+@keyframes gsUpper {
+  0%, 10% { transform: rotate(0deg); }
+  60%, 68% { transform: rotate(-61deg); }
+  80% { transform: rotate(-40deg); }
+  92% { transform: rotate(-12deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@keyframes gsFore {
+  0%, 10% { transform: rotate(0deg); }
+  60%, 68% { transform: rotate(61deg); }
+  80% { transform: rotate(60deg); }
+  92% { transform: rotate(28deg); }
+  100% { transform: rotate(0deg); }
+}
+
+/* Still poses (the visitor's reduced-motion setting): caught mid-heave, the crawler halfway,
+   one arm reaching and one pulled back. */
+[data-still='true'] :is(.gs-heave, .gs-risen, .gs-reach, .gs-strain, .gs-clod, .gs-crawl, .gs-body, .gs-drag, .gs-crawl-head, .gs-arm-upper, .gs-arm-fore) {
+  animation: none;
+}
+
+[data-still='true'] .gs-heave { transform: rotate(7deg); }
+[data-still='true'] .gs-risen { transform: translateY(-5px); }
+[data-still='true'] .gs-reach { transform: rotate(4deg); }
+[data-still='true'] .gs-strain { transform: rotate(5deg); }
+[data-still='true'] .gs-crawl { transform: translateX(var(--crawl-mid)); opacity: 1; }
+[data-still='true'] .gs-arm-far .gs-arm-upper { transform: rotate(-61deg); }
+[data-still='true'] .gs-arm-far .gs-arm-fore { transform: rotate(61deg); }
 
 /* The lantern sits among the graves on the right, at the size it had as a grid cell. */
 .shop-pumpkin {
@@ -84,4 +229,24 @@
   .shop-backdrop-fire {
     animation: none;
   }
+  .gs-heave,
+  .gs-risen,
+  .gs-reach,
+  .gs-strain,
+  .gs-clod,
+  .gs-crawl,
+  .gs-body,
+  .gs-drag,
+  .gs-crawl-head,
+  .gs-arm-upper,
+  .gs-arm-fore {
+    animation: none;
+  }
+  .gs-heave { transform: rotate(7deg); }
+  .gs-risen { transform: translateY(-5px); }
+  .gs-reach { transform: rotate(4deg); }
+  .gs-strain { transform: rotate(5deg); }
+  .gs-crawl { transform: translateX(var(--crawl-mid)); opacity: 1; }
+  .gs-arm-far .gs-arm-upper { transform: rotate(-61deg); }
+  .gs-arm-far .gs-arm-fore { transform: rotate(61deg); }
 }

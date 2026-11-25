@@ -254,6 +254,8 @@ No real payments, accounts or personal data. All objects, effects and sound are 
 
 ### Requirement 20: Cake
 
+_Withdrawn on 2026-11-25 at the owner's request (round 12): the cake, the tin soldier and the glass ornament were removed, and an hourglass, a sleigh and reindeer, an oil lamp, a jack-in-the-box, a nutcracker and a talking board were added (see `docs/prompts/round-12-feedback.md`)._
+
 1. THE Day cake SHALL be fresh, with cream and berries.
 2. THE Haunted cake SHALL be collapsed and rotted, with an unmistakably nonhuman bite, and a fly that flicks its wings.
 3. WHEN carted in the Haunted state, THE fly SHALL leave the product tile and settle on a part of the shop UI (for example the search field or header), staying there and moving off briefly when the pointer comes near.

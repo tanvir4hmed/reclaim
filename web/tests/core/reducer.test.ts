@@ -49,7 +49,7 @@ describe('story walk-through', () => {
 
   it('does not let the Day checkout complete', () => {
     const { state } = run([
-      { type: 'ADD_TO_CART', id: 'cake' },
+      { type: 'ADD_TO_CART', id: 'candle' },
       { type: 'OPEN_CHECKOUT' },
       { type: 'SET_AGREEMENT', agreed: true },
       { type: 'ACCEPT' },
@@ -74,7 +74,7 @@ describe('story walk-through', () => {
     const { state, cues } = run([
       { type: 'BAT_CAUGHT' },
       { type: 'REVEAL_DONE' },
-      { type: 'ADD_TO_CART', id: 'cake' },
+      { type: 'ADD_TO_CART', id: 'candle' },
       { type: 'OPEN_CHECKOUT' },
       { type: 'CLOSING_DONE' },
       { type: 'DECLINE' },

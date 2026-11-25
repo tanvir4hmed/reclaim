@@ -70,7 +70,7 @@ describe('Echo service', () => {
     const app = await make(3);
     const codes: number[] = [];
     for (let i = 0; i < 5; i++) {
-      codes.push((await app.inject({ method: 'POST', url: '/api/echo', payload: { product: 'cake', condition: 'taken' } })).statusCode);
+      codes.push((await app.inject({ method: 'POST', url: '/api/echo', payload: { product: 'candle', condition: 'taken' } })).statusCode);
     }
     expect(codes).toEqual([201, 201, 201, 429, 429]);
   });

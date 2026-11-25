@@ -123,11 +123,6 @@
   }
 }
 
-.decal-blood-print,
-.decal-drag {
-  fill: #5d0b10;
-}
-
 .decal-ash {
   fill: #6c6862;
 }
@@ -559,7 +554,7 @@
 .darkness {
   position: fixed;
   inset: 0;
-  z-index: 2;
+  z-index: 4;
   background: radial-gradient(ellipse at 50% 40%, rgb(4 6 12 / 0.85), #020306);
   pointer-events: none;
   transition: opacity 0.12s linear;
@@ -737,50 +732,6 @@
 .hand-gone {
   opacity: 0;
   transition: opacity 0.8s;
-}
-
-/* The fly: big enough to see it is a fly, dark on light and light-rimmed on dark. */
-.fly {
-  position: fixed;
-  z-index: 12;
-  width: 26px;
-  height: 22px;
-  translate: -50% -50%;
-  pointer-events: none;
-  transition: transform 0.25s;
-  filter: drop-shadow(0 0 1px rgb(255 240 220 / 0.6)) drop-shadow(0 2px 2px rgb(0 0 0 / 0.5));
-}
-
-.fly.dodge {
-  transform: translate(26px, -22px);
-}
-
-.fly.is-flying {
-  z-index: 2147482500;
-  transition: none;
-  transform: rotate(var(--fly-turn, 0deg));
-}
-
-.fly-wing {
-  fill: rgb(200 210 220 / 0.45);
-  transform-box: fill-box;
-  transform-origin: 50% 20%;
-  animation: flick 2.6s steps(2) infinite;
-}
-
-/* in flight the wings are a buzzing blur */
-.fly.is-flying .fly-wing {
-  animation: buzz 0.05s linear infinite alternate;
-  fill: rgb(200 210 220 / 0.3);
-}
-
-@keyframes buzz {
-  to { transform: scaleY(-0.7); }
-}
-
-@keyframes flick {
-  92% { transform: scaleY(1); }
-  96% { transform: scaleY(-0.6); }
 }
 
 .closing {
@@ -971,8 +922,27 @@
   animation: rise 0.3s var(--ease);
 }
 
-.shop-canvas {
+/* The shop canvas scrolls with the page (gl/ShopCanvas `Slide`); the clip keeps it from
+   making the page any longer than its content. (160vh only until the first frame sizes it.) */
+#root {
+  position: relative;
+}
+
+.shop-canvas-clip {
+  position: absolute;
+  inset: 0;
   z-index: 3;
+  overflow: clip;
+  pointer-events: none;
+}
+
+.shop-canvas-slide {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 160vh;
+  will-change: transform;
 }
 
 /* Two claw marks raked across the screen as the bat goes over (they stay as the shop turns). */

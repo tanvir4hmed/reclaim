@@ -34,13 +34,6 @@ export function FootprintShape({ foot }: { foot: 'left' | 'right' }) {
 const SHAPES: Record<string, (rot: number) => ReactElement> = {
   footprint: () => <FootprintShape foot="left" />,
   'footprint-r': () => <FootprintShape foot="right" />,
-  'blood-print': () => (
-    <g>
-      <ellipse cx="0" cy="0" rx="5" ry="7" />
-      <ellipse cx="-1" cy="-9" rx="2.4" ry="3" opacity="0.8" />
-    </g>
-  ),
-  drag: () => <rect x="-30" y="-2" width="60" height="4" rx="2" opacity="0.55" />,
   ash: () => <ellipse cx="0" cy="0" rx="40" ry="3" opacity="0.5" />,
   wax: () => <path d="M-4 0 q2 8 0 14 q4 -2 4 -14 z" />,
   stuffing: () => <circle r="5" opacity="0.85" />,
@@ -89,11 +82,15 @@ export function Decals() {
 function PageDecals({ marks, prints }: { marks: readonly Mark[]; prints: readonly Print[] }) {
   return (
     <svg className="decals" aria-hidden="true" data-testid="decals">
-      {marks.map((m) => (
-        <g key={m.id} className={`decal decal-${m.kind}`} transform={`translate(${m.x} ${m.y}) rotate(${(m.rotation * 180) / Math.PI}) scale(${m.scale})`}>
-          {(SHAPES[m.kind] ?? SHAPES.ash)!(m.rotation)}
-        </g>
-      ))}
+      {marks.map((m) => {
+        // Kinds no longer drawn (the hand's old blood spots) are skipped, even in a saved story.
+        const shape = SHAPES[m.kind];
+        return shape ? (
+          <g key={m.id} className={`decal decal-${m.kind}`} transform={`translate(${m.x} ${m.y}) rotate(${(m.rotation * 180) / Math.PI}) scale(${m.scale})`}>
+            {shape(m.rotation)}
+          </g>
+        ) : null;
+      })}
       <Prints prints={prints} />
     </svg>
   );

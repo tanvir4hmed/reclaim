@@ -75,43 +75,6 @@
   50% { transform: scale(0.985); filter: brightness(0.6); }
 }
 
-.footer-soldiers {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: -18px;
-  height: 18px;
-  pointer-events: none;
-  overflow: visible;
-}
-
-.soldier {
-  position: absolute;
-  bottom: 0;
-  width: 8px;
-  height: 18px;
-  border-radius: 2px 2px 1px 1px;
-  background: linear-gradient(#141210 0 30%, #e6c9a8 30% 42%, #b8392f 42% 72%, #24407a 72%);
-}
-
-.soldier.marching {
-  left: -20px;
-  animation: march 4.5s linear forwards;
-}
-
-@keyframes march {
-  0% { left: -20px; transform: none; }
-  80% { left: calc(100% - 30px); transform: rotate(0deg); }
-  90% { left: calc(100% - 10px); transform: rotate(40deg) translateY(10px); opacity: 1; }
-  100% { left: calc(100% - 10px); transform: rotate(90deg) translateY(40px); opacity: 0; }
-}
-
-.soldier.fallen {
-  right: 24px;
-  transform: rotate(90deg);
-  transform-origin: 50% 100%;
-}
-
 .hidden-mitten {
   position: absolute;
   z-index: 5;

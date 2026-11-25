@@ -7,17 +7,17 @@ import { useHaunted, useStory } from '../../store';
 import { cartedTime } from '../../director/consequences';
 import { KEY_ROWS, confession, keyFor } from './confession';
 
-/** The sheet: smaller than before, about half of it still inside the machine at the end. */
-const PAPER_W = 0.74;
-const PAPER_H = 0.72;
-const PAPER_PX_W = 512;
+/** The sheet: wide and tall enough to read, about half of it still inside the machine at the end. */
+const PAPER_W = 1.3;
+const PAPER_H = 0.95;
+const PAPER_PX_W = 1024;
 const PAPER_PX_H = Math.round((PAPER_PX_W * PAPER_H) / PAPER_W);
 /** Texture px: the first line's baseline, the line spacing, how far it is fed at the end. */
-const TOP_MARGIN = 58;
-const LINE = 34;
+const TOP_MARGIN = 110;
+const LINE = 72;
 const FEED_END = TOP_MARGIN + 2 * LINE + 3.2 * LINE;
 /** "Please, Help!!" sits in the blank space between the last typed line and the platen. */
-const BLOOD_Y = TOP_MARGIN + 2 * LINE + 72;
+const BLOOD_Y = TOP_MARGIN + 2 * LINE + 150;
 /** The platen's top, in the carriage's frame, where the line being typed sits. */
 const PLATEN_TOP = 0.07;
 
@@ -83,13 +83,14 @@ export default function Typewriter() {
     (g, w) => {
       g.fillStyle = haunted ? '#d8c8a6' : '#f7f1e3';
       g.fillRect(0, 0, w, PAPER_PX_H);
-      g.font = '21px "Courier New", monospace';
-      g.fillStyle = '#2a1e18';
+      // big, dark, struck hard: readable at a glance on the card
+      g.font = 'bold 52px "Courier New", monospace';
+      g.fillStyle = '#0e0907';
       if (!haunted) {
-        g.fillText('Dear Santa,', 40, TOP_MARGIN);
+        g.fillText('Dear Santa,', 64, TOP_MARGIN);
         return;
       }
-      shown.forEach((l, i) => g.fillText(l, 34, TOP_MARGIN + i * LINE));
+      shown.forEach((l, i) => g.fillText(l, 56, TOP_MARGIN + i * LINE));
       if (blood > 0) {
         // "Please, Help!!" seeps up through the blank part of the sheet under the typed lines,
         // as if written with a finger on the other side: a stain first, the letters, then runs.
@@ -98,10 +99,10 @@ export default function Typewriter() {
         const y = BLOOD_Y;
         g.save();
         g.textAlign = 'center';
-        g.font = 'bold 52px "Brush Script MT", "Segoe Script", cursive';
+        g.font = 'bold 124px "Brush Script MT", "Segoe Script", cursive';
         g.globalAlpha = 0.35 * ink;
         g.fillStyle = '#7a1a12';
-        g.filter = 'blur(5px)';
+        g.filter = 'blur(7px)';
         g.fillText('Please, Help!!', w / 2, y);
         g.filter = 'none';
         g.globalAlpha = ink;
@@ -111,11 +112,11 @@ export default function Typewriter() {
         const run = Math.max(0, (a - 0.45) / 0.55);
         for (let i = 0; i < 10; i++) {
           const x = w * 0.18 + i * w * 0.07;
-          const len = (8 + ((i * 53) % 26)) * run;
+          const len = (14 + ((i * 53) % 40)) * run;
           if (len < 1) continue;
-          g.fillRect(x, y - 2, 3, len);
+          g.fillRect(x, y - 4, 6, len);
           g.beginPath();
-          g.arc(x + 1.5, y - 2 + len, 3.4, 0, Math.PI * 2);
+          g.arc(x + 3, y - 4 + len, 6.5, 0, Math.PI * 2);
           g.fill();
         }
         g.restore();

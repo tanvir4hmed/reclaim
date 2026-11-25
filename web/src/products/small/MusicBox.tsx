@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { SKULL_LAUNCH, skullLaunch } from '../../fx/scares/SkullPass';
 import { M } from '../../gl/materials';
 import { progress, useTaken } from '../../gl/useTaken';
+import { useHaunted } from '../../store';
 import { UprightSkull } from './Skull';
 import { boing, springGeometry } from './spring';
 
@@ -59,11 +60,15 @@ function SkullsOut({ since }: { since: () => number }) {
     }
     SKULLS.forEach(([, , tall, at, lean], i) => {
       const pop = progress(s, 0.22, at);
-      const h = Math.max(0.03, tall * pop * (1 + (pop > 0 ? boing(s - at, i) * 0.3 : 0)));
+      // the middle spring, once its skull has torn off, twangs back hard and keeps springing
+      // like the rest, light now, wobbling a little side to side
+      const empty = i === 0 && s >= SKULL_LAUNCH;
+      const bob = empty ? boing(s - SKULL_LAUNCH, 7) * 0.32 : pop > 0 ? boing(s - at, i) * 0.3 : 0;
+      const h = Math.max(0.03, tall * pop * (1 + bob));
       const c = coils.current[i];
       if (c) {
         c.scale.set(1, h, 1);
-        c.rotation.z = lean * pop;
+        c.rotation.z = lean * pop + (empty ? boing(s - SKULL_LAUNCH, 3) * 0.12 : 0);
       }
       const g = heads.current[i];
       if (g) {
@@ -110,6 +115,7 @@ function SkullsOut({ since }: { since: () => number }) {
  */
 export function MusicBox() {
   const { taken, since } = useTaken('music-box');
+  const haunted = useHaunted();
   const lid = useRef<THREE.Group>(null);
   useFrame(() => {
     if (lid.current) lid.current.rotation.x = taken ? -progress(since(), 0.25) * 2.1 : 0;
@@ -137,6 +143,13 @@ export function MusicBox() {
           <planeGeometry args={[1.0, 0.65]} />
         </mesh>
       </group>
+      {/* not drawn: after the Reveal, the room the springs shoot up into, so the product view frames it */}
+      {haunted && (
+        <mesh position-y={0.62}>
+          <boxGeometry args={[1.2, 1.25, 0.8]} />
+          <meshBasicMaterial visible={false} />
+        </mesh>
+      )}
       {taken && (
         <>
           <mesh position-y={0.226} rotation-x={-Math.PI / 2}>

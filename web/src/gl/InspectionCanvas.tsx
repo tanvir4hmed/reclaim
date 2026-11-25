@@ -19,9 +19,15 @@ export default function InspectionCanvas({ id, inspecting = false }: { id: Produ
   const Model = MODELS[id];
   const haunted = useHaunted();
   const [ready, setReady] = useState(false);
+  const [fitted, setFitted] = useState(false);
+  // never leave the view blank if a model has nothing to measure
+  useEffect(() => {
+    const t = window.setTimeout(() => setFitted(true), 1500);
+    return () => window.clearTimeout(t);
+  }, []);
   if (!Model) return null;
   return (
-    <div className="inspection-canvas" data-ready={ready} data-testid="inspection-canvas">
+    <div className="inspection-canvas" data-ready={ready} data-fitted={fitted} data-testid="inspection-canvas">
       <Canvas
         dpr={[1, 2]}
         gl={{ alpha: true, antialias: true }}
@@ -32,9 +38,10 @@ export default function InspectionCanvas({ id, inspecting = false }: { id: Produ
         }}
       >
         <SceneEnv />
-        <Studio distance={inspecting ? 2.2 : 2.8} fov={32} />
+        {/* the distance is only a start: Framed fits the camera to the object */}
+        <Studio distance={2.8} fov={32} />
         <Suspense fallback={null}>
-          <Framed margin={inspecting ? 1.08 : 1.32} refit={inspecting}>
+          <Framed margin={inspecting ? 1.08 : 1.32} refit={inspecting} onFitted={() => setFitted(true)}>
             <Model open />
           </Framed>
         </Suspense>
@@ -74,46 +81,74 @@ function visibleBounds(root: THREE.Object3D): THREE.Box3 {
  * moved back until the object's visible bounds fit the view with `margin` of breathing space
  * round them, and the orbit turns about the object's middle. Without this the tall objects
  * lost their tops or bottoms at the fixed distance the cards use.
+ * The first fit happens before anything is shown (the canvas fades in once framed), so the
+ * object never jumps as the view opens; a later refit (Inspect, a resize) glides there.
  */
-function Framed({ children, margin, refit }: { children: ReactNode; margin: number; refit: boolean }) {
+function Framed({ children, margin, refit, onFitted }: { children: ReactNode; margin: number; refit: boolean; onFitted: () => void }) {
   const group = useRef<THREE.Group>(null);
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
   const controls = useThree((s) => s.controls) as unknown as Orbit | null;
   const width = useThree((s) => s.size.width);
   const height = useThree((s) => s.size.height);
   const frames = useRef(0);
+  const glide = useRef<Glide | null>(null);
+  const fitted = useRef(false);
   useEffect(() => {
     frames.current = 0;
   }, [width, height, refit, controls]);
-  useFrame(() => {
+  useFrame((_, dt) => {
     const g = group.current;
-    // wait two frames, so every model has laid itself out once before it is measured
-    if (!g || frames.current > 2) return;
+    if (glide.current) glide.current = stepGlide(glide.current, camera, controls, dt);
+    // wait for the orbit controls and two frames, so every model has laid itself out once
+    if (!g || !controls || frames.current > 2) return;
     frames.current += 1;
-    if (frames.current === 2) fitCamera(g, camera, controls, width / Math.max(1, height), margin);
+    if (frames.current !== 2) return;
+    const fit = fitFor(g, camera, width / Math.max(1, height), margin);
+    if (!fit) return;
+    if (fitted.current) {
+      glide.current = { from: camera.position.clone(), fromTarget: controls.target.clone(), fit, t: 0 };
+    } else {
+      applyFit(fit, camera, controls, 1, camera.position.clone(), controls.target.clone());
+      fitted.current = true;
+      onFitted();
+    }
   });
   return <group ref={group}>{children}</group>;
 }
 
 type Orbit = { target: THREE.Vector3; update: () => void; minDistance: number; maxDistance: number };
+type Fit = { centre: THREE.Vector3; position: THREE.Vector3; dist: number };
+type Glide = { from: THREE.Vector3; fromTarget: THREE.Vector3; fit: Fit; t: number };
 
-/** Outside the component, so the React compiler rules see no mutation of hook values. */
-function fitCamera(g: THREE.Object3D, camera: THREE.PerspectiveCamera, controls: Orbit | null, aspect: number, margin: number) {
+/** Where the camera must stand to frame what is drawn, seen from `FROM`. */
+function fitFor(g: THREE.Object3D, camera: THREE.PerspectiveCamera, aspect: number, margin: number): Fit | null {
   const b = visibleBounds(g);
-  if (b.isEmpty()) return;
+  if (b.isEmpty()) return null;
   b.getCenter(centre);
   b.getSize(extent);
   const tan = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
   const fitH = ((extent.y / 2) * margin) / tan;
   const fitW = ((extent.x / 2) * margin) / (tan * aspect);
   const dist = Math.max(fitH, fitW, 1.2) + extent.z / 2;
-  camera.position.copy(centre).addScaledVector(FROM, dist);
-  camera.lookAt(centre);
+  return { centre: centre.clone(), position: centre.clone().addScaledVector(FROM, dist), dist };
+}
+
+/** Outside the component, so the React compiler rules see no mutation of hook values. */
+function applyFit(fit: Fit, camera: THREE.PerspectiveCamera, controls: Orbit, k: number, from: THREE.Vector3, fromTarget: THREE.Vector3) {
+  camera.position.lerpVectors(from, fit.position, k);
+  controls.target.lerpVectors(fromTarget, fit.centre, k);
+  camera.lookAt(controls.target);
   camera.updateProjectionMatrix();
-  if (controls) {
-    controls.target.copy(centre);
-    controls.minDistance = dist * 0.55;
-    controls.maxDistance = dist * 1.6;
-    controls.update();
-  }
+  controls.minDistance = fit.dist * 0.55;
+  controls.maxDistance = fit.dist * 1.6;
+  controls.update();
+}
+
+/** One step of the glide to a new framing (about a third of a second, eased). */
+function stepGlide(gl: Glide, camera: THREE.PerspectiveCamera, controls: Orbit | null, dt: number): Glide | null {
+  if (!controls) return null;
+  const t = Math.min(1, gl.t + dt / 0.35);
+  const k = t * t * (3 - 2 * t);
+  applyFit(gl.fit, camera, controls, k, gl.from, gl.fromTarget);
+  return t >= 1 ? null : { ...gl, t };
 }

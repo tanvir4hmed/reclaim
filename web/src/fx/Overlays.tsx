@@ -2,12 +2,12 @@ import gsap from 'gsap';
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import { LUNGE_MS } from '../director/sequences';
 import { useHaunted, useStory } from '../store';
-import { BatSvg, FLY_FACE_Y, FLY_MOUTH_Y, FLY_VB_W, FLY_W, HANG_ASPECT } from './BatSvg';
+import { BatSvg, FLY_FACE_Y, FLY_VB_W, FLY_W, HANG_ASPECT } from './BatSvg';
 import { BAT_W } from './DayBat';
 import { SkeletonHand } from './SkeletonHand';
 import { useFx } from './fxStore';
 
-/** Darkness between the DOM and the canvas: covers the UI, not flames and eyes (design z 2). */
+/** Darkness over the shop and its 3D objects alike, so nothing on the shelves glows on its own (z 4). */
 export function Darkness() {
   const mains = useFx((s) => s.mains);
   const haunted = useHaunted();
@@ -26,11 +26,9 @@ export function CatchLunge() {
   const hand = useFx((s) => s.catchHand);
   const batRef = useRef<HTMLDivElement>(null);
   const shadeRef = useRef<HTMLDivElement>(null);
-  const mawRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
     const el = batRef.current;
-    const maw = mawRef.current;
     if (!el || step !== 'lunge') return;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
@@ -44,9 +42,8 @@ export function CatchLunge() {
     el.style.width = `${final}px`;
     // Centre it in GSAP (CSS `translate` is dropped once GSAP owns the transform).
     el.style.translate = 'none';
-    // At scale 1, the face sits this far above the bat's centre, and the open mouth this far.
+    // At scale 1, the face sits this far above the bat's centre.
     const faceOff = -FLY_FACE_Y * unit;
-    const mouthOff = -FLY_MOUTH_Y * unit;
     // Where it ends, looking at you: centred, high (a third of the way down), so its spread
     // wings cover the top of the screen too.
     const faceX = vw / 2;
@@ -105,8 +102,9 @@ export function CatchLunge() {
       ease: 'none',
       onUpdate: () => {
         const t = st.t;
-        // along the path: quick off the perch, settling onto the focal point as it arrives
-        const q = 1 - Math.pow(1 - t, 1.5);
+        // along the path: quick off the perch, and still moving as it reaches you (it never
+        // stops in front of you: it keeps coming, straight on over you)
+        const q = t + 0.6 * t * (1 - t);
         const fx = bez(face0.x, p1.x, p2.x, faceX, q);
         const fy = bez(face0.y, p1.y, p2.y, faceY, q);
         // size: little change while it takes off, then a steady rush toward the glass
@@ -132,27 +130,39 @@ export function CatchLunge() {
         beat.freq = (1 - e) / 0.48 + e / 1.1;
       },
     });
-    // Then the dark comes out of it: still closing in around its open mouth, the black of
-    // its throat spreads until it covers the screen.
-    const mouthY = faceY + faceOff - mouthOff;
-    const k = { s: 1 };
+    // Then it simply goes on, over you: the same speed, still growing at the rate it was, its
+    // face rising over the top of the screen while its wings close over everything. No hold.
+    const end = { x: bez(face0.x, p1.x, p2.x, faceX, 1), y: bez(face0.y, p1.y, p2.y, faceY, 1) };
+    const near = { x: bez(face0.x, p1.x, p2.x, faceX, 0.98), y: bez(face0.y, p1.y, p2.y, faceY, 0.98) };
+    // its speed as it arrives (px/s): q advances 0.4 per unit t at the end
+    const dq = 0.02 / (0.4 * flight);
+    const vxEnd = (end.x - near.x) / dq;
+    const vyEnd = (end.y - near.y) / dq;
+    // its rate of growth as it arrives (per second), carried on so the rush does not change pace
+    const grow = (Math.log(1 / s0) * 1.5) / flight;
+    // rise: from its arrival speed to over the top of the screen by the end
+    const lift = (vyEnd * engulf + 0.32 * vh) / (engulf * engulf);
+    const k = { tau: 0 };
     tl.to(k, {
-      s: 1.6,
+      tau: engulf,
       duration: engulf,
-      ease: 'power2.in',
+      ease: 'none',
       onUpdate: () => {
-        bank *= 0.8;
-        gsap.set(el, { scale: k.s, y: mouthY + mouthOff * k.s, rotate: bank });
+        const tau = k.tau;
+        bank *= 0.85;
+        const s = Math.exp(grow * tau);
+        gsap.set(el, {
+          x: end.x + vxEnd * tau * 0.6,
+          y: end.y + vyEnd * tau - lift * tau * tau + faceOff * s,
+          scale: s,
+          rotate: bank,
+        });
       },
     });
-    if (maw) {
-      const reach = Math.hypot(vw, vh) * 1.15;
-      gsap.set(maw, { left: faceX, top: mouthY, width: reach * 2, height: reach * 2, xPercent: -50, yPercent: -50 });
-      tl.fromTo(maw, { scale: (9 * unit) / reach, opacity: 0 }, { scale: 1, opacity: 1, duration: engulf, ease: 'power2.in' }, flight);
-    }
-    // Fully black a moment before the lunge ends, so the hand-over to the dark step is seamless.
+    // The dark arrives as it covers you: fully black just before the lunge ends, so the
+    // hand-over to the dark step is seamless.
     const shade = shadeRef.current;
-    if (shade) tl.fromTo(shade, { opacity: 0 }, { opacity: 1, duration: engulf * 0.4, ease: 'power1.in' }, flight + engulf * 0.45);
+    if (shade) tl.fromTo(shade, { opacity: 0 }, { opacity: 1, duration: engulf * 0.55, ease: 'power1.in' }, flight + engulf * 0.35);
     return () => {
       tl.kill();
       beat.on = false;
@@ -182,8 +192,6 @@ export function CatchLunge() {
       >
         <BatSvg pose={pose} facing={step === 'grab' ? 'away' : 'toward'} eyes={step !== 'grab'} mouth={step === 'grab' ? 'closed' : 'snarl'} detail={step === 'lunge'} />
       </div>
-      {/* the dark that comes out of its mouth at the end of the lunge */}
-      {step === 'lunge' && <div ref={mawRef} className="lunge-maw" />}
       {hand && step === 'grab' && <SkeletonHand x={hand.x} y={hand.y} closed />}
       {step === 'dark' && <DarkEvents />}
       {(step === 'dark' || step === 'release') && <ClawMarks />}

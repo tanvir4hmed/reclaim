@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { PumpkinView } from '../../gl/Pumpkin';
 import { hasWebGL2 } from '../../gl/webgl';
+import { GraveSkeletons } from './GraveSkeletons';
 import { paintCity } from './paintCity';
 import { paintGraveyard } from './paintGraveyard';
 import { paintGround } from './paintGround';
@@ -23,7 +24,7 @@ function lanternX(yard: HTMLCanvasElement, pumpkin: HTMLElement | null): number 
  * Behind the whole haunted shop: the street it stood on, burnt out and still smouldering, and
  * at the bottom the graveyard the street ended in. Painted in code (no image files) and
  * stretched to cover the shelves; a jack-o'-lantern burns among the graves on the right, part
- * of the scene, not a thing for sale.
+ * of the scene, not a thing for sale. Skeletons are at work among the graves (GraveSkeletons).
  */
 export function ShopBackdrop() {
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -80,6 +81,7 @@ export function ShopBackdrop() {
       <div className="shop-backdrop-fire" />
       <div className="shop-backdrop-shade" />
       <canvas ref={yard} className="shop-graveyard" data-testid="graveyard" />
+      <GraveSkeletons w={YARD_W} h={YARD_H} pumpkin={pumpkin} />
       {hasWebGL2() && (
         <div ref={pumpkin} className="shop-pumpkin" data-testid="pumpkin">
           <PumpkinView />

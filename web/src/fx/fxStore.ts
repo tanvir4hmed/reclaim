@@ -21,7 +21,6 @@ interface FxStore {
   sign: 'none' | 'bulb' | 'tilt' | 'shadow';
   prints: Print[];
   cartRinging: boolean;
-  flyPerch: string | null;
   /** Product id whose card is playing its Consequence right now. */
   playing: string | null;
   /** Generic short-lived flags (e.g. 'watch-shudder', 'roll-call', 'freeze'). */
@@ -50,7 +49,6 @@ export const useFx = create<FxStore>((set) => ({
   sign: 'none',
   prints: [],
   cartRinging: false,
-  flyPerch: null,
   playing: null,
   flags: {},
   tremor: false,

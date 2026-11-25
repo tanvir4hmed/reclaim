@@ -2,11 +2,11 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { seeded } from '../../director/footprints';
-import { useCanvasTexture } from '../../gl/canvasTex';
+import { drawWitchPhoto, useCanvasTexture } from '../../gl/canvasTex';
 import { M } from '../../gl/materials';
 import { progress, useTaken } from '../../gl/useTaken';
 import { useHaunted, useStory } from '../../store';
-import { drawBloodWords, drawGhostPhoto, drawParchment, drawSealTop, drawSmear, drawSpatter } from './paper';
+import { drawBloodWords, drawParchment, drawSealTop, drawSmear, drawSpatter } from './paper';
 
 /*
  * The unsent letter (Requirement 16), rebuilt from Tanvir's two references (round 11). A wide
@@ -16,8 +16,8 @@ import { drawBloodWords, drawGhostPhoto, drawParchment, drawSealTop, drawSmear, 
  * panel and the pocket, so it is hidden by the pocket and the closed flap, and can only come
  * out through the top. Taken: the seal cracks and breaks in two, the flap swings back on its
  * fold and stays standing open behind, and then the letter slides up out of the envelope until
- * about two thirds of it shows: an old photograph of her pinned at its top left, and across the
- * middle, written in blood, REMEMBER ME?
+ * most of it shows: her old photograph pinned across its top half, and under it, written in
+ * blood, REMEMBER ME?
  */
 
 const W = 1.8;
@@ -31,10 +31,12 @@ const TIP_Y = 0.0;
 const V_Y = 0.08;
 const SEAL_R = 0.12;
 const LW = 1.37;
-const LH = 0.9;
-/** How far the letter rises: two thirds of it out above the envelope's top edge. */
-const RISE = TOP + LH / 6 - 0;
-const T = { shake: 0.0, split: 0.38, open: 0.55, openFor: 0.85, rise: 1.45, riseFor: 1.25 };
+const LH = 1.18;
+/** How far the letter rises: about six sevenths of it out above the envelope's top edge. */
+const RISE = TOP - LH / 2 + LH * 0.86;
+const T = { shake: 0.0, split: 0.26, open: 0.38, openFor: 0.6, rise: 0.95, riseFor: 0.95 };
+/** The photograph on the letter, as fractions of the sheet: centre x, top, width, height. */
+const PHOTO = { cx: 0.5, top: 0.045, w: 0.6, h: 0.5 };
 const MESSAGE = 'REMEMBER ME?';
 
 /** Flat paper part from an outline, with UVs laid across the given bounds (so a canvas maps onto it). */
@@ -151,15 +153,15 @@ export default function Letter() {
   const sealTex = useCanvasTexture(128, 128, (g, w, h) => drawSealTop(g, w, h, haunted), [haunted]);
   const letterTex = useCanvasTexture(
     1024,
-    672,
+    Math.round((1024 * LH) / LW),
     (g, w, h) => {
       drawParchment(g, w, h, 'letter', true, 41);
-      // the photograph, pinned at the top left, a shadow under it
-      const pw = w * 0.34;
-      const ph = h * 0.45;
+      // the photograph, big, across the top half, pinned at its top left, a shadow under it
+      const pw = w * PHOTO.w;
+      const ph = h * PHOTO.h;
       g.save();
-      g.translate(w * 0.045 + pw / 2, h * 0.045 + ph / 2);
-      g.rotate(-0.035);
+      g.translate(w * PHOTO.cx, h * PHOTO.top + ph / 2);
+      g.rotate(-0.03);
       g.fillStyle = 'rgba(30,18,8,0.4)';
       g.filter = 'blur(6px)';
       g.fillRect(-pw / 2 + 6, -ph / 2 + 8, pw, ph);
@@ -169,18 +171,18 @@ export default function Letter() {
       photo.height = Math.round(ph);
       const pg = photo.getContext('2d');
       if (pg) {
-        drawGhostPhoto(pg, photo.width, photo.height);
+        drawWitchPhoto(pg, photo.width, photo.height, 0.05);
         g.drawImage(photo, -pw / 2, -ph / 2);
       }
       g.restore();
       // a little blood spattered across the top right, as on the reference
       drawSpatter(g, w, h, 7, [
-        [0.66, 0.16, 7],
-        [0.72, 0.21, 4],
-        [0.9, 0.12, 3],
+        [0.86, 0.1, 6],
+        [0.9, 0.2, 3],
+        [0.12, 0.5, 3],
       ]);
-      // the one line, in blood, across the middle and right, clear of the photograph
-      drawBloodWords(g, MESSAGE, w * 0.4, h * 0.6, 118, w * 0.57, 51);
+      // the one line, in blood, across the sheet under the photograph, clear of every edge
+      drawBloodWords(g, MESSAGE, w * 0.08, h * 0.7, 132, w * 0.82, 51);
     },
     [],
   );
@@ -271,7 +273,7 @@ export default function Letter() {
       <group ref={sheet} position={[0, 0, -0.006]}>
         <mesh geometry={parts.letter}>{paper(letterTex, THREE.DoubleSide)}</mesh>
         {/* the brass pin through the photograph's top left corner */}
-        <mesh material={M.brass()} position={[-LW / 2 + LW * 0.07, LH / 2 - LH * 0.085, 0.012]}>
+        <mesh material={M.brass()} position={[-LW / 2 + LW * (PHOTO.cx - PHOTO.w / 2 + 0.04), LH / 2 - LH * (PHOTO.top + 0.04), 0.012]}>
           <sphereGeometry args={[0.017, 16, 12]} />
         </mesh>
       </group>

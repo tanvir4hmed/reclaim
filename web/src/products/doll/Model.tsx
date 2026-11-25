@@ -22,7 +22,7 @@ import { EYE, EYE_DIRS, HEAD, furBall, furRing, headGeometry, hollyLeaf, laceBan
  */
 
 /** Seconds into the Take: the head rights itself, the eyes come round, then the blood. */
-const TAKE = { straighten: 1.3, look: 1.0, lookFor: 0.8, bleed: 1.6 };
+const TAKE = { straighten: 0.95, look: 0.8, lookFor: 0.7, bleed: 1.4 };
 /** Before the take, after the Reveal, her head hangs to one side like this. */
 const TILT = { z: 0.24, x: 0.07 };
 /** Where her neck pivots. */
@@ -169,9 +169,16 @@ function drawIris(g: CanvasRenderingContext2D, w: number, h: number, haunted: bo
     g.lineTo(c + Math.cos(a) * w * 0.44, c + Math.sin(a) * w * 0.44);
     g.stroke();
   }
-  g.fillStyle = '#060404';
+  // the pupil: after the Reveal a wide black hole in the middle of the red, with a dark rim
+  if (haunted) {
+    g.fillStyle = 'rgba(20,0,0,0.85)';
+    g.beginPath();
+    g.arc(c, c, w * 0.25, 0, Math.PI * 2);
+    g.fill();
+  }
+  g.fillStyle = '#000000';
   g.beginPath();
-  g.arc(c, c, w * (haunted ? 0.12 : 0.17), 0, Math.PI * 2);
+  g.arc(c, c, w * (haunted ? 0.21 : 0.17), 0, Math.PI * 2);
   g.fill();
   g.fillStyle = 'rgba(255,255,255,0.9)';
   g.beginPath();
@@ -267,7 +274,13 @@ function Eye({ side, haunted, iris }: { side: number; haunted: boolean; iris: TH
   );
 }
 
-/** Blood running from both eyes down her face, over the chin, dripping onto the collar. */
+/** 0→1 over `dur` s after `delay`: a slow, steady seep (no rush in the middle); 1 for Infinity. */
+function seep(s: number, dur: number, delay: number): number {
+  if (s === Infinity) return 1;
+  return Math.min(1, Math.max(0, (s - delay) / dur));
+}
+
+/** Blood running slowly from both eyes down her face, over the chin, dripping onto the collar. */
 function BloodTears({ since }: { since: () => number }) {
   const runs = useMemo(
     () =>
@@ -296,7 +309,7 @@ function BloodTears({ since }: { since: () => number }) {
     const s = since();
     runs.forEach(({ g, side, j }) => {
       // slow and uneven, each run starting on its own, the way it seeped into the typewriter's paper
-      const k = progress(s, 4.5 + j * 1.5, TAKE.bleed + side * 0.4 + j * 0.9);
+      const k = seep(s, 7 + j * 2, TAKE.bleed + side * 0.4 + j * 0.9);
       g.setDrawRange(0, Math.floor(60 * k) * 6 * 6);
     });
   });

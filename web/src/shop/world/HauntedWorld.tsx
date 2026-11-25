@@ -3,12 +3,15 @@ import { seeded } from './noise';
 import { paintCity } from './paintCity';
 import { paintGround } from './paintGround';
 import { paintSky } from './paintSky';
+import { Scarecrow } from './Scarecrow';
+import { Werewolf } from './Werewolf';
 
 /**
  * The haunted hero's world (after the Reveal): the shop's street after the war. A red moon in
  * smoke, burning gothic ruins and a broken Ferris wheel, scorched snow and rubble, dead trees.
  * Painted once per size on a canvas in code (no image files); fire glow, drifting smoke and
- * rising embers are light CSS layers on top. The 3D still life stands in front of it.
+ * rising embers are light CSS layers on top. A werewolf on a ruin against the moon and a
+ * scarecrow in the field are SVG. The 3D still life stands in front of it.
  */
 export function HauntedWorld() {
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -56,9 +59,11 @@ export function HauntedWorld() {
   return (
     <div className="haunted-world" aria-hidden="true" data-testid="haunted-world">
       <canvas ref={canvas} className="world-paint" />
+      <Werewolf />
       <div className="world-fire world-fire-a" />
       <div className="world-fire world-fire-b" />
       <div className="world-smoke" />
+      <Scarecrow />
       <div className="world-embers">
         {embers.map((e, i) => (
           <span

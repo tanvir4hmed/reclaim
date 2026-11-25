@@ -41,15 +41,11 @@ test('consequences leave lasting marks (Req 12–21)', async ({ page }, info) =>
   await expect(page.getByTestId('call-subtitles')).toBeVisible();
   await page.keyboard.press('Escape');
 
-  await add(page, 'cake');
-  await expect(page.getByTestId('fly')).toBeVisible();
-
   // Lasting after reload.
   await page.waitForTimeout(12_000);
   await page.reload();
   await expect(page.getByTestId('shop-clock')).toHaveAttribute('data-direction', '-1');
   await expect(page.locator('.card[data-product="shoes"] [data-testid="shoe-prints"]')).toBeAttached();
-  await expect(page.getByTestId('fly')).toBeVisible();
 });
 
 test('haunted search summons a product that was never in the shop (Req 32.8)', async ({ page }, info) => {

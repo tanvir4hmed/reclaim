@@ -5,7 +5,6 @@ import { ClosingTime } from './ClosingTime';
 import { CrawlingHand } from './CrawlingHand';
 import { DayBat } from './DayBat';
 import { Decals } from './Decals';
-import { Fly } from './Fly';
 import { useFx } from './fxStore';
 import { HauntedBats } from './HauntedBats';
 import { Accepted, CatchLunge, Darkness } from './Overlays';
@@ -28,7 +27,6 @@ export function FxLayer() {
       </div>
       <Darkness />
       <CrawlingHand />
-      <Fly />
       <CatchLunge />
       <ClosingTime onSkip={onSkip} />
       <Accepted />

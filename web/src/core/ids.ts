@@ -1,4 +1,4 @@
-/** The nine Featured products (Requirements 13–21). */
+/** The Featured products (Requirements 13–21); the last one carted is the one left behind. */
 export const FEATURED_IDS = [
   'shoes',
   'pocket-watch',
@@ -7,18 +7,19 @@ export const FEATURED_IDS = [
   'typewriter',
   'mirror',
   'photo-frame',
-  'cake',
   'telephone',
 ] as const;
 
 /** Tier A products from the creative direction (Requirement 39). */
 export const TIER_A_IDS = [
   'advent-calendar',
-  'tin-soldier',
   'valve-radio',
   'instant-camera',
   'unopened-gift',
   'rocking-chair',
+  'hourglass',
+  'sleigh',
+  'oil-lamp',
 ] as const;
 
 /** Other shop products with anomalies (Requirement 32). */
@@ -26,9 +27,11 @@ export const AMBIENT_IDS = [
   'snow-globe',
   'chocolate-box',
   'music-box',
-  'glass-ornament',
   'candle',
   'teddy-bear',
+  'jack-in-the-box',
+  'nutcracker',
+  'spirit-board',
 ] as const;
 
 /** Products that only appear in the Haunted state (Requirement 32.8). */

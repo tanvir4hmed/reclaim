@@ -17,11 +17,14 @@ export const SKULL_LAUNCH = 0.45;
 /** Where it was on screen when it left (set by the model in the product view). */
 export const skullLaunch: { at: { x: number; y: number; size: number; when: number } | null } = { at: null };
 
+/** How long the skull takes from the box to past you (s). */
+const PASS_S = 0.85;
+
 /**
  * One of the skulls springing in the music box, the big one in the middle, comes off its
  * spring and flies out of the screen at you, from the very spot it left: small, then larger
- * as it comes (like the bat, but it never fills the screen), a judder at its closest, in the
- * middle of the screen, and on past you, gone. Its empty spring stays in the box. No flash.
+ * as it comes, straight on through the middle of the screen and over you, gone, without
+ * slowing. Its empty spring stays in the box, still springing. No flash.
  */
 export function MusicSkullPass() {
   const skull = useRef<SVGGElement>(null);
@@ -48,18 +51,18 @@ export function MusicSkullPass() {
         from = at ? { x: at.x, y: at.y, s0: at.size * 1.1 } : { x: fallback.x, y: fallback.y, s0: size * 0.12 };
         skullLaunch.at = null;
       }
-      // out (0–0.5 s), at its closest in the middle (to 0.85 s), then on past you (to 1.35 s)
-      const out = Math.min(1, t / 0.5);
-      const e = 1 - (1 - out) ** 3;
-      const past = Math.max(0, (t - 0.85) / 0.5);
-      const x = from.x + (W / 2 - from.x) * e;
-      const y = from.y + (H * 0.45 - from.y) * e - past * H * 0.1;
-      const near = 0.8 * size + (t > 0.5 ? Math.min(0.2, (t - 0.5) * 0.6) * size : 0);
-      const s = from.s0 + (near - from.s0) * e + past * 0.9 * size;
-      const judder = t > 0.5 && t < 0.85 ? Math.sin(t * 80) * 4 : 0;
-      g.setAttribute('transform', `translate(${(x + judder).toFixed(1)} ${y.toFixed(1)}) scale(${(s / 100).toFixed(3)})`);
-      g.style.opacity = String(Math.max(0, 1 - past * 1.1));
-      if (t < 1.4) raf = requestAnimationFrame(step);
+      // One unbroken flight, no pause: out of the box, through the middle of the screen and on
+      // over you, growing ever faster as it comes, gone in under a second.
+      const u = Math.min(1, t / PASS_S);
+      const mid = { x: W / 2, y: H * 0.42 };
+      const end = { x: W / 2 + (W / 2 - from.x) * 0.35, y: -H * 0.45 };
+      const v = 1 - u;
+      const x = v * v * from.x + 2 * v * u * mid.x + u * u * end.x;
+      const y = v * v * from.y + 2 * v * u * mid.y + u * u * end.y;
+      const s = from.s0 * Math.pow((2.8 * size) / from.s0, Math.pow(u, 1.25));
+      g.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${(s / 100).toFixed(3)})`);
+      g.style.opacity = String(u < 0.85 ? 1 : Math.max(0, (1 - u) / 0.15));
+      if (u < 1) raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);

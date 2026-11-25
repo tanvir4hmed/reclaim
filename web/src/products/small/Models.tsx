@@ -8,7 +8,6 @@ import { useHaunted } from '../../store';
 import { useTaken } from '../../gl/useTaken';
 import { GlobeGhost } from './GlobeGhost';
 
-export { GlassOrnament } from './Ornament';
 export { ChocolateBox } from './Chocolates';
 export { MusicBox } from './MusicBox';
 export { TeddyBear } from './Teddy';
@@ -61,27 +60,40 @@ export function Candle() {
             // a dark veil all round the card's camera (seen from inside), over everything in it
             <mesh renderOrder={5}>
               <sphereGeometry args={[6, 24, 16]} />
-              <meshBasicMaterial color="#020306" transparent opacity={0.42} depthWrite={false} depthTest={false} side={THREE.BackSide} />
+              <meshBasicMaterial color="#020306" transparent opacity={0.6} depthWrite={false} depthTest={false} side={THREE.BackSide} />
             </mesh>
           )}
         </>
       )}
       {/* not drawn: the space above the wick the smoke rises into, so the product view frames it */}
-      <mesh position-y={0.65}>
-        <boxGeometry args={[0.7, 1.6, 0.4]} />
+      <mesh position-y={0.7}>
+        <boxGeometry args={[0.7, 1.7, 0.4]} />
         <meshBasicMaterial visible={false} />
       </mesh>
     </group>
   );
 }
 
-const SMOKE_N = 340;
+const SMOKE_N = 820;
 const WICK_Y = 0.56;
-/** When (s after the take) the smoke gathers into her, holds, and goes. */
-const SMOKE = { gather: 1.1, formed: 2.3, hold: 3.6, gone: 5.2 };
+/** When (s after the take) the smoke thickens into the face, holds a moment, and rises away. */
+const SMOKE = { gather: 0.9, formed: 2.3, hold: 4.3, gone: 6.6 };
+/** The face in the smoke: its middle, and its half width and half height. */
+const FACE = { y: 1.06, rx: 0.21, ry: 0.31 };
+/** The holes in it, where there is no smoke: [x, y, rx, ry]. Eyes, the nose, the open mouth. */
+const HOLES: [number, number, number, number][] = [
+  [-0.082, 1.14, 0.046, 0.058],
+  [0.082, 1.14, 0.046, 0.058],
+  [0, 1.045, 0.018, 0.03],
+  [0, 0.905, 0.052, 0.086],
+];
 
-/** Points inside the ghost the smoke becomes, above the wick: her head, her shoulders, her
- *  arms raised a little, her body thinning back down into the thread of smoke. Hollow eyes. */
+/**
+ * Where the smoke goes: most of it thickens into a face hanging in the smoke, a long hollow
+ * face with no head round it and nothing below it but the thread of smoke going down into the
+ * wick. Its edge is ragged, and it is only smoke: where the eyes, the nose and the gaping mouth
+ * are, there is none, so they are holes you see the dark through. The rest stays in the thread.
+ */
 function ghostTargets(): THREE.Vector3[] {
   const r = (() => {
     let a = 91;
@@ -90,40 +102,32 @@ function ghostTargets(): THREE.Vector3[] {
       return a / 4294967296;
     };
   })();
-  const inside = (x: number, y: number) => {
-    // head
-    const hx = x / 0.12;
-    const hy = (y - 1.18) / 0.15;
-    if (hx * hx + hy * hy < 1) {
-      // the eyes and the mouth stay empty
-      for (const [ex, ey, er] of [
-        [-0.045, 1.2, 0.028],
-        [0.045, 1.2, 0.028],
-        [0, 1.11, 0.026],
-      ] as const)
-        if ((x - ex) ** 2 + (y - ey) ** 2 < er * er) return false;
-      return true;
-    }
-    // shoulders to waist, narrowing toward the wick
-    if (y < 1.04 && y > 0.62) {
-      const half = 0.06 + ((y - 0.62) / 0.42) * 0.2;
-      if (Math.abs(x) < half) return true;
-    }
-    // arms, out and a little up, from the shoulders
-    for (const s of [-1, 1]) {
-      const ax = x * s;
-      if (ax > 0.18 && ax < 0.42) {
-        const cy = 0.98 + (ax - 0.18) * 0.5;
-        if (Math.abs(y - cy) < 0.035 - (ax - 0.18) * 0.06) return true;
-      }
-    }
-    return false;
+  const inHole = (x: number, y: number, grow: number) =>
+    HOLES.some(([hx, hy, rx, ry]) => ((x - hx) / (rx + grow)) ** 2 + ((y - hy) / (ry + grow)) ** 2 < 1);
+  const inFace = (x: number, y: number) => {
+    // a ragged edge: the outline wavers with the angle, as smoke does
+    const ang = Math.atan2(y - FACE.y, x);
+    const edge = 1 + Math.sin(ang * 5 + 0.7) * 0.08 + Math.sin(ang * 11) * 0.05;
+    // narrower toward the chin, as a face is
+    const rx = FACE.rx * (y < FACE.y ? 0.8 + 0.2 * ((y - (FACE.y - FACE.ry)) / FACE.ry) : 1);
+    return (x / rx) ** 2 + ((y - FACE.y) / FACE.ry) ** 2 < edge * edge;
   };
   const out: THREE.Vector3[] = [];
+  while (out.length < SMOKE_N * 0.86) {
+    const x = (r() - 0.5) * 0.6;
+    const y = FACE.y - 0.38 + r() * 0.76;
+    // clear of the holes, with a little room so the soft puffs do not fill them in
+    if (inFace(x, y) && !inHole(x, y, 0.02)) {
+      // thicker round the holes, so they read as sockets and a mouth, not gaps
+      const rim = HOLES.some(([hx, hy, rx, ry]) => ((x - hx) / (rx + 0.04)) ** 2 + ((y - hy) / (ry + 0.04)) ** 2 < 1);
+      if (rim || r() < 0.72) out.push(new THREE.Vector3(x, y, (r() - 0.5) * 0.05));
+    }
+  }
+  // the thread under it, curling down into the wick
   while (out.length < SMOKE_N) {
-    const x = (r() - 0.5) * 0.9;
-    const y = 0.6 + r() * 0.75;
-    if (inside(x, y)) out.push(new THREE.Vector3(x, y, (r() - 0.5) * 0.08));
+    const t = r();
+    const y = WICK_Y + 0.04 + t * (FACE.y - FACE.ry - WICK_Y);
+    out.push(new THREE.Vector3(Math.sin(t * 9) * 0.02 * t + (r() - 0.5) * 0.02, y, (r() - 0.5) * 0.02));
   }
   return out;
 }
@@ -140,10 +144,10 @@ function drawPuff(g: CanvasRenderingContext2D, w: number, h: number) {
 }
 
 /**
- * The smoke of the candle that was blown out: it keeps coming off the wick, in a thin curling
- * thread, then the smoke above gathers into her shape, head, hollow eyes, arms, the rest of
- * her still the thread of smoke going down into the wick, as if the smoke was her all along.
- * She hangs there a moment, then drifts up and comes apart; the thread thins and stops.
+ * The smoke of the candle that was blown out: it keeps coming off the wick in a thin curling
+ * thread, and higher up, without any show, the smoke thickens into a face, a hollow one, eyes
+ * and nose and a mouth open as if calling out, all holes in the smoke. It hangs there a moment,
+ * as smoke does, then goes on rising and thins out into nothing.
  */
 function SmokeGhost({ since }: { since: () => number }) {
   const targets = useMemo(() => ghostTargets(), []);
@@ -158,8 +162,8 @@ function SmokeGhost({ since }: { since: () => number }) {
   useFrame((st) => updateSmoke(geo, targets, since(), st.clock.elapsedTime));
   return (
     <points geometry={geo}>
-      {/* big soft puffs, overlapping, so it reads as smoke and not as dots */}
-      <pointsMaterial map={puff} size={0.34} sizeAttenuation vertexColors transparent depthWrite={false} />
+      {/* small soft puffs, many of them, overlapping: smoke, with room for the holes to show */}
+      <pointsMaterial map={puff} size={0.17} sizeAttenuation vertexColors transparent depthWrite={false} />
     </points>
   );
 }
@@ -170,35 +174,37 @@ function updateSmoke(geo: THREE.BufferGeometry, targets: THREE.Vector3[], s: num
   const col = geo.attributes.color as THREE.BufferAttribute;
   const p = pos.array as Float32Array;
   const c = col.array as Float32Array;
-  // reduced motion or a reload: she has been and gone; nothing is left
+  // reduced motion or a reload: it has been and gone; nothing is left
   const t = s === Infinity ? 99 : s;
   const ease = (v: number) => v * v * (3 - 2 * v);
-  const gather = ease(Math.min(1, Math.max(0, (t - SMOKE.gather) / (SMOKE.formed - SMOKE.gather))));
   const leave = Math.min(1, Math.max(0, (t - SMOKE.hold) / (SMOKE.gone - SMOKE.hold)));
   for (let i = 0; i < SMOKE_N; i++) {
     const tg = targets[i]!;
-    // each puff leaves the wick in turn, over the first second and a half, and rises curling
-    const born = (i / SMOKE_N) * 1.5;
+    // each puff leaves the wick in turn and rises, curling, into place: the lower parts of the
+    // face first, so it seems to form upward in the smoke rather than appear
+    const born = (i / SMOKE_N) * 1.4;
     const age = Math.max(0, t - born);
     const rise = Math.min(0.9, age * 0.42);
     const curl = i * 2.399 + age * 2.2;
     const wx = Math.sin(curl) * (0.012 + rise * 0.05) + Math.sin(clock * 0.9 + i) * 0.008;
     const wz = Math.cos(curl) * (0.012 + rise * 0.04);
     const wy = WICK_Y + rise;
-    // then it is drawn into her shape, and, when she goes, drifts up and spreads out
-    const drift = leave * (0.35 + (i % 7) * 0.03);
-    const sx = (Math.sin(i * 1.7) * 0.12 + Math.sin(clock * 0.7 + i) * 0.02) * leave;
-    const x = wx + (tg.x - wx) * gather + sx;
-    const y = wy + (tg.y - wy) * gather + drift + Math.sin(clock * 1.3 + i * 0.5) * 0.006 * gather;
-    const z = wz + (tg.z - wz) * gather;
-    p[i * 3] = x;
-    p[i * 3 + 1] = y;
-    p[i * 3 + 2] = z;
+    const low = Math.min(1, Math.max(0, (tg.y - WICK_Y) / 0.8));
+    const g0 = SMOKE.gather + low * 0.5;
+    const gather = ease(Math.min(1, Math.max(0, (t - g0) / (SMOKE.formed - SMOKE.gather))));
+    // then it goes on up, slowly, spreading and thinning, the top first
+    const drift = leave * (0.28 + low * 0.18 + (i % 7) * 0.02);
+    const sx = (Math.sin(i * 1.7) * 0.09 + Math.sin(clock * 0.7 + i) * 0.02) * leave * (0.5 + low);
+    // while it hangs there it still stirs, a little, the way smoke never quite holds still
+    const stir = Math.sin(clock * 1.1 + i * 0.37) * 0.005 * gather;
+    p[i * 3] = wx + (tg.x - wx) * gather + sx + stir;
+    p[i * 3 + 1] = wy + (tg.y - wy) * gather + drift + Math.sin(clock * 1.3 + i * 0.5) * 0.004 * gather;
+    p[i * 3 + 2] = wz + (tg.z - wz) * gather;
     const seen = age > 0 ? Math.min(1, age / 0.4) : 0;
-    const a = seen * (0.07 + 0.11 * gather) * (1 - leave);
-    c[i * 4] = 0.78;
-    c[i * 4 + 1] = 0.77;
-    c[i * 4 + 2] = 0.74;
+    const a = seen * (0.05 + 0.13 * gather) * (1 - leave);
+    c[i * 4] = 0.8;
+    c[i * 4 + 1] = 0.79;
+    c[i * 4 + 2] = 0.76;
     c[i * 4 + 3] = a;
   }
   pos.needsUpdate = true;

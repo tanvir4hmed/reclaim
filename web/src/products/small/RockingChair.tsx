@@ -1,14 +1,38 @@
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
+import { mat } from '../../gl/decay';
 import { M } from '../../gl/materials';
 import { useTaken } from '../../gl/useTaken';
 
+/*
+ * An old Victorian rocking chair, deep and reclined, built for sleeping in: long curved rockers,
+ * turned legs, a seat and a tall leaning back of thin striped cloth stretched on the frame (a
+ * sling, no foam), scrolled arms and a carved crest rail. Chair space: x forward, y up, z across.
+ */
+
 /** Radius of the rockers' curve; the chair rolls on it like a real rocker. */
 const R = 1.6;
+/** How far back the back leans from upright (rad): far enough to lie back in. */
+const RECLINE = 0.5;
+/** The seat's frame: front and back edges (x), heights there (y), half width (z). */
+const SEAT_FRONT = 0.3;
+const SEAT_BACK = -0.26;
+const SEAT_Y_FRONT = 0.56;
+const SEAT_Y_BACK = 0.5;
+const HALF_W = 0.28;
+/** The back's cloth: how tall, and where its bottom edge is. */
+const BACK_H = 0.86;
+const BACK_W = 0.5;
+const SEAT_TILT = Math.atan2(SEAT_Y_FRONT - SEAT_Y_BACK, SEAT_FRONT - SEAT_BACK);
 
-/** A cylinder (spindle, leg, post) from a to b. */
-function Rod({ a, b, r }: { a: [number, number, number]; b: [number, number, number]; r: number }) {
+/** Height of the rockers' underside at x (they touch the floor at x = 0). */
+function rockerY(x: number) {
+  return R - Math.sqrt(R * R - x * x);
+}
+
+/** A turned rod (spindle, leg, post) from a to b, with a bead a third of the way along. */
+function Rod({ a, b, r, bead = false }: { a: [number, number, number]; b: [number, number, number]; r: number; bead?: boolean }) {
   const { pos, quat, len } = useMemo(() => {
     const va = new THREE.Vector3(...a);
     const d = new THREE.Vector3(...b).sub(va);
@@ -19,210 +43,272 @@ function Rod({ a, b, r }: { a: [number, number, number]; b: [number, number, num
     };
   }, [a, b]);
   return (
-    <mesh material={M.wood()} position={pos} quaternion={quat}>
-      <cylinderGeometry args={[r, r * 1.1, len, 12]} />
-    </mesh>
+    <group position={pos} quaternion={quat}>
+      <mesh material={M.wood()}>
+        <cylinderGeometry args={[r, r * 1.12, len, 14]} />
+      </mesh>
+      {bead && (
+        <>
+          <mesh material={M.wood()} position-y={len * 0.18}>
+            <sphereGeometry args={[r * 1.55, 14, 10]} />
+          </mesh>
+          <mesh material={M.wood()} position-y={-len * 0.22}>
+            <torusGeometry args={[r * 1.15, r * 0.4, 8, 16]} />
+          </mesh>
+        </>
+      )}
+    </group>
   );
 }
 
-/** A dent pressed into a cushion: centre (u, v) on its face, spread, depth. */
+/** A wooden member bent along a curve (rockers, arms, the crest rail). */
+function Bent({ pts, r }: { pts: [number, number, number][]; r: number }) {
+  const geo = useMemo(() => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map((p) => new THREE.Vector3(...p))), 64, r, 10, false), [pts, r]);
+  useEffect(() => () => geo.dispose(), [geo]);
+  return <mesh geometry={geo} material={M.wood()} />;
+}
+
+/** Regency stripes on cream: deep red bands edged with fine gold lines, a small sprig between. */
+function stripeTexture(): THREE.CanvasTexture {
+  const c = document.createElement('canvas');
+  c.width = 512;
+  c.height = 512;
+  const g = c.getContext('2d');
+  if (g) {
+    g.fillStyle = '#eee1c4';
+    g.fillRect(0, 0, 512, 512);
+    for (let i = 0; i < 4; i++) {
+      const x = i * 128;
+      g.fillStyle = '#7d1d26';
+      g.fillRect(x + 44, 0, 40, 512);
+      g.fillStyle = '#b8954a';
+      g.fillRect(x + 36, 0, 3, 512);
+      g.fillRect(x + 89, 0, 3, 512);
+      // a little sprig in the cream band
+      g.fillStyle = '#9a7a3e';
+      for (let y = 32; y < 512; y += 64) {
+        g.beginPath();
+        g.ellipse(x + 112, y, 3, 6, 0.4, 0, Math.PI * 2);
+        g.ellipse(x + 116, y + 5, 3, 6, -0.4, 0, Math.PI * 2);
+        g.fill();
+      }
+    }
+    // the weave, so it reads as cloth up close
+    g.globalAlpha = 0.08;
+    g.fillStyle = '#000';
+    for (let y = 0; y < 512; y += 3) g.fillRect(0, y, 512, 1);
+    g.globalAlpha = 1;
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.anisotropy = 4;
+  return t;
+}
+
+/** The chair's cloth: striped, thin and soft; it greys, yellows and wears through after the Reveal. */
+function cloth(): THREE.MeshPhysicalMaterial {
+  const m = mat('chairCloth', { surface: 'fabric', color: '#ffffff', roughness: 0.9, sheen: 0.35, sheenColor: '#fff2dc', side: THREE.DoubleSide, decay: { age: 0.55, dust: 0.45, tear: 0.06 } });
+  if (!m.userData.striped) {
+    m.userData.striped = true;
+    m.map = stripeTexture();
+    m.needsUpdate = true;
+  }
+  return m;
+}
+
+/** A dent pressed into the cloth: centre (u, v) on it, spread, depth. */
 type Dent = [number, number, number, number];
 
 /**
- * A padded cushion that can be pressed in. `axis` is the face that takes the weight ('y' top,
- * 'x' front); `uv` names the two other axes the dents are placed on. Each frame the face's
- * vertices sink by the sum of the dents times `press`.
+ * A panel of thin cloth stretched across the frame: it hangs a little slack in the middle and
+ * gives where weight rests on it, in soft hollows with the creases cloth makes as it is pulled
+ * down into them. `w` × `h` in its own plane (u across, v along); it sinks along -normal.
  */
-function Cushion({
-  size,
-  segs,
-  axis,
-  dents,
-  press,
-  ...place
-}: {
-  size: [number, number, number];
-  segs: [number, number, number];
-  axis: 'x' | 'y';
-  dents: Dent[];
-  press: { current: number };
-  position: [number, number, number];
-  rotation?: [number, number, number];
-}) {
-  const geo = useMemo(() => new THREE.BoxGeometry(...size, ...segs), [size, segs]);
+function Sling({ w, h, sag, dents, press, repeat }: { w: number; h: number; sag: number; dents: Dent[]; press: { current: number }; repeat: [number, number] }) {
+  const geo = useMemo(() => {
+    const g = new THREE.PlaneGeometry(w, h, 44, 52);
+    const uv = g.attributes.uv as THREE.BufferAttribute;
+    for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * repeat[0], uv.getY(i) * repeat[1]);
+    return g;
+  }, [w, h, repeat]);
+  useEffect(() => () => geo.dispose(), [geo]);
   const mesh = useRef<THREE.Mesh>(null);
-  const rest = useRef<Float32Array | null>(null);
   const last = useRef(-1);
   useFrame(() => {
-    const k = press.current;
     const g = mesh.current?.geometry;
+    const k = press.current;
     if (!g || Math.abs(k - last.current) < 0.002) return;
     last.current = k;
-    const pos = g.attributes.position as THREE.BufferAttribute;
-    const a = pos.array as Float32Array;
-    // the cushion as it was made, before anyone sat in it
-    rest.current ??= Float32Array.from(a);
-    const base = rest.current;
-    const ai = axis === 'y' ? 1 : 0;
-    const [ui, vi] = axis === 'y' ? [0, 2] : [1, 2];
-    for (let i = 0; i < pos.count; i++) {
-      const o = i * 3;
-      a[o] = base[o]!;
-      a[o + 1] = base[o + 1]!;
-      a[o + 2] = base[o + 2]!;
-      if (base[o + ai]! <= 0) continue;
-      let d = 0;
-      for (const [u, v, s, depth] of dents) {
-        const du = base[o + ui]! - u;
-        const dv = base[o + vi]! - v;
-        d += depth * Math.exp(-(du * du + dv * dv) / (s * s));
-      }
-      a[o + ai] = base[o + ai]! - d * k;
-    }
-    pos.needsUpdate = true;
-    g.computeVertexNormals();
+    shapeSling(g, w, h, sag, dents, k);
   });
-  useEffect(() => () => geo.dispose(), [geo]);
-  return <mesh ref={mesh} geometry={geo} material={M.upholstery()} {...place} />;
+  return <mesh ref={mesh} geometry={geo} material={cloth()} />;
 }
 
-/**
- * Upholstery, not foam: a thin pad covered in woven cloth, finished with a corded piping round
- * its edge and a row of brass tacks, as an old chair is. `w` × `d` in the plane it lies in.
- */
-function Piping({ w, d, position, rotation }: { w: number; d: number; position: [number, number, number]; rotation?: [number, number, number] }) {
-  const geo = useMemo(() => {
-    const s = new THREE.Shape();
-    const r = 0.04;
-    s.moveTo(-w / 2 + r, -d / 2);
-    s.lineTo(w / 2 - r, -d / 2);
-    s.quadraticCurveTo(w / 2, -d / 2, w / 2, -d / 2 + r);
-    s.lineTo(w / 2, d / 2 - r);
-    s.quadraticCurveTo(w / 2, d / 2, w / 2 - r, d / 2);
-    s.lineTo(-w / 2 + r, d / 2);
-    s.quadraticCurveTo(-w / 2, d / 2, -w / 2, d / 2 - r);
-    s.lineTo(-w / 2, -d / 2 + r);
-    s.quadraticCurveTo(-w / 2, -d / 2, -w / 2 + r, -d / 2);
-    const pts = s.getSpacedPoints(80).map((p) => new THREE.Vector3(p.x, 0, p.y));
-    return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, true), 160, 0.011, 8, true);
-  }, [w, d]);
-  useEffect(() => () => geo.dispose(), [geo]);
-  return <mesh geometry={geo} material={M.upholstery()} position={position} rotation={rotation} />;
+/** Outside the component, so the React compiler rules see no mutation of hook values. */
+function shapeSling(g: THREE.BufferGeometry, w: number, h: number, sag: number, dents: Dent[], k: number) {
+  const pos = g.attributes.position as THREE.BufferAttribute;
+  for (let i = 0; i < pos.count; i++) {
+    const u = pos.getX(i);
+    const v = pos.getY(i);
+    // slack: it bows between the rails, most in the middle, nothing at the tacked edges
+    const eu = 1 - (2 * u / w) ** 2;
+    const ev = 1 - (2 * v / h) ** 2;
+    let z = -sag * eu * (0.35 + 0.65 * ev);
+    for (const [du0, dv0, s, depth] of dents) {
+      const du = u - du0;
+      const dv = v - dv0;
+      const r2 = (du * du + dv * dv) / (s * s);
+      const hollow = depth * Math.exp(-r2);
+      // creases fanning out from the hollow where the cloth is drawn into it
+      const r = Math.sqrt(r2);
+      const crease = depth * 0.16 * Math.sin(Math.atan2(dv, du) * 9 + du0 * 20) * Math.exp(-((r - 1.25) ** 2) / 0.35);
+      z -= (hollow + crease) * k * Math.min(1, eu * 4) * Math.min(1, ev * 4);
+    }
+    pos.setZ(i, z);
+  }
+  pos.needsUpdate = true;
+  g.computeVertexNormals();
 }
 
-const SEAT: { size: [number, number, number]; segs: [number, number, number] } = { size: [0.64, 0.06, 0.54], segs: [32, 1, 28] };
-const BACK: typeof SEAT = { size: [0.05, 0.72, 0.42], segs: [1, 32, 22] };
-const ARM: typeof SEAT = { size: [0.42, 0.026, 0.075], segs: [18, 1, 4] };
-
-// The shape of someone sitting: two hollows under the hips, shallower under the thighs; the
-// shoulder blades and the small of the back in the back. Deep enough to read at product-view
-// distance, but inside the thin upholstered pads (0.045 and 0.04 thick).
+// The shape of someone lying back in it: hips sunk deep at the back of the seat, the thighs
+// shallower toward the front; in the back, the small of the back, both shoulder blades, and
+// the head resting near the top.
 const SEAT_DENTS: Dent[] = [
-  [-0.1, -0.1, 0.1, 0.048],
-  [-0.1, 0.1, 0.1, 0.048],
-  [0.12, -0.09, 0.08, 0.03],
-  [0.12, 0.09, 0.08, 0.03],
+  [-0.1, -0.08, 0.11, 0.07],
+  [0.1, -0.08, 0.11, 0.07],
+  [-0.09, 0.12, 0.08, 0.04],
+  [0.09, 0.12, 0.08, 0.04],
 ];
 const BACK_DENTS: Dent[] = [
-  [0.12, -0.1, 0.09, 0.04],
-  [0.12, 0.1, 0.09, 0.04],
-  [-0.16, 0, 0.11, 0.032],
-];
-const ARM_DENTS: Dent[] = [
-  [0.14, 0, 0.05, 0.016],
-  [-0.06, 0, 0.08, 0.01],
+  [0, -0.24, 0.13, 0.04],
+  [-0.12, 0.05, 0.1, 0.055],
+  [0.12, 0.05, 0.1, 0.055],
+  [0, 0.31, 0.08, 0.05],
 ];
 
 /**
- * An old oak rocking chair: curved rockers, turned legs, a spindle back with a carved top rail,
- * arms, worn velvet cushions. After the Reveal it is grey and split; taken, it starts to rock on
- * its own and never stops, slow and even, and the cushions press in as if someone sat down:
- * two hollows in the seat, shoulders against the back, hands gripping both arms. No one is there.
+ * An old rocking chair, deep and reclined, upholstered in thin striped cloth. After the Reveal
+ * it is grey and worn; taken, it starts to rock on its own and never stops, slow and even, and
+ * the cloth gives as if someone lay back in it: the seat sinks under the hips and thighs, the
+ * back under the shoulders, and the head rests near the top. No one is there.
  */
 export function RockingChair() {
   const { taken, since } = useTaken('rocking-chair');
   const rock = useRef<THREE.Group>(null);
-  // How hard the one who is not there presses into the cushions (0..1).
+  // How hard the one who is not there presses into the cloth (0..1).
   const seat = useRef(0);
   const back = useRef(0);
-  const grip = useRef(0);
-  const rocker = useMemo(() => {
-    // An arc of the circle of radius R under the chair, as a flat curved runner.
-    const g = new THREE.TorusGeometry(R, 0.035, 8, 48, 0.62);
-    g.rotateZ(-Math.PI / 2 - 0.31);
-    g.translate(0, R, 0);
-    return g;
-  }, []);
   useFrame(() => {
     const g = rock.current;
     if (!g) return;
     const s = since();
     // Rolling on the rocker: tilt by θ about the arc's centre (which slides by R·θ).
     const ramp = taken ? Math.min(1, s === Infinity ? 1 : s / 1.2) : 0;
-    const th = taken ? Math.sin((s === Infinity ? performance.now() / 1000 : s) * 1.7) * 0.2 * ramp : 0;
+    const th = taken ? Math.sin((s === Infinity ? performance.now() / 1000 : s) * 1.5) * 0.17 * ramp : 0;
     g.rotation.z = th;
     g.position.x = R * Math.sin(th) - R * th;
     g.position.y = R - R * Math.cos(th);
-    // It sits down first, then leans back and takes hold of the arms; as the chair rocks back
-    // the weight shifts onto the back, and forward onto the seat and the hands.
-    const sat = taken ? Math.min(1, (s === Infinity ? 9 : s) / 0.9) : 0;
-    const lean = taken ? Math.min(1, Math.max(0, ((s === Infinity ? 9 : s) - 0.6) / 0.9)) : 0;
-    const sway = th / 0.2;
-    seat.current = sat * (1 + 0.12 * sway);
-    back.current = lean * (1 - 0.3 * sway);
-    grip.current = lean * (1 + 0.25 * sway);
+    // It sits down first, then lies back; as the chair rocks back the weight shifts onto the
+    // back, and forward onto the seat.
+    const t = s === Infinity ? 9 : s;
+    const sat = taken ? Math.min(1, t / 0.9) : 0;
+    const lean = taken ? Math.min(1, Math.max(0, (t - 0.6) / 1.1)) : 0;
+    const sway = th / 0.17;
+    seat.current = sat * (1 + 0.1 * sway);
+    back.current = lean * (1 - 0.25 * sway);
   });
-  const legs: [number, number][] = [
-    [-0.32, -0.26],
-    [0.32, -0.26],
-    [-0.32, 0.26],
-    [0.32, 0.26],
-  ];
+  const rocker = useMemo<[number, number, number][]>(
+    () => [-0.78, -0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.52, 0.58].map((x) => [x, rockerY(x) + 0.035, 0]),
+    [],
+  );
+  const arm = useMemo<[number, number, number][]>(
+    () => [
+      [-0.44, 0.84, 0],
+      [-0.2, 0.82, 0],
+      [0.12, 0.8, 0],
+      [0.34, 0.79, 0],
+      [0.41, 0.75, 0],
+      [0.38, 0.7, 0],
+      [0.33, 0.72, 0],
+    ],
+    [],
+  );
+  // the crest rail along the top of the back, rising in a shallow arch in the middle
+  const top = backPoint(BACK_H + 0.04);
+  const crest = useMemo<[number, number, number][]>(
+    () => [-1, -0.5, 0, 0.5, 1].map((k) => [top.x - 0.012 * (1 - k * k), top.y + 0.05 * (1 - k * k), k * (HALF_W + 0.01)]),
+    [top.x, top.y],
+  );
+  const seatMid: [number, number, number] = [(SEAT_FRONT + SEAT_BACK) / 2, (SEAT_Y_FRONT + SEAT_Y_BACK) / 2, 0];
+  const backBase = backPoint(0);
   return (
-    <group rotation={[0.1, -1.05, 0]} position-y={-0.6} scale={0.78}>
+    <group rotation={[0.1, -1.05, 0]} position-y={-0.6} scale={0.72}>
       <group ref={rock}>
-        {[-0.26, 0.26].map((z) => (
-          <mesh key={z} material={M.wood()} geometry={rocker} position-z={z} />
+        {[-HALF_W + 0.02, HALF_W - 0.02].map((z) => (
+          <group key={z} position-z={z}>
+            <Bent pts={rocker} r={0.034} />
+          </group>
         ))}
-        {legs.map(([x, z]) => (
-          <Rod key={`${x}${z}`} a={[x, 0.02, z]} b={[x * 0.92, 0.55, z * 0.92]} r={0.03} />
+        {/* legs, from the rockers up to the seat frame */}
+        {[-HALF_W + 0.02, HALF_W - 0.02].map((z) => (
+          <group key={`l${z}`}>
+            <Rod a={[SEAT_FRONT, rockerY(SEAT_FRONT) + 0.05, z]} b={[SEAT_FRONT, SEAT_Y_FRONT, z * 1.02]} r={0.026} bead />
+            <Rod a={[SEAT_BACK, rockerY(SEAT_BACK) + 0.05, z]} b={[SEAT_BACK, SEAT_Y_BACK, z * 1.02]} r={0.026} bead />
+            {/* a stretcher between them, low down */}
+            <Rod a={[SEAT_BACK, 0.22, z]} b={[SEAT_FRONT, 0.24, z]} r={0.014} />
+          </group>
         ))}
-        {/* seat, and its cushion */}
-        <mesh material={M.wood()} position-y={0.58}>
-          <boxGeometry args={[0.72, 0.06, 0.62]} />
-        </mesh>
-        <Cushion {...SEAT} axis="y" dents={SEAT_DENTS} press={seat} position={[0.02, 0.64, 0]} />
-        <Piping w={0.64} d={0.54} position={[0.02, 0.668, 0]} />
-        {/* brass tacks along the front edge of the seat */}
+        <Rod a={[SEAT_FRONT, 0.24, -HALF_W]} b={[SEAT_FRONT, 0.24, HALF_W]} r={0.014} />
+        {/* the seat frame: side rails, front and back rails */}
+        {[-HALF_W, HALF_W].map((z) => (
+          <Rod key={`s${z}`} a={[SEAT_BACK - 0.02, SEAT_Y_BACK, z]} b={[SEAT_FRONT + 0.03, SEAT_Y_FRONT, z]} r={0.024} />
+        ))}
+        <Rod a={[SEAT_FRONT + 0.03, SEAT_Y_FRONT, -HALF_W - 0.02]} b={[SEAT_FRONT + 0.03, SEAT_Y_FRONT, HALF_W + 0.02]} r={0.026} />
+        <Rod a={[SEAT_BACK - 0.02, SEAT_Y_BACK, -HALF_W - 0.02]} b={[SEAT_BACK - 0.02, SEAT_Y_BACK, HALF_W + 0.02]} r={0.024} />
+        {/* the cloth seat, slung between the rails, tilted back a little */}
+        {/* (the sling's u runs across the chair, v from back to front, its face up) */}
+        <group position={seatMid} rotation-z={SEAT_TILT}>
+          <group rotation-x={-Math.PI / 2}>
+            <group rotation-z={-Math.PI / 2}>
+              <Sling w={0.5} h={SEAT_FRONT - SEAT_BACK} sag={0.03} dents={SEAT_DENTS} press={seat} repeat={[1.4, 1.2]} />
+            </group>
+          </group>
+        </group>
+        {/* brass tacks along the front rail, where the cloth is nailed */}
         {Array.from({ length: 11 }, (_, i) => (
-          <mesh key={i} material={M.brass()} position={[0.345, 0.6, -0.25 + i * 0.05]} rotation-z={Math.PI / 2}>
-            <sphereGeometry args={[0.011, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2]} />
+          <mesh key={i} material={M.brass()} position={[SEAT_FRONT + 0.055, SEAT_Y_FRONT + 0.004, -0.25 + i * 0.05]} rotation-z={-Math.PI / 2}>
+            <sphereGeometry args={[0.009, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2]} />
           </mesh>
         ))}
-        {/* the upholstered back, set between the posts and leaning with them */}
-        <Cushion {...BACK} axis="x" dents={BACK_DENTS} press={back} position={[-0.335, 1.0, 0]} rotation={[0, 0, 0.163]} />
-        <Piping w={0.72} d={0.42} position={[-0.316, 1.003, 0]} rotation={[0, 0, 0.163 + Math.PI / 2]} />
-        {/* back posts, spindles and the carved top rail */}
-        {[-0.24, 0.24].map((z) => (
-          <Rod key={z} a={[-0.3, 0.58, z]} b={[-0.46, 1.55, z * 1.05]} r={0.032} />
+        {/* the back posts, leaning well back, and the cloth slung between them */}
+        {[-HALF_W, HALF_W].map((z) => (
+          <Rod key={`p${z}`} a={[SEAT_BACK, SEAT_Y_BACK - 0.02, z]} b={[top.x, top.y + 0.04, z]} r={0.028} />
         ))}
-        {[-0.14, -0.05, 0.05, 0.14].map((z) => (
-          <Rod key={z} a={[-0.32, 0.62, z]} b={[-0.44, 1.42, z * 1.05]} r={0.016} />
-        ))}
-        <mesh material={M.wood()} position={[-0.445, 1.47, 0]} rotation-z={0.16}>
-          <boxGeometry args={[0.05, 0.14, 0.58]} />
-        </mesh>
-        {/* arms */}
-        {[-0.3, 0.3].map((z) => (
-          <group key={z}>
-            <Rod a={[0.28, 0.58, z]} b={[0.26, 0.86, z]} r={0.022} />
-            <mesh material={M.wood()} position={[-0.02, 0.88, z]} rotation-z={-0.05}>
-              <boxGeometry args={[0.62, 0.035, 0.07]} />
-            </mesh>
-            <Cushion {...ARM} axis="y" dents={ARM_DENTS} press={grip} position={[0.02, 0.91, z]} rotation={[0, 0, -0.05]} />
+        <group position={[backBase.x, backBase.y, 0]} rotation-z={RECLINE}>
+          <group position-y={BACK_H / 2 + 0.02} rotation-y={Math.PI / 2}>
+            {/* (u across, v up the back, its face to the front; it gives backward) */}
+            <Sling w={BACK_W} h={BACK_H} sag={0.035} dents={BACK_DENTS} press={back} repeat={[1.4, 2]} />
+          </group>
+        </group>
+        <Bent pts={crest} r={0.03} />
+        {/* the scrolled arms, on turned spindles */}
+        {[-HALF_W - 0.03, HALF_W + 0.03].map((z) => (
+          <group key={`a${z}`}>
+            <group position-z={z}>
+              <Bent pts={arm} r={0.024} />
+            </group>
+            <Rod a={[SEAT_FRONT - 0.02, SEAT_Y_FRONT, z]} b={[SEAT_FRONT + 0.01, 0.78, z]} r={0.018} bead />
+            <Rod a={[0.02, SEAT_Y_FRONT - 0.03, z]} b={[0.04, 0.8, z]} r={0.011} />
+            <Rod a={[-0.12, SEAT_Y_FRONT - 0.04, z]} b={[-0.12, 0.81, z]} r={0.011} />
           </group>
         ))}
       </group>
     </group>
   );
+}
+
+/** A point on the back's centre line, `along` up its length from its foot. */
+function backPoint(along: number): { x: number; y: number } {
+  return { x: SEAT_BACK - 0.01 - Math.sin(RECLINE) * along, y: SEAT_Y_BACK + 0.02 + Math.cos(RECLINE) * along };
 }

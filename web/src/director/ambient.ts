@@ -39,23 +39,18 @@ async function crawlingHand(signal: AbortSignal) {
   const set = (stage: number) => {
     fx().set({ flags: { ...fx().flags, 'hand-x': x - window.scrollX, 'hand-y': y - window.scrollY, 'hand-stage': stage } });
   };
-  const add = (kind: string, rot = 0) =>
-    dispatch({ type: 'MARK_ADDED', mark: { id: `${kind}-${Date.now()}-${Math.round(rand() * 1e6)}`, kind, x, y, rotation: rot, scale: 1, product: null } });
+  // It leaves no marks: stray blood spots on the page read as rendering dirt, not a story.
   set(0);
   await wait(1600, signal);
   set(1);
-  add('blood-print');
   await wait(900, signal);
   for (let i = 0; i < 3 && !signal.aborted; i++) {
     const dx = (target.x - x) * 0.2;
     const dy = Math.max(-140, (target.y - y) * 0.25);
-    const ang = Math.atan2(dy, dx);
     set(2);
     await wait(500, signal);
     x += dx;
     y += dy;
-    add('drag', ang);
-    add('blood-print', ang);
     set(1);
     await wait(900, signal);
   }

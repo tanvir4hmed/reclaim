@@ -46,7 +46,7 @@ describe('search, filters and sort', () => {
     const ids = (q: string) => runQuery({ ...DEFAULT_QUERY, q }, day).map((p) => p.id);
     expect(ids('watch')).toContain('pocket-watch');
     expect(ids('wax seal')).toContain('letter');
-    expect(ids('sweets')).toEqual(expect.arrayContaining(['cake', 'chocolate-box', 'advent-calendar']));
+    expect(ids('sweets')).toEqual(expect.arrayContaining(['chocolate-box', 'advent-calendar']));
   });
 
   it('searches the haunted copy after the Reveal (Req 3.4)', () => {

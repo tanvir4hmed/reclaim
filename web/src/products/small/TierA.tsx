@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { useCanvasTexture } from '../../gl/canvasTex';
 import { M } from '../../gl/materials';
-import { progress, useTaken } from '../../gl/useTaken';
+import { useTaken } from '../../gl/useTaken';
 import { useHaunted } from '../../store';
 
 const MONTHS = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
@@ -14,42 +14,54 @@ const MONTHS = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 
  * through with a red cross, as if someone has marked the day it happens.
  */
 /**
- * Seconds into the calendar's Take. The cross at the speed a person draws one: a stroke from
- * top left to bottom right, a breath, a second one (a little bigger) from top right to bottom
- * left. Then the name, written by hand. Then one thin cut through the middle of it.
+ * Seconds into the calendar's Take. The cross is two quick, straight pen strokes, the way you
+ * strike out a date: one corner to corner, then a second, much longer one across it. Then the
+ * name, written by hand. Then one cut through the middle of it, and the wet letters start to run.
  */
-const CAL = { cross1: 0.3, cross1For: 0.36, cross2: 0.82, cross2For: 0.4, nameFrom: 1.5, nameFor: 2.3, cutFrom: 4.05, cutFor: 0.35, end: 4.6 };
+const CAL = { cross1: 0.3, cross1For: 0.13, cross2: 0.58, cross2For: 0.17, nameFrom: 1.2, nameFor: 2.3, cutFrom: 3.75, cutFor: 0.3, meltFrom: 3.85, meltFor: 2.4, end: 6.4 };
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+/** The red of the name and the cross: blood, still wet. */
+const BLOOD = '#8f0a10';
 
-/** A stroke written in blood with a finger: uneven width, darker at the edges, no drips. */
-function bloodStroke(g: CanvasRenderingContext2D, pts: [number, number][], k: number, width: number) {
+/**
+ * One quick, straight pen stroke from a to b, drawn up to `k` of its length: thin where the
+ * pen lands and lifts, fullest in the middle, with the slightest bow of a fast hand.
+ */
+function penStroke(g: CanvasRenderingContext2D, a: [number, number], b: [number, number], k: number, width: number) {
   if (k <= 0) return;
-  const n = Math.max(1, Math.floor((pts.length - 1) * k));
-  for (const [color, wd] of [
-    ['#3a0406', width + 2.5],
-    ['#8a0b0f', width],
-    ['#b3161a', width * 0.4],
-  ] as const) {
-    g.strokeStyle = color;
-    g.lineCap = 'round';
-    g.lineJoin = 'round';
-    g.lineWidth = wd;
-    g.beginPath();
-    pts.slice(0, n + 1).forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
-    g.stroke();
+  const steps = 28;
+  const n = Math.max(1, Math.round(steps * k));
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  const len = Math.hypot(dx, dy) || 1;
+  const nx = -dy / len;
+  const ny = dx / len;
+  const at = (t: number, side: number) => {
+    // thin at both ends, full from a fifth of the way to four fifths
+    const w = width * (0.18 + 0.82 * Math.sin(Math.PI * Math.min(1, Math.max(0, t))) ** 0.55) * 0.5;
+    const bow = Math.sin(t * Math.PI) * len * 0.012;
+    return [a[0] + dx * t + nx * (side * w + bow), a[1] + dy * t + ny * (side * w + bow)] as const;
+  };
+  g.save();
+  g.fillStyle = BLOOD;
+  g.beginPath();
+  const end = Math.min(1, k);
+  for (let i = 0; i <= n; i++) {
+    const [x, y] = at((i / n) * end, 1);
+    if (i) g.lineTo(x, y);
+    else g.moveTo(x, y);
   }
-}
-
-/** A finger-drawn line from a to b, wobbling a little (fixed wobble, so redraws match). */
-function wobbly(a: [number, number], b: [number, number], seed: number): [number, number][] {
-  return Array.from({ length: 24 }, (_, i) => {
-    const t = i / 23;
-    const off = Math.sin(t * 9 + seed) * 2.2 + Math.sin(t * 23 + seed * 2) * 1;
-    const nx = -(b[1] - a[1]);
-    const ny = b[0] - a[0];
-    const l = Math.hypot(nx, ny) || 1;
-    return [a[0] + (b[0] - a[0]) * t + (nx / l) * off, a[1] + (b[1] - a[1]) * t + (ny / l) * off];
-  });
+  for (let i = n; i >= 0; i--) {
+    const [x, y] = at((i / n) * end, -1);
+    g.lineTo(x, y);
+  }
+  g.closePath();
+  g.fill();
+  // a darker edge where the ink pooled along one side
+  g.strokeStyle = 'rgba(40,2,4,0.45)';
+  g.lineWidth = 0.8;
+  g.stroke();
+  g.restore();
 }
 
 const NAME = 'Saint Nicholas';
@@ -59,9 +71,10 @@ const NAME_RISE = -0.075;
 /**
  * "Saint Nicholas" written by hand in blood across the empty space under the days, letter by
  * letter, left to right, the line rising a little: each letter its own slight tilt and height.
- * Dark and thin, only just recognisable as blood. Returns where the line ran, for the cut.
+ * In wet blood red; once it is cut, the letters begin to run, a little. Returns where the line
+ * ran, for the cut.
  */
-function writeName(g: CanvasRenderingContext2D, w: number, midY: number, k: number, haunted: boolean) {
+function writeName(g: CanvasRenderingContext2D, w: number, midY: number, k: number, melt: number) {
   g.save();
   g.font = 'italic 74px "Brush Script MT", "Segoe Script", cursive';
   g.textAlign = 'left';
@@ -83,14 +96,15 @@ function writeName(g: CanvasRenderingContext2D, w: number, midY: number, k: numb
       g.globalAlpha = a;
       // a faint wet spread under each letter, then the letter, edged a little darker
       g.filter = 'blur(1.4px)';
-      g.fillStyle = 'rgba(96,10,12,0.35)';
+      g.fillStyle = 'rgba(120,8,12,0.35)';
       g.fillText(c, 0, 0);
       g.filter = 'none';
-      g.fillStyle = haunted ? '#6a0c0e' : '#5e0b0c';
+      g.fillStyle = BLOOD;
       g.fillText(c, 0, 0);
       g.strokeStyle = 'rgba(40,4,5,0.55)';
       g.lineWidth = 1;
       g.strokeText(c, 0, 0);
+      if (melt > 0 && c !== ' ') meltLetter(g, c, i, melt);
       g.restore();
     }
     adv += widths[i] ?? 0;
@@ -100,43 +114,66 @@ function writeName(g: CanvasRenderingContext2D, w: number, midY: number, k: numb
 }
 
 /**
- * One thin cut straight through the middle of the name, left to right: a narrow ragged slit,
- * black where the board shows through, a few torn fibres at its lips. Finer than a claw mark.
+ * The letters running after the cut, only a little: each sags a pixel or two, and a short
+ * drip or two creeps down from its foot. Drawn in the letter's own (rotated) frame.
+ */
+function meltLetter(g: CanvasRenderingContext2D, c: string, i: number, melt: number) {
+  const wdt = g.measureText(c).width;
+  // the letter slumps: a smear of itself, a little lower
+  g.globalAlpha *= 0.45;
+  g.fillText(c, 0, 2.2 * melt);
+  g.globalAlpha /= 0.45;
+  const drips = 1 + ((i * 7) % 3 === 0 ? 1 : 0);
+  for (let d = 0; d < drips; d++) {
+    const x = wdt * (0.25 + ((i * 37 + d * 53) % 50) / 100);
+    const len = (5 + ((i * 29 + d * 17) % 9)) * melt;
+    const r = 1.6 + ((i + d) % 3) * 0.4;
+    g.fillRect(x - r * 0.55, -2, r * 1.1, len + 2);
+    g.beginPath();
+    g.arc(x, len, r, 0, Math.PI * 2);
+    g.fill();
+  }
+}
+
+/**
+ * One cut straight through the middle of the name, left to right: a narrow ragged slit, black
+ * where the board shows through, a few torn fibres at its lips, running well past both ends.
  */
 function thinCut(g: CanvasRenderingContext2D, line: { x0: number; y0: number; len: number }, k: number) {
   if (k <= 0) return;
   const dx = Math.cos(NAME_RISE);
   const dy = Math.sin(NAME_RISE);
-  // through the middle of the letters' height, a little past both ends
-  const sx = line.x0 - dx * 22 + dy * 20;
-  const sy = line.y0 - dy * 22 - dx * 20;
-  const len = (line.len + 44) * k;
-  const steps = 26;
+  // through the middle of the letters' height, well past both ends
+  const over = 46;
+  const sx = line.x0 - dx * over + dy * 20;
+  const sy = line.y0 - dy * over - dx * 20;
+  const len = (line.len + over * 2) * k;
+  const steps = 30;
   g.fillStyle = '#050303';
   g.beginPath();
   g.moveTo(sx, sy);
   for (let s = 1; s <= steps; s++) {
     const t = s / steps;
-    const half = Math.sin(t * Math.PI) * 1.4 * (0.7 + ((s * 37) % 5) / 10);
+    const half = Math.sin(t * Math.PI) * 2.6 * (0.7 + ((s * 37) % 5) / 10);
     g.lineTo(sx + dx * len * t - dy * half, sy + dy * len * t + dx * half);
   }
   for (let s = steps - 1; s >= 0; s--) {
     const t = s / steps;
-    const half = Math.sin(t * Math.PI) * 1.2 * (0.7 + ((s * 53) % 5) / 10);
+    const half = Math.sin(t * Math.PI) * 2.3 * (0.7 + ((s * 53) % 5) / 10);
     g.lineTo(sx + dx * len * t + dy * half, sy + dy * len * t - dx * half);
   }
   g.closePath();
   g.fill();
   g.strokeStyle = 'rgba(214,196,160,0.7)';
-  g.lineWidth = 0.7;
+  g.lineWidth = 0.8;
   for (let s = 2; s < steps; s += 3) {
     const t = s / steps;
     const px = sx + dx * len * t;
     const py = sy + dy * len * t;
     const side = s % 2 ? 1 : -1;
     g.beginPath();
-    g.moveTo(px - dy * 1.5 * side, py + dx * 1.5 * side);
-    g.lineTo(px - dy * 3.5 * side + dx * 1.5, py + dx * 3.5 * side + dy * 1.5);
+    g.moveTo(px - dy * 2.6 * side, py + dx * 2.6 * side);
+    g.lineTo(px - dy * 5 * side + dx * 1.5, py + dx * 5 * side + dy * 1.5);
     g.stroke();
   }
 }
@@ -160,6 +197,7 @@ export function AdventCalendar() {
   const stroke2 = taken ? clamp01((t - CAL.cross2) / CAL.cross2For) : 0;
   const named = taken ? clamp01((t - CAL.nameFrom) / CAL.nameFor) : 0;
   const cut = taken ? clamp01((t - CAL.cutFrom) / CAL.cutFor) : 0;
+  const melt = taken ? clamp01((t - CAL.meltFrom) / CAL.meltFor) : 0;
   const face = useCanvasTexture(
     512,
     480,
@@ -192,12 +230,10 @@ export function AdventCalendar() {
         g.font = 'bold 22px "Fraunces Variable", Georgia, serif';
         g.fillText(String(d), cx + cw / 2, cy + 32);
         if (stroke1 > 0 && d === today.getDate()) {
-          // Two strokes in blood with a finger, on the door itself: corner to corner, the
-          // second reaching a little further than the first. No drips.
-          g.save();
-          bloodStroke(g, wobbly([cx + 4, cy + 3], [cx + cw - 3, cy + ch - 4], 1), stroke1, 6);
-          bloodStroke(g, wobbly([cx + cw + 5, cy - 5], [cx - 6, cy + ch + 6], 4), stroke2, 7);
-          g.restore();
+          // Two quick straight pen strokes, struck through the door: corner to corner, then a
+          // second one, much longer, slashed right across it and well past both corners.
+          penStroke(g, [cx + 5, cy + 4], [cx + cw - 4, cy + ch - 5], stroke1, 7);
+          penStroke(g, [cx + cw + 26, cy - 22], [cx - 30, cy + ch + 26], stroke2, 8);
         }
       }
       // The empty space under the days: from the bottom of the last row to the foot of the board.
@@ -206,12 +242,12 @@ export function AdventCalendar() {
       const midY = (lastBottom + h) / 2;
       if (named > 0) {
         // the name of the one who comes in the night, written by hand, rising as it goes
-        const line = writeName(g, w, midY, named, haunted);
+        const line = writeName(g, w, midY, named, melt);
         // then one thin cut through the middle of it
         thinCut(g, line, cut);
       }
     },
-    [haunted, stroke1, stroke2, named, cut, today],
+    [haunted, stroke1, stroke2, named, cut, melt, today],
   );
   // A taller board, with a strip of plain wood under the days (where the name is written).
   return (
@@ -236,126 +272,6 @@ export function AdventCalendar() {
           <planeGeometry args={[0.18, 0.18]} />
         </mesh>
       )}
-    </group>
-  );
-}
-
-/**
- * Wind-up tin soldier. Taken: he snaps in two at the chest with a crack of tin; the top half
- * (head, hat, rifle) drops sideways to a hard 90 degrees and hangs there on a torn seam.
- */
-export function TinSoldier() {
-  const haunted = useHaunted();
-  const { taken, since } = useTaken('tin-soldier');
-  const top = useRef<THREE.Group>(null);
-  useFrame(() => {
-    if (!top.current) return;
-    const s = since();
-    // A snap, not a fall: almost all of the turn in the first fifth of a second, then a judder.
-    const k = taken ? progress(s, 0.22) : 0;
-    const judder = taken && s < 0.6 ? Math.sin(s * 60) * 0.06 * (1 - s / 0.6) : 0;
-    top.current.rotation.z = -k * (Math.PI / 2) + judder;
-  });
-  return (
-    <group position-y={-0.05} rotation={[0, -0.3, haunted ? 0.25 : 0]}>
-      <mesh material={M.tinBlue()} position={[-0.08, -0.4, 0]}>
-        <cylinderGeometry args={[0.065, 0.06, 0.45, 18]} />
-      </mesh>
-      <mesh material={M.tinBlue()} position={[0.08, -0.4, 0]}>
-        <cylinderGeometry args={[0.065, 0.06, 0.45, 18]} />
-      </mesh>
-      {/* lower body, up to the break */}
-      <mesh material={M.tin()} position-y={-0.07}>
-        <cylinderGeometry args={[0.165, 0.16, 0.27, 24]} />
-      </mesh>
-      <mesh material={M.gilt()} position-y={-0.18}>
-        <cylinderGeometry args={[0.172, 0.172, 0.05, 24]} />
-      </mesh>
-      <mesh material={M.brass()} position={[0, -0.04, -0.2]} rotation-x={Math.PI / 2}>
-        <torusGeometry args={[0.08, 0.015, 8, 20]} />
-      </mesh>
-      {taken && (
-        // the torn tin at the break: jagged and dark inside
-        <mesh position-y={0.07}>
-          <cylinderGeometry args={[0.166, 0.166, 0.012, 12, 1, true]} />
-          <meshStandardMaterial color="#1a1a1c" metalness={0.8} roughness={0.5} side={THREE.DoubleSide} />
-        </mesh>
-      )}
-      {/* upper body, hinged at the break on the soldier's right side */}
-      <group position={[0.165, 0.07, 0]}>
-        <group ref={top}>
-          <group position={[-0.165, -0.07, 0]}>
-            <mesh material={M.tin()} position-y={0.155}>
-              <cylinderGeometry args={[0.17, 0.165, 0.17, 24]} />
-            </mesh>
-            <mesh material={M.porcelain()} position-y={0.36}>
-              <sphereGeometry args={[0.13, 24, 18]} />
-            </mesh>
-            <mesh material={M.bakelite()} position-y={0.58}>
-              <cylinderGeometry args={[0.12, 0.13, 0.3, 24]} />
-            </mesh>
-            <mesh material={M.silver()} position={[0.25, 0.05, 0.05]} rotation-z={0.05}>
-              <boxGeometry args={[0.04, 0.8, 0.04]} />
-            </mesh>
-          </group>
-        </group>
-      </group>
-      {taken && <BoneHand since={since} />}
-    </group>
-  );
-}
-
-/**
- * Out of the broken soldier: a skeleton hand, much too big to have fitted inside him, pushing
- * up out of the torn tin, fingers uncurling.
- */
-function BoneHand({ since }: { since: () => number }) {
-  const hand = useRef<THREE.Group>(null);
-  const fingers = useRef<(THREE.Group | null)[]>([]);
-  useFrame(() => {
-    const s = since();
-    const up = progress(s, 1.4, 0.5);
-    if (hand.current) {
-      hand.current.position.y = 0.0 + up * 0.32;
-      hand.current.scale.setScalar(Math.max(0.001, up));
-    }
-    const open = progress(s, 1.0, 1.6);
-    fingers.current.forEach((f, i) => {
-      if (f) f.rotation.x = (1 - open) * 1.3 + Math.sin(s * 3 + i) * 0.05 * open;
-    });
-  });
-  const bone = <meshStandardMaterial color="#e3d9c2" roughness={0.65} />;
-  return (
-    <group ref={hand} position={[0, 0.07, 0]} rotation-z={0.15}>
-      {/* wrist and palm bones */}
-      <mesh position-y={-0.06}>
-        <cylinderGeometry args={[0.025, 0.03, 0.16, 8]} />
-        {bone}
-      </mesh>
-      <mesh position-y={0.05} scale={[1.4, 0.6, 0.5]}>
-        <sphereGeometry args={[0.06, 12, 10]} />
-        {bone}
-      </mesh>
-      {[-0.045, -0.015, 0.015, 0.045].map((x, i) => (
-        <group
-          key={x}
-          ref={(g) => {
-            fingers.current[i] = g;
-          }}
-          position={[x, 0.08, 0]}
-        >
-          {[0, 1, 2].map((j) => (
-            <mesh key={j} position-y={0.025 + j * 0.048}>
-              <cylinderGeometry args={[0.009 - j * 0.002, 0.011 - j * 0.002, 0.042, 6]} />
-              {bone}
-            </mesh>
-          ))}
-        </group>
-      ))}
-      <mesh position={[-0.075, 0.04, 0]} rotation-z={0.8}>
-        <cylinderGeometry args={[0.01, 0.012, 0.08, 6]} />
-        {bone}
-      </mesh>
     </group>
   );
 }

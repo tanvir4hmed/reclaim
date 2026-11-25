@@ -10,9 +10,9 @@ Re:Claim opens as a cheerful Christmas shop, Reclaim & Co. Holiday Market. A sma
 ## What works now
 
 - **The Day shop:** search, categories, price filter, sort, grid and list view (all kept in the URL), product view with a turnable live object, cart drawer, and a checkout whose payments are "paused for the holiday rush".
-- **Live objects:** all 22 products are real-time 3D, built in code. The same objects burn, tear, rot, dust and age in place through one shared decay shader when the shop turns.
+- **Live objects:** all 25 products are real-time 3D, built in code. The same objects burn, tear, rot, dust and age in place through one shared decay shader when the shop turns.
 - **The Day bat:** it hangs from the decorations and flies between perches. Over it the cursor becomes a reaching hand and the lights flicker like lightning. Catch it (click, Enter, or two taps) and it jerks round, lunges, covers the screen with its wings, and the shop turns in the dark.
-- **The haunted shop:** palette, copy, menu and logo change. Bats fly only in darkness, with glowing eyes. Brownouts and blackouts come and go. A severed hand crawls up once and leaves prints that stay where they fell.
+- **The haunted shop:** palette, copy, menu and logo change. Bats fly only in darkness, with glowing eyes. Brownouts and blackouts come and go. A severed hand crawls up once. A pumpkin-headed scarecrow creaks in the wind in the hero, a werewolf howls on a far tower, and in the graveyard under the shelves one skeleton drags another out of its grave while a third crawls past.
 - **Consequences:**
   - shoes leave a walking trail to the cart
   - the watch and the shop clock run backward
@@ -21,9 +21,8 @@ Re:Claim opens as a cheerful Christmas shop, Reclaim & Co. Holiday Market. A sma
   - the typewriter types tomorrow's confession, key by key
   - a face rises in the mirror
   - the photo makes room for one more
-  - the cake's fly moves onto the search field
   - the cart rings and you can answer it
-  - Tier A products have their own: soldiers march off the footer, a radio roll call, a camera print, a lost mitten you can find, doors slamming
+  - the other products have their own, in their own picture: a radio roll call, a camera that turns to you and prints, an hourglass whose sand runs back up, a reindeer that turns its skull to you, a lamp that lets out a ghost, a jack-in-the-box, a hungry nutcracker, a talking board, doors slamming
 - **Closing time, checkout and the ending:** dust sheets, eyes, the sheet ghost, and a payment of time, age or a memory. One tremor, "Your order has been accepted.", and the opening shop returns with what you left behind. A receipt then lists the dark patterns the shop used.
 - **Echo service:** the next visitor sees what the previous player left, with no identifiers stored.
 

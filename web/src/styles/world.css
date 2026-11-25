@@ -77,6 +77,168 @@
   filter: drop-shadow(0 8px 10px rgb(0 0 0 / 0.6));
 }
 
+/* The scarecrow (shop/world/Scarecrow) stands in the field between the headline (left, up to
+   about 40%) and the 3D still life (from about 58%), behind the sign. Wind moves it slowly:
+   the post creaks over from its foot in small catches, the head lolls behind, rags and bones
+   swing on their own timings, and the candle in the pumpkin breathes but never flashes. */
+.world-crow {
+  position: absolute;
+  left: 50%;
+  bottom: 16%;
+  height: min(74%, 23vw, 300px);
+  aspect-ratio: 200 / 320;
+  transform: translateX(-50%);
+  overflow: visible;
+}
+
+.crow-sway {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: crowSway 8s ease-in-out infinite;
+}
+
+@keyframes crowSway {
+  0%, 6% { transform: rotate(-1.4deg); }
+  14% { transform: rotate(-0.7deg); }
+  17%, 21% { transform: rotate(-0.5deg); }
+  30% { transform: rotate(0.4deg); }
+  33%, 38% { transform: rotate(0.6deg); }
+  47% { transform: rotate(1.3deg); }
+  50%, 56% { transform: rotate(1.4deg); }
+  64% { transform: rotate(0.8deg); }
+  67%, 71% { transform: rotate(0.6deg); }
+  80% { transform: rotate(-0.3deg); }
+  83%, 88% { transform: rotate(-0.5deg); }
+  100% { transform: rotate(-1.4deg); }
+}
+
+/* Same swing as the body, 0.7 s late, about the neck. */
+.crow-head {
+  transform-box: view-box;
+  transform-origin: 102px 96px;
+  animation: crowLoll 8s ease-in-out -7.3s infinite;
+}
+
+@keyframes crowLoll {
+  0%, 8% { transform: rotate(-2.4deg); }
+  20% { transform: rotate(-1deg); }
+  24%, 27% { transform: rotate(-0.8deg); }
+  38% { transform: rotate(1.2deg); }
+  52%, 58% { transform: rotate(2.6deg); }
+  70% { transform: rotate(1deg); }
+  74%, 77% { transform: rotate(0.6deg); }
+  90% { transform: rotate(-1.6deg); }
+  100% { transform: rotate(-2.4deg); }
+}
+
+/* Rags hang from their top edge; the wind blows them mostly one way. */
+.crow-strip {
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+  animation: crowFlutter 3s ease-in-out infinite;
+}
+
+@keyframes crowFlutter {
+  0%, 100% { transform: rotate(-3deg); }
+  18% { transform: rotate(-12deg); }
+  34% { transform: rotate(-6deg); }
+  52% { transform: rotate(-15deg); }
+  70% { transform: rotate(-4deg); }
+  86% { transform: rotate(-10deg); }
+}
+
+/* Charms swing from where their string is tied (transform-origin set on each). */
+.crow-dangle {
+  transform-box: view-box;
+  animation: crowDangle 4.4s ease-in-out infinite;
+}
+
+@keyframes crowDangle {
+  0%, 100% { transform: rotate(-3deg); }
+  30% { transform: rotate(-11deg); }
+  52% { transform: rotate(-5deg); }
+  74% { transform: rotate(-12deg); }
+}
+
+.crow-glow {
+  opacity: 0.72;
+  animation: crowGlow 3.7s ease-in-out infinite;
+}
+
+.crow-halo {
+  opacity: 0.72;
+  animation: crowGlow 5.3s ease-in-out -2s infinite;
+}
+
+@keyframes crowGlow {
+  0%, 100% { opacity: 0.72; }
+  17% { opacity: 0.6; }
+  31% { opacity: 0.78; }
+  46% { opacity: 0.66; }
+  58% { opacity: 0.8; }
+  74% { opacity: 0.62; }
+  88% { opacity: 0.74; }
+}
+
+/* The werewolf (shop/world/Werewolf) on a ruin against the bottom right of the moon, which
+   paintSky puts at 74% across and 24% down; the SVG's left quarter lies left of the moon's
+   centre. It is still, except when it howls (data-howl, set for 2.6 s at irregular times). */
+.world-wolf {
+  position: absolute;
+  left: 74%;
+  top: 24%;
+  height: 52%;
+  aspect-ratio: 160 / 520;
+  transform: translateX(-25%);
+}
+
+.wolf-body {
+  transform-box: view-box;
+  transform-origin: 12px -54px;
+}
+
+.wolf-head {
+  transform-box: view-box;
+  transform-origin: -10px -102px;
+}
+
+.wolf-jaw {
+  transform-box: view-box;
+  transform-origin: -16px -99px;
+}
+
+.world-wolf[data-howl='on'] .wolf-body { animation: wolfChest 2.6s ease-in-out both; }
+.world-wolf[data-howl='on'] .wolf-head { animation: wolfHead 2.6s ease-in-out both; }
+.world-wolf[data-howl='on'] .wolf-jaw { animation: wolfJaw 2.6s ease-in-out both; }
+
+@keyframes wolfChest {
+  0%, 100% { transform: none; }
+  22%, 80% { transform: translateY(-1px) rotate(4deg); }
+}
+
+@keyframes wolfHead {
+  0%, 100% { transform: rotate(0deg); }
+  24% { transform: rotate(48deg); }
+  52% { transform: rotate(50deg); }
+  80% { transform: rotate(47deg); }
+}
+
+@keyframes wolfJaw {
+  0%, 12%, 92%, 100% { transform: rotate(0deg); }
+  30% { transform: rotate(-24deg); }
+  76% { transform: rotate(-21deg); }
+}
+
+/* Still poses (the visitor's reduced-motion setting): the scarecrow at rest, the werewolf
+   caught mid-howl. */
+[data-still='true'] :is(.crow-sway, .crow-head, .crow-strip, .crow-dangle, .crow-glow, .crow-halo, .wolf-body, .wolf-head, .wolf-jaw) {
+  animation: none;
+}
+
+.world-wolf[data-still='true'] .wolf-body { transform: translateY(-1px) rotate(4deg); }
+.world-wolf[data-still='true'] .wolf-head { transform: rotate(48deg); }
+.world-wolf[data-still='true'] .wolf-jaw { transform: rotate(-22deg); }
+
 /* Darken the left side so the hero copy stays readable over the world (WCAG AA). */
 .world-scrim {
   position: absolute;
@@ -88,6 +250,10 @@
 
 @media (max-width: 860px) {
   .world-sign { left: auto; right: 4%; bottom: 3%; width: 130px; }
+  /* Phone: the copy fills the top; the scarecrow stands low on the left, under it. The moon
+     sits behind the copy here, so the werewolf stays away. */
+  .world-crow { left: 3%; bottom: 2%; height: 130px; transform: none; }
+  .world-wolf { display: none; }
   .world-scrim {
     background: linear-gradient(180deg, rgb(6 4 5 / 0.85) 0%, rgb(6 4 5 / 0.55) 45%, transparent 70%);
   }
@@ -100,6 +266,20 @@
     animation: none;
   }
   .world-embers { display: none; }
+  .crow-sway,
+  .crow-head,
+  .crow-strip,
+  .crow-dangle,
+  .crow-glow,
+  .crow-halo,
+  .wolf-body,
+  .wolf-head,
+  .wolf-jaw {
+    animation: none;
+  }
+  .wolf-body { transform: translateY(-1px) rotate(4deg); }
+  .wolf-head { transform: rotate(48deg); }
+  .wolf-jaw { transform: rotate(-22deg); }
 }
 
 [data-state='haunted'] .hero[data-live='true'],

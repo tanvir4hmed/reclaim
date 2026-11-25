@@ -37,7 +37,9 @@ export async function catchBat(page: Page, info: TestInfo, via: 'pointer' | 'key
     throw new Error(`Reveal did not finish: ${JSON.stringify(why)}\n${String(e)}`);
   }
   try {
-    await expect(page.getByTestId('lunge')).toHaveCount(0, { timeout: 15_000 });
+    // The first haunted render compiles every model's shaders; on software WebGL that can hold
+    // the main thread (and the Director's timers) for many seconds.
+    await expect(page.getByTestId('lunge')).toHaveCount(0, { timeout: 35_000 });
   } catch (e) {
     const step = await page.evaluate(() => document.querySelector('[data-testid="lunge"]')?.className ?? 'none');
     throw new Error(`The lunge did not end (step: ${step})\n${String(e)}`);

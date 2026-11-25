@@ -11,7 +11,6 @@ const OWNERS: Partial<Record<ProductId, string>> = {
   typewriter: 'Iris, 1909',
   mirror: 'Ana, 1898',
   'photo-frame': 'The Hale family',
-  cake: 'Marta, 1930',
   telephone: 'Lena, 1915',
 };
 

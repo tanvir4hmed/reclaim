@@ -50,20 +50,6 @@ export function useRollCallName(id: ProductId, index: number): string | null {
   return null;
 }
 
-/** Tin soldiers march along the footer and fall off the edge; one stays fallen (Tier A). */
-export function FooterSoldiers() {
-  const haunted = useHaunted();
-  const marching = useFx((s) => s.flags['soldiers-march'] !== undefined);
-  const fallen = useStory((s) => s.story.played['tin-soldier'] === true);
-  if (!haunted || (!marching && !fallen)) return null;
-  return (
-    <div className="footer-soldiers" aria-hidden="true" data-testid="soldiers">
-      {marching && Array.from({ length: 7 }, (_, i) => <span key={i} className="soldier marching" style={{ animationDelay: `${i * 0.55}s` }} />)}
-      {fallen && <span className="soldier fallen" />}
-    </div>
-  );
-}
-
 /** Exit-intent plea, once per visit, dismissible, never blocking (Requirement 32.10). */
 export function ExitPlea() {
   const day = useFx((s) => s.flags['exit-day'] !== undefined);
