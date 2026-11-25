@@ -319,23 +319,6 @@ export const CATALOG: readonly ProductMeta[] = [
     },
   },
   {
-    id: 'spirit-board',
-    category: 'letters',
-    rating: 5,
-    reviews: 74,
-    day: {
-      name: 'Christmas Eve Letter Board',
-      blurb: 'A walnut parlour game with a heart-shaped pointer. Ask it who will visit this Christmas.',
-      price: 3600,
-    },
-    haunted: {
-      name: 'The Board That Answers',
-      blurb: 'The pointer moves before anyone touches it. It spells the same word every time.',
-      price: 'One question, answered',
-      hours: 11,
-    },
-  },
-  {
     id: 'snow-globe',
     category: 'gifts',
     rating: 5,

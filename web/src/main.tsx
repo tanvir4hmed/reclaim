@@ -1,5 +1,7 @@
 import '@fontsource-variable/fraunces';
 import '@fontsource-variable/inter';
+// the letter's blood message (OFL, self-hosted; see ASSETS.md)
+import '@fontsource/creepster/latin-400.css';
 import './styles/base.css';
 import './styles/header.css';
 import './styles/hero.css';

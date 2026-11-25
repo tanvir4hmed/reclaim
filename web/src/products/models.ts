@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react';
 import type { ProductId } from '../core/ids';
+import Candle from './candle/Model';
 import Doll from './doll/Model';
 import Hourglass from './hourglass/Model';
 import JackInTheBox from './jack-in-the-box/Model';
@@ -11,9 +12,8 @@ import PhotoFrame from './photo-frame/Model';
 import PocketWatch from './pocket-watch/Model';
 import Shoes from './shoes/Model';
 import Sleigh from './sleigh/Model';
-import { Candle, ChildsDrawing, ChocolateBox, MusicBox, SnowGlobe, TeddyBear } from './small/Models';
+import { ChildsDrawing, ChocolateBox, MusicBox, SnowGlobe, TeddyBear } from './small/Models';
 import { AdventCalendar, InstantCamera, RockingChair, UnopenedGift, ValveRadio } from './small/TierA';
-import SpiritBoard from './spirit-board/Model';
 import Telephone from './telephone/Model';
 import Typewriter from './typewriter/Model';
 
@@ -47,6 +47,5 @@ export const MODELS: Partial<Record<ProductId, ComponentType<ModelProps>>> = {
   'teddy-bear': TeddyBear,
   'jack-in-the-box': JackInTheBox,
   nutcracker: Nutcracker,
-  'spirit-board': SpiritBoard,
   'childs-drawing': ChildsDrawing,
 };

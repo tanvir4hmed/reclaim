@@ -31,7 +31,6 @@ export const AMBIENT_IDS = [
   'teddy-bear',
   'jack-in-the-box',
   'nutcracker',
-  'spirit-board',
 ] as const;
 
 /** Products that only appear in the Haunted state (Requirement 32.8). */

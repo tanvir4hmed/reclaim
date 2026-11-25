@@ -5,6 +5,8 @@ import * as THREE from 'three';
 import type { ProductId } from '../core/ids';
 import { MODELS } from '../products/models';
 import { useHaunted } from '../store';
+import { bodyBounds } from './fit';
+import { useTaken } from './useTaken';
 import { SceneEnv } from './env';
 import { Shadow } from './Shadow';
 import { Studio } from './Studio';
@@ -18,6 +20,8 @@ import { HauntedInspection } from './HauntedInspection';
 export default function InspectionCanvas({ id, inspecting = false }: { id: ProductId; inspecting?: boolean }) {
   const Model = MODELS[id];
   const haunted = useHaunted();
+  // after the Take the view makes room for what the Take grew into (its reserved space)
+  const { taken } = useTaken(id);
   const [ready, setReady] = useState(false);
   const [fitted, setFitted] = useState(false);
   // never leave the view blank if a model has nothing to measure
@@ -41,7 +45,7 @@ export default function InspectionCanvas({ id, inspecting = false }: { id: Produ
         {/* the distance is only a start: Framed fits the camera to the object */}
         <Studio distance={2.8} fov={32} />
         <Suspense fallback={null}>
-          <Framed margin={inspecting ? 1.08 : 1.32} refit={inspecting} onFitted={() => setFitted(true)}>
+          <Framed margin={inspecting ? 1.08 : 1.32} refit={inspecting} reserve={taken} onFitted={() => setFitted(true)}>
             <Model open />
           </Framed>
         </Suspense>
@@ -54,37 +58,21 @@ export default function InspectionCanvas({ id, inspecting = false }: { id: Produ
 }
 
 const box = new THREE.Box3();
-const part = new THREE.Box3();
 const centre = new THREE.Vector3();
 const extent = new THREE.Vector3();
 /** The direction the camera looks from: a little above, as the Studio camera does. */
 const FROM = new THREE.Vector3(0, 0.25, 2.8).normalize();
 
-/** The bounds of what is drawn: visible meshes only (hidden spare parts and points are left out). */
-function visibleBounds(root: THREE.Object3D): THREE.Box3 {
-  box.makeEmpty();
-  root.updateWorldMatrix(true, true);
-  root.traverseVisible((o) => {
-    const m = o as THREE.Mesh;
-    if (!m.isMesh || !m.geometry) return;
-    if (!m.geometry.boundingBox) m.geometry.computeBoundingBox();
-    const b = m.geometry.boundingBox;
-    if (!b || b.isEmpty()) return;
-    part.copy(b).applyMatrix4(m.matrixWorld);
-    box.union(part);
-  });
-  return box;
-}
-
 /**
- * Frames the whole object in the product view, whatever its height or width: the camera is
- * moved back until the object's visible bounds fit the view with `margin` of breathing space
- * round them, and the orbit turns about the object's middle. Without this the tall objects
+ * Frames the object in the product view, whatever its height or width: the camera is moved
+ * back until the object's main body (gl/fit) fits the view with `margin` of breathing space
+ * round it, and the orbit turns about its middle; so every product is shown at the same size.
+ * After the Take (`reserve`) the room it grows into counts too, and the view glides out to it. Without this the tall objects
  * lost their tops or bottoms at the fixed distance the cards use.
  * The first fit happens before anything is shown (the canvas fades in once framed), so the
  * object never jumps as the view opens; a later refit (Inspect, a resize) glides there.
  */
-function Framed({ children, margin, refit, onFitted }: { children: ReactNode; margin: number; refit: boolean; onFitted: () => void }) {
+function Framed({ children, margin, refit, reserve, onFitted }: { children: ReactNode; margin: number; refit: boolean; reserve: boolean; onFitted: () => void }) {
   const group = useRef<THREE.Group>(null);
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
   const controls = useThree((s) => s.controls) as unknown as Orbit | null;
@@ -95,7 +83,7 @@ function Framed({ children, margin, refit, onFitted }: { children: ReactNode; ma
   const fitted = useRef(false);
   useEffect(() => {
     frames.current = 0;
-  }, [width, height, refit, controls]);
+  }, [width, height, refit, reserve, controls]);
   useFrame((_, dt) => {
     const g = group.current;
     if (glide.current) glide.current = stepGlide(glide.current, camera, controls, dt);
@@ -103,7 +91,7 @@ function Framed({ children, margin, refit, onFitted }: { children: ReactNode; ma
     if (!g || !controls || frames.current > 2) return;
     frames.current += 1;
     if (frames.current !== 2) return;
-    const fit = fitFor(g, camera, width / Math.max(1, height), margin);
+    const fit = fitFor(g, camera, width / Math.max(1, height), margin, reserve);
     if (!fit) return;
     if (fitted.current) {
       glide.current = { from: camera.position.clone(), fromTarget: controls.target.clone(), fit, t: 0 };
@@ -121,8 +109,8 @@ type Fit = { centre: THREE.Vector3; position: THREE.Vector3; dist: number };
 type Glide = { from: THREE.Vector3; fromTarget: THREE.Vector3; fit: Fit; t: number };
 
 /** Where the camera must stand to frame what is drawn, seen from `FROM`. */
-function fitFor(g: THREE.Object3D, camera: THREE.PerspectiveCamera, aspect: number, margin: number): Fit | null {
-  const b = visibleBounds(g);
+function fitFor(g: THREE.Object3D, camera: THREE.PerspectiveCamera, aspect: number, margin: number, reserve: boolean): Fit | null {
+  const b = bodyBounds(g, box, reserve);
   if (b.isEmpty()) return null;
   b.getCenter(centre);
   b.getSize(extent);

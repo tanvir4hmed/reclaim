@@ -42,7 +42,7 @@ async function candle() {
       fx().unflag('candle-dark');
     })();
   }
-  await wait(reducedMotion() ? 0 : 5600);
+  await wait(reducedMotion() ? 0 : TAKE_MS.candle);
 }
 
 /** Every door on the shelves slams shut; the calendar's own view stays open to watch (Tier A). */
@@ -106,7 +106,7 @@ const CONSEQUENCES: Partial<Record<ProductId, () => Promise<void>>> = {
   mirror: () => flag('mirror-face', 4000),
   // The seal breaks, the flap opens; the letter rises with her photograph and "REMEMBER ME?" (in the model).
   letter: () => flag('letter-carted', 3200),
-  // It stops typing; "Please, Help!!" seeps into the paper in blood (in the model).
+  // It stops typing; "Help Me!!" seeps into the paper in blood (in the model).
   typewriter: () => flag('typewriter-carted', 3000),
   // She is standing in the middle of the family (in the model).
   'photo-frame': () => flag('photo-shift', 3000),
@@ -138,7 +138,6 @@ const CONSEQUENCES: Partial<Record<ProductId, () => Promise<void>>> = {
   'oil-lamp': hold(TAKE_MS['oil-lamp']),
   'jack-in-the-box': hold(TAKE_MS['jack-in-the-box']),
   nutcracker: hold(TAKE_MS.nutcracker),
-  'spirit-board': hold(TAKE_MS['spirit-board']),
 };
 
 /** Holds the Stage for a Take that happens entirely in the model (none under reduced motion). */

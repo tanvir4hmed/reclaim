@@ -82,7 +82,8 @@ export default function PocketWatch() {
       <mesh material={M.brass()} position-y={0.78}>
         <torusGeometry args={[0.1, 0.022, 12, 32]} />
       </mesh>
-      <mesh material={M.brass()} geometry={chain} />
+      {/* the chain is extra: it does not count toward the watch's size on the shelf */}
+      <mesh material={M.brass()} geometry={chain} userData={{ extra: true }} />
     </group>
   );
 }

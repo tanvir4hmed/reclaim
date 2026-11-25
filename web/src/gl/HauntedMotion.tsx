@@ -64,7 +64,6 @@ const MOTION: Partial<Record<ProductId, (t: number) => Pose>> = {
   'jack-in-the-box': (t) => ({ y: burst(t, 6.5, 0.35, 0.7) * 0.03 }),
   // The guard turns his head a little toward you, then back to attention.
   nutcracker: (t) => ({ ry: burst(t, 8, 3, 0.2) * 0.18 }),
-  // The board is still; only the pointer drifts (in the model).
 };
 
 export function HauntedMotion({ id, children }: { id: ProductId; children: ReactNode }) {

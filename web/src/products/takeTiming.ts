@@ -4,10 +4,10 @@
  * inside this span.
  */
 export const TAKE_MS = {
+  candle: 8000,
   hourglass: 6000,
   sleigh: 5200,
   'oil-lamp': 6500,
   'jack-in-the-box': 5000,
   nutcracker: 4200,
-  'spirit-board': 6800,
 } as const;

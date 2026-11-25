@@ -1,5 +1,5 @@
 import { useFrame } from '@react-three/fiber';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { seeded } from '../../director/footprints';
 import { drawWitchPhoto, useCanvasTexture } from '../../gl/canvasTex';
@@ -31,12 +31,15 @@ const TIP_Y = 0.0;
 const V_Y = 0.08;
 const SEAL_R = 0.12;
 const LW = 1.37;
-const LH = 1.18;
+/** The sheet fits inside the envelope with room to spare, so nothing of it shows until it rises. */
+const LH = 0.86;
 /** How far the letter rises: about six sevenths of it out above the envelope's top edge. */
 const RISE = TOP - LH / 2 + LH * 0.86;
 const T = { shake: 0.0, split: 0.26, open: 0.38, openFor: 0.6, rise: 0.95, riseFor: 0.95 };
 /** The photograph on the letter, as fractions of the sheet: centre x, top, width, height. */
-const PHOTO = { cx: 0.5, top: 0.045, w: 0.6, h: 0.5 };
+const PHOTO = { cx: 0.5, top: 0.05, w: 0.5, h: 0.52 };
+/** The message's face: a horror display font, but every letter clear (Creepster, OFL). */
+const MESSAGE_FONT = 'Creepster';
 const MESSAGE = 'REMEMBER ME?';
 
 /** Flat paper part from an outline, with UVs laid across the given bounds (so a canvas maps onto it). */
@@ -151,6 +154,17 @@ export default function Letter() {
     [haunted],
   );
   const sealTex = useCanvasTexture(128, 128, (g, w, h) => drawSealTop(g, w, h, haunted), [haunted]);
+  // the message is drawn once its font has loaded, or it would be drawn in a fallback face
+  const [fontReady, setFontReady] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    const fonts = document.fonts as FontFaceSet | undefined;
+    if (!fonts) return;
+    void fonts.load(`120px ${MESSAGE_FONT}`).then(() => alive && setFontReady(true), () => alive && setFontReady(true));
+    return () => {
+      alive = false;
+    };
+  }, []);
   const letterTex = useCanvasTexture(
     1024,
     Math.round((1024 * LH) / LW),
@@ -182,9 +196,9 @@ export default function Letter() {
         [0.12, 0.5, 3],
       ]);
       // the one line, in blood, across the sheet under the photograph, clear of every edge
-      drawBloodWords(g, MESSAGE, w * 0.08, h * 0.7, 132, w * 0.82, 51);
+      drawBloodWords(g, MESSAGE, w * 0.07, h * 0.8, 128, w * 0.86, 51, MESSAGE_FONT);
     },
-    [],
+    [fontReady],
   );
 
   const parts = useMemo(() => {

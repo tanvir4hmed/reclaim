@@ -12,6 +12,7 @@ Fonts are bundled from npm at build time and served from our own host. No font C
 | --- | --- | --- | --- | --- |
 | Fraunces (variable) | Display serif: headings, product names, price tags | `@fontsource-variable/fraunces` 5.3.0 | Undercase Type, https://github.com/undercasetype/Fraunces | SIL Open Font License 1.1 |
 | Inter (variable) | UI sans: navigation, body copy, controls | `@fontsource-variable/inter` 5.3.0 | Rasmus Andersson, https://github.com/rsms/inter | SIL Open Font License 1.1 |
+| Creepster | The letter's blood message ("REMEMBER ME?"), drawn into its canvas texture | `@fontsource/creepster` 5.3.0 | Sideshow (via Google Fonts), https://github.com/google/fonts/tree/main/ofl/creepster | SIL Open Font License 1.1 |
 
 Fraunces was chosen because its variable "wonk" and "soft" axes let the Haunted state drift letterforms (Requirement 40) without a second font.
 

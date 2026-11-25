@@ -180,12 +180,123 @@ export function drawWitch(g: CanvasRenderingContext2D, cx: number, base: number,
 }
 
 /**
+ * Her, as the photograph shows her: a white face, black sockets with no eyes in them, the mouth
+ * stretched open in a scream, two dark streaks down from the eyes; long straight black hair
+ * from the crown down past the bottom of the picture like a hood, hiding the rest of her, and
+ * the edges of a pale sleeve at each side. `cx` her middle, `top` the crown, `fh` face height.
+ */
+function drawGhostFigure(g: CanvasRenderingContext2D, cx: number, top: number, fh: number, bottom: number) {
+  const u = fh / 10;
+  const fy = top + 7.2 * u;
+  g.save();
+  // the pale sleeves, just showing at the sides of the hair, low down
+  g.fillStyle = '#bdb9b0';
+  for (const sd of [-1, 1]) {
+    g.beginPath();
+    g.moveTo(cx + sd * 8.6 * u, top + 22 * u);
+    g.quadraticCurveTo(cx + sd * 10.4 * u, (top + bottom) / 2 + 10 * u, cx + sd * 11.2 * u, bottom);
+    g.lineTo(cx + sd * 9.4 * u, bottom);
+    g.quadraticCurveTo(cx + sd * 8.8 * u, (top + bottom) / 2 + 10 * u, cx + sd * 7.6 * u, top + 24 * u);
+    g.closePath();
+    g.fill();
+  }
+  // the hair: a hood of black from the crown, straight down past the frame
+  const hair = g.createLinearGradient(cx - 10 * u, 0, cx + 10 * u, 0);
+  hair.addColorStop(0, '#0b0b0b');
+  hair.addColorStop(0.5, '#030303');
+  hair.addColorStop(1, '#0b0b0b');
+  g.fillStyle = hair;
+  g.beginPath();
+  g.moveTo(cx, top);
+  g.bezierCurveTo(cx - 6 * u, top, cx - 8.4 * u, top + 4 * u, cx - 8.4 * u, top + 12 * u);
+  g.bezierCurveTo(cx - 8.6 * u, top + 26 * u, cx - 9.6 * u, bottom - 8 * u, cx - 10 * u, bottom + 2);
+  g.lineTo(cx + 10 * u, bottom + 2);
+  g.bezierCurveTo(cx + 9.6 * u, bottom - 8 * u, cx + 8.6 * u, top + 26 * u, cx + 8.4 * u, top + 12 * u);
+  g.bezierCurveTo(cx + 8.4 * u, top + 4 * u, cx + 6 * u, top, cx, top);
+  g.fill();
+  // a sheen down the hair, and loose strands
+  g.strokeStyle = 'rgba(120,120,116,0.16)';
+  g.lineWidth = Math.max(1, 0.25 * u);
+  for (let i = 0; i < 14; i++) {
+    const x = cx + (i - 6.5) * 1.2 * u;
+    g.beginPath();
+    g.moveTo(x * 0.98 + cx * 0.02, top + 3 * u);
+    g.quadraticCurveTo(x + ((i % 3) - 1) * 0.6 * u, top + 30 * u, x * 1.04 - cx * 0.04, bottom);
+    g.stroke();
+  }
+  // the face, framed by the hair: long, white, a little grey at the edges
+  const face = g.createRadialGradient(cx, fy - 1.5 * u, 0.5 * u, cx, fy, 5.6 * u);
+  face.addColorStop(0, '#f4f2ec');
+  face.addColorStop(0.65, '#d9d5cc');
+  face.addColorStop(1, '#8e8a82');
+  g.fillStyle = face;
+  g.beginPath();
+  g.ellipse(cx, fy, 3.9 * u, 5.4 * u, 0, 0, Math.PI * 2);
+  g.fill();
+  // the hair falls over the edges of the face
+  g.fillStyle = '#050505';
+  for (const sd of [-1, 1]) {
+    g.beginPath();
+    g.moveTo(cx + sd * 1.2 * u, top + 1.2 * u);
+    g.quadraticCurveTo(cx + sd * 3.6 * u, top + 3.4 * u, cx + sd * 3.6 * u, fy + 1 * u);
+    g.quadraticCurveTo(cx + sd * 3.4 * u, fy + 4.5 * u, cx + sd * 3 * u, fy + 6.2 * u);
+    g.lineTo(cx + sd * 5 * u, fy + 7 * u);
+    g.lineTo(cx + sd * 5.2 * u, top + 2 * u);
+    g.closePath();
+    g.fill();
+  }
+  // the eye sockets: black, no eyes in them, soft at the edges
+  for (const sd of [-1, 1]) {
+    const ex = cx + sd * 1.45 * u;
+    const ey = fy - 1.6 * u;
+    const sock = g.createRadialGradient(ex, ey, 0.2 * u, ex, ey, 1.6 * u);
+    sock.addColorStop(0, '#000000');
+    sock.addColorStop(0.6, '#0b0909');
+    sock.addColorStop(1, 'rgba(40,36,34,0)');
+    g.fillStyle = sock;
+    g.beginPath();
+    g.ellipse(ex, ey, 1.35 * u, 1.05 * u, sd * 0.2, 0, Math.PI * 2);
+    g.fill();
+    // dark streaks running down from them
+    g.strokeStyle = 'rgba(20,16,15,0.75)';
+    g.lineWidth = Math.max(1, 0.22 * u);
+    for (const k of [-0.3, 0.25]) {
+      g.beginPath();
+      g.moveTo(ex + k * u, ey + 0.8 * u);
+      g.quadraticCurveTo(ex + k * 1.4 * u, ey + 2.6 * u, ex + k * 1.1 * u, ey + 4.4 * u);
+      g.stroke();
+    }
+  }
+  // the nose, a shadow, and the mouth wide open in a scream
+  g.fillStyle = 'rgba(60,56,52,0.7)';
+  g.beginPath();
+  g.ellipse(cx, fy + 0.6 * u, 0.35 * u, 0.6 * u, 0, 0, Math.PI * 2);
+  g.fill();
+  const mouth = g.createRadialGradient(cx, fy + 2.9 * u, 0.2 * u, cx, fy + 3 * u, 1.6 * u);
+  mouth.addColorStop(0, '#000');
+  mouth.addColorStop(0.75, '#090606');
+  mouth.addColorStop(1, '#3a3330');
+  g.fillStyle = mouth;
+  g.beginPath();
+  g.ellipse(cx, fy + 3.1 * u, 0.95 * u, 1.55 * u, 0, 0, Math.PI * 2);
+  g.fill();
+  g.restore();
+}
+
+/**
  * Her photograph, the one the letter holds and the camera prints: an old black-and-white snap
- * in a yellowed white border. A dim room, a doorway faintly lit behind, and her standing in
- * front of it, too close, a little blurred as if she moved. Grain and a vignette.
+ * in a yellowed border. A bare grey room lit from the right, a door in its frame behind her,
+ * and her standing in the middle of it, the white face and the scream, black hair to the floor.
+ * Grain, a crease, and a vignette.
  */
 export function drawWitchPhoto(g: CanvasRenderingContext2D, w: number, h: number, border = 0.06) {
-  g.fillStyle = '#ebe3d0';
+  g.fillStyle = '#e6dcc4';
+  g.fillRect(0, 0, w, h);
+  // the border yellowed and grubby toward the edges
+  const edge = g.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.3, w / 2, h / 2, Math.hypot(w, h) * 0.6);
+  edge.addColorStop(0, 'rgba(0,0,0,0)');
+  edge.addColorStop(1, 'rgba(120,86,40,0.45)');
+  g.fillStyle = edge;
   g.fillRect(0, 0, w, h);
   const b = Math.round(Math.min(w, h) * border);
   const x0 = b;
@@ -196,58 +307,72 @@ export function drawWitchPhoto(g: CanvasRenderingContext2D, w: number, h: number
   g.beginPath();
   g.rect(x0, y0, iw, ih);
   g.clip();
-  const room = g.createLinearGradient(0, y0, 0, y0 + ih);
-  room.addColorStop(0, '#34302a');
-  room.addColorStop(0.72, '#24211d');
-  room.addColorStop(1, '#141210');
-  g.fillStyle = room;
+  // the room: a wall lighter to the right, the floor darker
+  const wall = g.createLinearGradient(x0, 0, x0 + iw, 0);
+  wall.addColorStop(0, '#2c2c2a');
+  wall.addColorStop(0.55, '#4a4a47');
+  wall.addColorStop(1, '#6a6a66');
+  g.fillStyle = wall;
   g.fillRect(x0, y0, iw, ih);
-  // the floor line and the doorway behind her, faintly lit
-  g.fillStyle = 'rgba(0,0,0,0.25)';
-  g.fillRect(x0, y0 + ih * 0.78, iw, ih * 0.22);
-  const door = g.createLinearGradient(0, y0 + ih * 0.12, 0, y0 + ih * 0.78);
-  door.addColorStop(0, '#5a564e');
-  door.addColorStop(1, '#3c3933');
-  g.fillStyle = door;
-  g.fillRect(x0 + iw * 0.62, y0 + ih * 0.12, iw * 0.2, ih * 0.66);
-  g.strokeStyle = 'rgba(160,154,140,0.25)';
-  g.lineWidth = Math.max(1, iw * 0.006);
-  g.strokeRect(x0 + iw * 0.6, y0 + ih * 0.1, iw * 0.24, ih * 0.68);
-  // her: a faint double where she moved, then her
-  // close to the lens, so she fills the print from the waist up
-  const tall = ih * 1.55;
-  const foot = y0 + ih * 1.6;
-  g.globalAlpha = 0.25;
-  drawWitch(g, x0 + iw * 0.47 + iw * 0.014, foot, tall);
+  const floor = g.createLinearGradient(0, y0 + ih * 0.8, 0, y0 + ih);
+  floor.addColorStop(0, 'rgba(20,20,19,0.6)');
+  floor.addColorStop(1, 'rgba(10,10,9,0.9)');
+  g.fillStyle = floor;
+  g.fillRect(x0, y0 + ih * 0.8, iw, ih * 0.2);
+  // the door behind her, to the right: a frame and a paler panel
+  const dx = x0 + iw * 0.6;
+  const dw = iw * 0.24;
+  const dy = y0 + ih * 0.12;
+  const dh = ih * 0.7;
+  g.fillStyle = '#7a7a75';
+  g.fillRect(dx - iw * 0.012, dy - ih * 0.02, dw + iw * 0.024, dh + ih * 0.02);
+  const panel = g.createLinearGradient(dx, dy, dx + dw, dy + dh);
+  panel.addColorStop(0, '#8c8c86');
+  panel.addColorStop(1, '#6c6c67');
+  g.fillStyle = panel;
+  g.fillRect(dx, dy, dw, dh);
+  g.strokeStyle = 'rgba(40,40,38,0.5)';
+  g.lineWidth = Math.max(1, iw * 0.004);
+  g.strokeRect(dx + dw * 0.1, dy + dh * 0.06, dw * 0.8, dh * 0.38);
+  g.strokeRect(dx + dw * 0.1, dy + dh * 0.5, dw * 0.8, dh * 0.44);
+  // something low in the corner (a bed's end), barely there
+  g.fillStyle = 'rgba(30,30,28,0.55)';
+  g.fillRect(x0 + iw * 0.8, y0 + ih * 0.78, iw * 0.22, ih * 0.14);
+  // her, in the middle of the room
+  const cx = x0 + iw * 0.4;
+  const top = y0 + ih * 0.1;
+  const fh = ih * 0.2;
+  g.globalAlpha = 0.18;
+  drawGhostFigure(g, cx + iw * 0.01, top, fh, y0 + ih);
   g.globalAlpha = 1;
-  drawWitch(g, x0 + iw * 0.47, foot, tall);
+  drawGhostFigure(g, cx, top, fh, y0 + ih);
   // grain and a vignette
   const img = g.getImageData(x0, y0, iw, ih);
   let seed = 977;
   for (let i = 0; i < img.data.length; i += 4) {
     seed = (seed * 1664525 + 1013904223) >>> 0;
-    const n = (seed / 4294967296 - 0.5) * 34;
+    const n = (seed / 4294967296 - 0.5) * 30;
     img.data[i] = Math.max(0, Math.min(255, img.data[i]! + n));
     img.data[i + 1] = Math.max(0, Math.min(255, img.data[i + 1]! + n));
     img.data[i + 2] = Math.max(0, Math.min(255, img.data[i + 2]! + n));
   }
   g.putImageData(img, x0, y0);
-  const vg = g.createRadialGradient(x0 + iw / 2, y0 + ih * 0.45, ih * 0.25, x0 + iw / 2, y0 + ih / 2, ih * 0.85);
+  const vg = g.createRadialGradient(x0 + iw * 0.45, y0 + ih * 0.45, ih * 0.3, x0 + iw / 2, y0 + ih / 2, Math.hypot(iw, ih) * 0.6);
   vg.addColorStop(0, 'rgba(0,0,0,0)');
-  vg.addColorStop(1, 'rgba(0,0,0,0.7)');
+  vg.addColorStop(1, 'rgba(0,0,0,0.65)');
   g.fillStyle = vg;
   g.fillRect(x0, y0, iw, ih);
   g.restore();
-  // a crease across a corner, a stain on the border
-  g.strokeStyle = 'rgba(255,255,255,0.35)';
-  g.lineWidth = 1.5;
+  // a crease across the top right corner, a stain on the border
+  g.strokeStyle = 'rgba(255,255,255,0.4)';
+  g.lineWidth = Math.max(1, w * 0.003);
   g.beginPath();
-  g.moveTo(w * 0.74, 0);
-  g.lineTo(w, h * 0.28);
+  g.moveTo(w * 0.78, 0);
+  g.lineTo(w * 0.98, h * 0.2);
   g.stroke();
   g.fillStyle = 'rgba(140,100,50,0.25)';
   g.beginPath();
-  g.ellipse(w * 0.84, h * 0.92, w * 0.12, h * 0.04, 0.3, 0, Math.PI * 2);
+  g.ellipse(w * 0.84, h * 0.94, w * 0.12, h * 0.03, 0.3, 0, Math.PI * 2);
   g.fill();
 }
 

@@ -26,7 +26,6 @@ export const PRODUCTS = [
   'teddy-bear',
   'jack-in-the-box',
   'nutcracker',
-  'spirit-board',
   'childs-drawing',
 ] as const;
 

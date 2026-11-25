@@ -35,12 +35,40 @@ const REST = new V3(0, 0.4, -0.1);
 const CORD_FROM = new V3(-0.36, -0.14, 0.0);
 /** The cord's end on the handset (mouthpiece end), in the handset's own frame. */
 const CORD_TO = new V3(-0.44, -0.1, 0);
-/** Lifted: up and to one side, upright, earpiece on top, turned in to a head that is not there. */
-const LIFTED = new V3(0.72, 0.62, 0.18);
-const LIFTED_ROT = new THREE.Euler(0.08, -0.55, Math.PI / 2 - 0.1);
+/** How the whole telephone is turned to the camera (a 3/4 view). */
+const ROOT_ROT: [number, number, number] = [0.28, -0.42, 0];
+/** Lifted: held to the ear of someone who is not there (see heldToEar). */
+const LIFTED = new V3(0.6, 0.62, 0.2);
+const LIFTED_Q = heldToEar();
 const LIFT_S = 0.75;
 /** The table top the drops fall onto. */
 const TABLE_Y = -0.33;
+
+/**
+ * The handset's turn when it is held to an ear, the way a person on the telephone holds it.
+ * Worked out in view space (camera on +z), then put in the telephone's own turned frame.
+ * The head is to the right of the handset and a little toward the camera, so the earpiece cup
+ * faces it and the viewer still sees into the cup at about 45°. The handset's axis leans about
+ * 30° off vertical: earpiece up at the ear, mouthpiece down and forward at the mouth.
+ * In the handset's frame: +x runs mouthpiece → earpiece, −y is the way the cups face (the
+ * head), +z is the front of the handle (toward the face's front, and up).
+ */
+function heldToEar() {
+  const up = new V3(0, 1, 0);
+  const toHead = new V3(0.72, -0.04, 0.69).normalize();
+  const right = toHead.clone().negate(); // the side of the head the handset is on
+  const facing = new V3().crossVectors(up, right).normalize(); // the way the face looks
+  const lean = 0.52;
+  const axis = up.clone().multiplyScalar(Math.cos(lean)).addScaledVector(facing, -Math.sin(lean)).normalize();
+  const y = right.clone().addScaledVector(axis, -right.dot(axis)).normalize();
+  const z = new V3().crossVectors(axis, y);
+  const view = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(axis, y, z));
+  return new THREE.Quaternion().setFromEuler(new THREE.Euler(...ROOT_ROT)).invert().multiply(view);
+}
+/** Which way is down in the lifted handset's frame (blood runs and drops that way). */
+const DOWN = new V3(0, -1, 0)
+  .applyQuaternion(new THREE.Quaternion().setFromEuler(new THREE.Euler(...ROOT_ROT)).invert())
+  .applyQuaternion(LIFTED_Q.clone().invert());
 
 function bodyGeometry() {
   const s = new THREE.Shape();
@@ -78,10 +106,37 @@ function holeAngle(i: number) {
   return Math.PI * 0.36 + (i / 9) * Math.PI * 1.45;
 }
 
-/** The handle: a bowed bar from the mouthpiece to the earpiece. */
+/** The handle: a bowed bar from the mouthpiece to the earpiece (its centre line and radius). */
+const HANDLE_LINE = new THREE.CatmullRomCurve3([new V3(-0.38, -0.05, 0), new V3(-0.2, 0.025, 0), new V3(0, 0.04, 0), new V3(0.2, 0.025, 0), new V3(0.38, -0.05, 0)]);
+const HANDLE_R = 0.046;
 function handleGeometry() {
-  const c = new THREE.CatmullRomCurve3([new V3(-0.38, -0.05, 0), new V3(-0.2, 0.025, 0), new V3(0, 0.04, 0), new V3(0.2, 0.025, 0), new V3(0.38, -0.05, 0)]);
-  return new THREE.TubeGeometry(c, 40, 0.046, 14, false);
+  return new THREE.TubeGeometry(HANDLE_LINE, 40, HANDLE_R, 14, false);
+}
+
+/** The handle's curve parameter at a given x along it (x only grows along the handle). */
+function handleT(x: number) {
+  let lo = 0;
+  let hi = 1;
+  for (let i = 0; i < 30; i++) {
+    const m = (lo + hi) / 2;
+    if (HANDLE_LINE.getPoint(m).x < x) lo = m;
+    else hi = m;
+  }
+  return (lo + hi) / 2;
+}
+
+/**
+ * A point round the handle, in the handset's frame: `x` along it, `deg` round it (0 = the
+ * outer side, away from the head; 90 = the front; 180 = the side the cups face, the head),
+ * `r` out from its centre line (HANDLE_R is on its surface).
+ */
+function onHandle(x: number, deg: number, r: number) {
+  const t = handleT(x);
+  const p = HANDLE_LINE.getPoint(t);
+  const tan = HANDLE_LINE.getTangent(t);
+  const out = new V3(-tan.y, tan.x, 0).normalize();
+  const a = (deg * Math.PI) / 180;
+  return p.addScaledVector(out, Math.cos(a) * r).add(new V3(0, 0, Math.sin(a) * r));
 }
 
 /** A coiled cord between two points, sagging between them. */
@@ -136,32 +191,199 @@ function drawNumbers(g: CanvasRenderingContext2D, w: number, h: number) {
 /** The earpiece's cup in the handset's frame: its face (with the holes) and how wide it is. */
 const EAR_FACE = new V3(0.44, -0.127, 0);
 const EAR_R = 0.115 * 0.82;
-/** Lifted, the earpiece cup faces sideways (to the ear); this is the lowest point of its face. */
-const EAR_LIP = new V3(0.44 - EAR_R * 0.92, -0.13, 0);
 
 /**
- * Blood: out of the earpiece holes. It wells up out of them and spreads over the face of the
- * cup, runs down that face to its lowest edge and gathers there, and drips off it, drop by
- * drop, onto the table.
+ * The hand that holds the lifted receiver. It is never drawn: it is only where the blood
+ * cannot go. A right hand, in the handset's frame (see onHandle for the angles round the
+ * handle), gripping the middle of the handle the way you hold a receiver to your ear:
+ * - four fingers wrapped round the front, index nearest the earpiece, each a band 0.02 wide
+ *   and 0.02 thick that leaves the palm at the outer side (the knuckles), goes over the top
+ *   and round the front, and ends with its tip on the side toward the head;
+ * - the thumb lying along the back of the handle, pointing at the earpiece;
+ * - the palm against the back, its heel on the side toward the head;
+ * - the wrist leaving the heel downward and back toward the body.
+ */
+const HAND = {
+  fingers: [
+    { x: 0.0525, knuckle: -35, tip: 168 },
+    { x: 0.0175, knuckle: -35, tip: 174 },
+    { x: -0.0175, knuckle: -35, tip: 172 },
+    { x: -0.0525, knuckle: -35, tip: 160 },
+  ],
+  /** The backs of the fingers, out from the handle's centre line. */
+  fingerBack: HANDLE_R + 0.02,
+  thumb: { deg: -110, from: -0.01, to: 0.1, r: HANDLE_R + 0.012 },
+  /** The palm wraps the back from the knuckles round to its heel, which is where blood gathers. */
+  palm: { from: -40, heel: 190, halfWidth: 0.072, edgeR: HANDLE_R + 0.023 },
+  wrist: { at: onHandle(-0.005, 197, 0.064), dir: new V3(-0.6, -0.65, -0.35).normalize(), halfWidth: 0.046, halfThick: 0.03 },
+};
+/** The wrist's cross-section axes: across it (index side +) and through it (palm side +). */
+const WRIST_ACROSS = new V3(1, 0, 0).addScaledVector(HAND.wrist.dir, -HAND.wrist.dir.x).normalize();
+const WRIST_THROUGH = new V3().crossVectors(HAND.wrist.dir, WRIST_ACROSS).normalize();
+
+/** A point on the wrist's skin: `s` along it from the heel, `deg` round it (0 = index side,
+ * 90 = the inside of the wrist, toward the viewer; 180 = little-finger side, the low edge). */
+function onWrist(s: number, deg: number, lift = 0.004) {
+  const a = (deg * Math.PI) / 180;
+  const w = HAND.wrist;
+  return w.at
+    .clone()
+    .addScaledVector(w.dir, s)
+    .addScaledVector(WRIST_ACROSS, Math.cos(a) * (w.halfWidth + lift))
+    .addScaledVector(WRIST_THROUGH, Math.sin(a) * (w.halfThick + lift));
+}
+
+/** Where the blood runs between and beside the fingers: above the index, in the three gaps,
+ * below the little finger. Lifted off the handle to the fingers' sides, so the fingers show as
+ * bare handle between the lines. */
+const LINE_X = HAND.fingers.flatMap((f, i, all) => {
+  const next = all[i + 1];
+  if (i === 0) return next ? [f.x + 0.015, (f.x + next.x) / 2] : [f.x + 0.015];
+  return next ? [(f.x + next.x) / 2] : [f.x - 0.015];
+});
+const LINE_TIP = LINE_X.map((_, i) => {
+  const a = HAND.fingers[i - 1];
+  const b = HAND.fingers[i];
+  return a && b ? (a.tip + b.tip) / 2 : (a ?? b)!.tip - 2;
+});
+const EDGE_R = HANDLE_R + 0.01;
+const GROOVE_R = HANDLE_R + 0.013;
+/** Where each line spills over the finger above it (over the knuckles) from the line before. */
+const CROSS_AT = [0, 112, 127, 118, 136];
+
+/** The cup's outer wall, from its face (y −0.125, wide) up to the handle (y −0.035, narrow). */
+const CUP_DIR = new V3(-0.84, 0, 0.54).normalize();
+function onCup(y: number, r?: number) {
+  const rr = r ?? 0.085 + ((-0.035 - y) / 0.09) * 0.03 + 0.005;
+  return new V3(EAR_FACE.x + CUP_DIR.x * rr, y, CUP_DIR.z * rr);
+}
+
+/** The run from the holes: across the face of the cup, over its rim, down its side and down the
+ * front of the handle to the index finger. */
+function trunkLine() {
+  const face = (r: number) => onCup(-0.131, r);
+  return [
+    face(0),
+    face(0.04),
+    face(0.085),
+    onCup(-0.13, 0.114),
+    onCup(-0.118),
+    onCup(-0.095),
+    onCup(-0.072),
+    onCup(-0.058),
+    onHandle(0.33, 100, 0.051),
+    onHandle(0.27, 104, 0.051),
+    onHandle(0.2, 106, 0.051),
+    onHandle(0.14, 104, 0.051),
+    onHandle(0.1, 103, 0.051),
+    onHandle(0.08, 99, 0.051),
+  ];
+}
+
+/** One line round the hand: it comes over the finger above it (or, for the first, off the
+ * trunk), follows the finger's curve round the front to its tip, and drops onto the palm's heel. */
+function fingerLine(i: number, r: number) {
+  const x = LINE_X[i]!;
+  const lr = i === 0 || i === LINE_X.length - 1 ? EDGE_R : GROOVE_R;
+  const pts: THREE.Vector3[] = [];
+  let a0 = 103;
+  if (i === 0) pts.push(onHandle(0.08, 99, 0.051), onHandle(x, a0, lr));
+  else {
+    const f = HAND.fingers[i - 1]!.x;
+    const prev = LINE_X[i - 1]!;
+    const a = CROSS_AT[i]!;
+    const over = HAND.fingerBack + r * 0.7;
+    pts.push(onHandle(prev, a, i === 1 ? EDGE_R : GROOVE_R), onHandle(f + 0.005, a + 1.5, over), onHandle(f - 0.005, a + 3, over), onHandle(x, a + 5, lr));
+    a0 = a + 5;
+  }
+  const tip = LINE_TIP[i]!;
+  const n = Math.max(2, Math.round((tip - a0) / 12));
+  for (let k = 1; k <= n; k++) {
+    const a = a0 + ((tip - a0) * k) / n;
+    // fingers in a fist lean a little toward the little finger, and are not ruled lines
+    pts.push(onHandle(x - (0.004 * (a - a0)) / 60 + Math.sin(a * 0.11 + i) * 0.0015, a, lr));
+  }
+  pts.push(onHandle(x - 0.003, tip + 9, 0.062), onHandle(x - 0.003, HAND.palm.heel, HAND.palm.edgeR));
+  return pts;
+}
+
+type Run = { pts: THREE.Vector3[]; r: number; at: number; dur: number };
+/** The ends of the gathering line along the palm's heel. */
+const HEEL_TOP = onHandle(0.064, HAND.palm.heel, HAND.palm.edgeR);
+const HEEL_LOW = onHandle(-0.07, HAND.palm.heel, HAND.palm.edgeR);
+/** The low point of the wrist where it drips from, and the drop under it. */
+const WRIST_END = onWrist(0.215, 190);
+const CAP_AT = WRIST_END.clone().addScaledVector(DOWN, 0.006);
+const DRIP_LOCAL = onWrist(0.215, 195).addScaledVector(DOWN, 0.014);
+const DRIP_AT = DRIP_LOCAL.clone().applyMatrix4(new THREE.Matrix4().compose(LIFTED, LIFTED_Q, new V3(1, 1, 1)));
+/** Seconds after the Take: when each run starts and how long it takes to reach its end. */
+const T0 = LIFT_S + 0.4;
+const DRIPS_AT = LIFT_S + 5.35;
+const RUNS: Run[] = [
+  { pts: trunkLine(), r: 0.011, at: T0, dur: 1.6 },
+  ...[0.009, 0.008, 0.0075, 0.008, 0.0075].map((r, i) => ({ pts: fingerLine(i, r), r, at: T0 + 1.6 + i * 0.32, dur: 0.9 })),
+  // gathering along the heel of the palm
+  {
+    pts: [HEEL_TOP, onHandle(0.03, HAND.palm.heel + 1, HAND.palm.edgeR), onHandle(0, HAND.palm.heel + 1.5, HAND.palm.edgeR), onHandle(-0.035, HAND.palm.heel + 1, HAND.palm.edgeR), HEEL_LOW],
+    r: 0.009,
+    at: T0 + 2.5,
+    dur: 1.5,
+  },
+  // down the inside of the wrist, curling under it to the low edge
+  { pts: [HEEL_TOP, onWrist(0.035, 35), onWrist(0.085, 48), onWrist(0.135, 62), onWrist(0.175, 100), onWrist(0.205, 150), onWrist(0.214, 182)], r: 0.008, at: T0 + 2.55, dur: 2.2 },
+  // down the little-finger edge of the wrist to where it drips
+  { pts: [HEEL_LOW, onWrist(0.03, 182), onWrist(0.08, 180), onWrist(0.14, 182), onWrist(0.2, 186), WRIST_END], r: 0.009, at: T0 + 3.95, dur: 0.9 },
+];
+const RUN_LINES = RUNS.map((r) => new THREE.CatmullRomCurve3(r.pts));
+
+/** 0→1 at a steady pace (blood runs at its own speed, it does not ease in); 1 for Infinity. */
+function along(s: number, dur: number, delay: number) {
+  if (s === Infinity) return 1;
+  return Math.min(1, Math.max(0, (s - delay) / dur));
+}
+
+/** Shows each run up to where the blood has got to, with a bead at its front while it runs. */
+function showRuns(s: number, geos: THREE.TubeGeometry[], beads: (THREE.Mesh | null)[]) {
+  RUNS.forEach((run, i) => {
+    const g = geos[i];
+    if (!g) return;
+    const k = along(s, run.dur, run.at);
+    const { tubularSegments, radialSegments } = g.parameters;
+    g.setDrawRange(0, Math.floor(tubularSegments * k) * radialSegments * 6);
+    const b = beads[i];
+    if (!b) return;
+    b.visible = k > 0 && k < 1;
+    if (b.visible) RUN_LINES[i]!.getPointAt(k, b.position);
+  });
+}
+
+/**
+ * Blood: out of the earpiece holes, and down over a hand that is not there. It wells out of the
+ * holes and spreads over the face of the cup, runs over the rim, down the side of the cup and
+ * down the front of the handle until it meets the index finger. From there it cannot touch the
+ * handle: it runs along the fingers' edges and over their knuckles, round their curve to the
+ * fingertips, so the four fingers show as bare black handle between thin red lines. It gathers
+ * along the heel of the palm, runs down the wrist in the air, and drips off the wrist's low edge.
  */
 function HandsetBlood({ since }: { since: () => number }) {
-  const run = useMemo(() => {
-    // from the middle hole down the cup's face to its lower lip (local x is up once lifted)
-    const pts = Array.from({ length: 8 }, (_, i) => {
-      const t = i / 7;
-      return new V3(EAR_FACE.x - t * (EAR_FACE.x - EAR_LIP.x), EAR_FACE.y - 0.002 - t * 0.003, Math.sin(t * 4) * 0.006);
-    });
-    return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, 0.008, 6, false);
-  }, []);
-  useEffect(() => () => run.dispose(), [run]);
+  const geos = useMemo(() => RUN_LINES.map((c, i) => new THREE.TubeGeometry(c, Math.max(24, Math.round(c.getLength() * 420)), RUNS[i]!.r, 6, false)), []);
+  const blood = useMemo(() => new THREE.MeshStandardMaterial({ color: '#560509', roughness: 0.12, metalness: 0.05 }), []);
+  useEffect(
+    () => () => {
+      geos.forEach((g) => g.dispose());
+      blood.dispose();
+    },
+    [geos, blood],
+  );
   const film = useRef<THREE.Mesh>(null);
   const cap = useRef<THREE.Mesh>(null);
+  const beads = useRef<(THREE.Mesh | null)[]>([]);
   useFrame(() => {
     const s = since();
     // it comes out of the holes as soon as it is held to the ear, and spreads over the face
     if (film.current) film.current.scale.setScalar(Math.max(0.01, progress(s, 1.4, LIFT_S + 0.1)));
-    run.setDrawRange(0, Math.floor(24 * progress(s, 0.9, LIFT_S + 0.9)) * 6 * 6);
-    if (cap.current) cap.current.scale.setScalar(Math.max(0.01, progress(s, 0.6, LIFT_S + 1.5)));
+    showRuns(s, geos, beads.current);
+    if (cap.current) cap.current.scale.setScalar(Math.max(0.01, progress(s, 0.5, DRIPS_AT - 0.45)));
   });
   return (
     <group>
@@ -170,43 +392,54 @@ function HandsetBlood({ since }: { since: () => number }) {
         <circleGeometry args={[EAR_R * 0.95, 28]} />
         <meshStandardMaterial color="#4e0406" roughness={0.1} side={THREE.DoubleSide} />
       </mesh>
-      <mesh geometry={run}>
-        <meshStandardMaterial color="#560509" roughness={0.12} metalness={0.05} />
-      </mesh>
-      {/* gathering on the lower lip, where it drips from */}
-      <mesh ref={cap} position={[EAR_LIP.x, EAR_LIP.y, EAR_LIP.z]} scale={0.01}>
-        <sphereGeometry args={[0.022, 12, 10]} />
+      {geos.map((g, i) => (
+        <mesh key={i} geometry={g} material={blood} />
+      ))}
+      {RUNS.map((run, i) => (
+        <mesh
+          key={i}
+          ref={(m) => {
+            beads.current[i] = m;
+          }}
+          material={blood}
+          visible={false}
+        >
+          <sphereGeometry args={[run.r * 1.35, 8, 6]} />
+        </mesh>
+      ))}
+      {/* gathering on the low edge of the wrist, where it drips from */}
+      <mesh ref={cap} position={CAP_AT} scale={0.01}>
+        <sphereGeometry args={[0.011, 12, 10]} />
         <meshStandardMaterial color="#4e0406" roughness={0.12} />
       </mesh>
     </group>
   );
 }
 
-/** The drops that fall from the earpiece of the lifted handset, and the pool they make. */
-function Drips({ since, from }: { since: () => number; from: THREE.Vector3 }) {
+/** The drops that fall from the wrist under the lifted handset, and the pool they make. */
+function Drips({ since, from, start }: { since: () => number; from: THREE.Vector3; start: number }) {
   const drops = useRef<(THREE.Mesh | null)[]>([]);
   const pool = useRef<THREE.Mesh>(null);
-  const START = LIFT_S + 2.0;
   useFrame(() => {
     const s = since();
     const fall = from.y - TABLE_Y;
     drops.current.forEach((m, i) => {
       if (!m) return;
-      if (s === Infinity || s < START) {
+      if (s === Infinity || s < start) {
         m.visible = s === Infinity && i === 0;
         m.position.copy(from);
         return;
       }
       // one drop at a time, drip, drip: hangs, swells, lets go, falls
       const period = 0.75;
-      const t = ((s - START + i * (period / 3)) % period) / period;
+      const t = ((s - start + i * (period / 3)) % period) / period;
       m.visible = true;
       const hang = Math.min(1, t / 0.35);
       const f = Math.max(0, (t - 0.35) / 0.65);
       m.position.set(from.x, from.y - 0.01 * hang - f * f * fall, from.z);
       m.scale.set(0.6 + 0.4 * hang, (0.6 + 0.4 * hang) * (1 + f * 0.8), 0.6 + 0.4 * hang);
     });
-    if (pool.current) pool.current.scale.setScalar(Math.max(0.01, progress(s, 5, START + 0.4)));
+    if (pool.current) pool.current.scale.setScalar(Math.max(0.01, progress(s, 5, start + 0.4)));
   });
   return (
     <group>
@@ -218,7 +451,7 @@ function Drips({ since, from }: { since: () => number; from: THREE.Vector3 }) {
           }}
           visible={false}
         >
-          <sphereGeometry args={[0.016, 10, 8]} />
+          <sphereGeometry args={[0.012, 10, 8]} />
           <meshStandardMaterial color="#5a0507" roughness={0.12} />
         </mesh>
       ))}
@@ -232,10 +465,13 @@ function Drips({ since, from }: { since: () => number; from: THREE.Vector3 }) {
 
 /**
  * The telephone (Requirement 21): the handset rattles in its cradle while it rings. Taken, the
- * receiver is picked up by no one, at the speed a hand would lift it, all the way up and
- * upright, held to an ear that is not there; then blood comes out of the earpiece holes, runs
- * down the face of the cup and drips off its edge, drop by drop, onto the table. The dial is not
- * touched by it; someone unseen keeps trying the dial, a little this way, a little that way.
+ * receiver is picked up by no one, at the speed a hand would lift it, and held the way a person
+ * on the telephone holds it: earpiece at an ear that is not there, mouthpiece at a mouth, the
+ * handset leaning, breathing with them. Then blood comes out of the earpiece holes and runs down
+ * the receiver over the hand that holds it: round fingers that are not there, along a palm and
+ * down a wrist in the air, and drips off the wrist, drop by drop, onto the table. Nothing is
+ * drawn of the hand; you see it only by where the blood goes. Someone unseen keeps trying the
+ * dial, a little this way, a little that way.
  */
 export default function Telephone({ open = false }: { open?: boolean }) {
   const handset = useRef<THREE.Group>(null);
@@ -256,11 +492,6 @@ export default function Telephone({ open = false }: { open?: boolean }) {
     },
     [body, wheelGeo, handle],
   );
-  // where the drops fall from: the lower lip of the earpiece's face, the handset lifted
-  const dripFrom = useMemo(() => {
-    const m = new THREE.Matrix4().compose(LIFTED, new THREE.Quaternion().setFromEuler(LIFTED_ROT), new V3(1, 1, 1));
-    return EAR_LIP.clone().add(new V3(0, -0.012, 0)).applyMatrix4(m);
-  }, []);
   useFrame((st) => {
     const h = handset.current;
     if (!h) return;
@@ -270,11 +501,7 @@ export default function Telephone({ open = false }: { open?: boolean }) {
       wheel.current.rotation.y = tries;
     }
     if (taken) {
-      // a hand's speed: up off the cradle first, then over and upright
-      const k = progress(since(), LIFT_S);
-      const up = Math.min(1, k * 1.5);
-      h.position.set(REST.x + (LIFTED.x - REST.x) * k * k, REST.y + (LIFTED.y - REST.y) * up, REST.z + (LIFTED.z - REST.z) * k);
-      h.rotation.set(LIFTED_ROT.x * k, LIFTED_ROT.y * k, LIFTED_ROT.z * k + Math.sin(t * 1.1) * 0.012 * k);
+      holdHandset(h, progress(since(), LIFT_S), t);
     } else {
       // ring pattern: two short rattles, then a pause
       const on = ringing && t % 3 < 1.4 && Math.floor(t * 18) % 2 === 0;
@@ -293,7 +520,7 @@ export default function Telephone({ open = false }: { open?: boolean }) {
     }
   });
   return (
-    <group rotation={[0.28, -0.42, 0]} position-y={0.02} scale={0.92}>
+    <group rotation={ROOT_ROT} position-y={0.02} scale={0.92}>
       {/* the base plate, felt underneath */}
       <mesh material={M.bakelite()} position-y={-0.315}>
         <boxGeometry args={[0.96, 0.04, 0.98]} />
@@ -360,14 +587,31 @@ export default function Telephone({ open = false }: { open?: boolean }) {
         {taken && <HandsetBlood since={since} />}
       </group>
       <mesh ref={cord} material={M.bakelite()} />
-      {taken && <Drips since={since} from={dripFrom} />}
-      {/* not drawn: the space the lifted receiver reaches, so the product view frames it */}
-      <mesh position={[0.3, 0.36, 0]}>
-        <boxGeometry args={[1.5, 1.4, 0.9]} />
+      {taken && <Drips since={since} from={DRIP_AT} start={DRIPS_AT} />}
+      {/* not drawn: the space the lifted receiver, the wrist streams and the drops reach, so the
+          product view frames it */}
+      <mesh position={[0.45, 0.38, 0.15]}>
+        <boxGeometry args={[1.0, 1.44, 1.0]} />
         <meshBasicMaterial visible={false} />
       </mesh>
     </group>
   );
+}
+
+const HOLD_Q = new THREE.Quaternion();
+const BREATH_Q = new THREE.Quaternion();
+const BREATH_AXIS = new V3(0, 0, 1);
+/**
+ * Lifting and holding the receiver: up off the cradle first at a hand's speed, turning to the
+ * ear on the way (k is 0→1 over the lift), then held there with the faint rise and lean of
+ * someone breathing, about one breath every four seconds.
+ */
+function holdHandset(h: THREE.Group, k: number, t: number) {
+  const up = Math.min(1, k * 1.7);
+  const breath = Math.sin(t * 1.5) * k;
+  h.position.set(REST.x + (LIFTED.x - REST.x) * k * k, REST.y + (LIFTED.y - REST.y) * up + breath * 0.004, REST.z + (LIFTED.z - REST.z) * k);
+  HOLD_Q.identity().slerp(LIFTED_Q, Math.pow(k, 1.4));
+  h.quaternion.copy(HOLD_Q).multiply(BREATH_Q.setFromAxisAngle(BREATH_AXIS, breath * 0.012));
 }
 
 /** Outside the component, so the React compiler rules see no mutation of hook values. */

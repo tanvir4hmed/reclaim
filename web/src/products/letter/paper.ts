@@ -150,28 +150,27 @@ export function drawSmear(g: CanvasRenderingContext2D, x: number, y: number, len
  * edges, scratches through them, spatter round them, and drips running down from the bottom
  * of several letters. Only the one line.
  */
-export function drawBloodWords(g: CanvasRenderingContext2D, text: string, x: number, y: number, size: number, maxW: number, seed: number) {
+export function drawBloodWords(g: CanvasRenderingContext2D, text: string, x: number, y: number, size: number, maxW: number, seed: number, face = 'Creepster') {
   const r = seeded(seed);
   g.save();
-  g.font = `bold ${size}px "Brush Script MT", "Segoe Script", "Comic Sans MS", cursive`;
+  g.font = `${size}px "${face}", "Brush Script MT", "Segoe Script", cursive`;
+  // a little air between the letters, so they never run into one another
+  const gap = size * 0.07;
   g.textBaseline = 'alphabetic';
   let scale = 1;
-  const width = g.measureText(text).width;
+  const width = g.measureText(text).width + gap * (text.length - 1);
   if (width > maxW) scale = maxW / width;
   g.translate(x, y);
   g.scale(scale, 1);
   // a wet halo soaked into the paper under the words
-  g.filter = 'blur(3px)';
-  g.fillStyle = 'rgba(110,14,14,0.45)';
-  g.fillText(text, 2, 2);
-  g.filter = 'none';
+  // (each letter's own soak is drawn with it, below)
   // the strokes, each letter its own small tilt and height, darker rim then the red
   let adv = 0;
   const parts = text.split('');
   const pos: number[] = [];
   for (const c of parts) {
     pos.push(adv);
-    adv += g.measureText(c).width;
+    adv += g.measureText(c).width + gap;
   }
   parts.forEach((c, i) => {
     const px = pos[i]!;
@@ -180,19 +179,17 @@ export function drawBloodWords(g: CanvasRenderingContext2D, text: string, x: num
     g.save();
     g.translate(px, py);
     g.rotate(rot);
+    // a faint wet soak round the letter, a thin dark rim, then the red
+    g.filter = 'blur(2px)';
+    g.fillStyle = 'rgba(110,14,14,0.35)';
+    g.fillText(c, 1.5, 1.5);
+    g.filter = 'none';
     g.lineJoin = 'round';
     g.strokeStyle = '#3a0406';
-    g.lineWidth = size * 0.07;
+    g.lineWidth = size * 0.025;
     g.strokeText(c, 0, 0);
-    g.fillStyle = '#7d0c10';
+    g.fillStyle = '#8a0d12';
     g.fillText(c, 0, 0);
-    // a little shine where it is still wet
-    g.fillStyle = 'rgba(200,60,60,0.35)';
-    g.fillText(c, -size * 0.02, -size * 0.02);
-    g.fillStyle = '#7d0c10';
-    g.globalAlpha = 0.85;
-    g.fillText(c, size * 0.01, size * 0.01);
-    g.globalAlpha = 1;
     g.restore();
   });
   // drips from the bottoms of some of the letters

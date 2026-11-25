@@ -1,7 +1,7 @@
 import gsap from 'gsap';
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import { LUNGE_MS } from '../director/sequences';
-import { useHaunted, useStory } from '../store';
+import { useHaunted } from '../store';
 import { BatSvg, FLY_FACE_Y, FLY_VB_W, FLY_W, HANG_ASPECT } from './BatSvg';
 import { BAT_W } from './DayBat';
 import { SkeletonHand } from './SkeletonHand';
@@ -249,10 +249,11 @@ export function DarkEvents() {
 /** The single tremor and the quiet after Accept (Req 22.7–22.8). */
 export function Accepted() {
   const shown = useFx((s) => s.acceptedShown);
-  const phase = useStory((s) => s.story.phase);
-  if (!shown || phase !== 'accepted') return null;
+  const leaving = useFx((s) => s.flags['accepted-leaving'] !== undefined);
+  if (!shown) return null;
+  // Pure black, as the dark she came out of; it lifts straight off the Christmas shop.
   return (
-    <div className="accepted" role="alert" data-testid="accepted">
+    <div className={`accepted${leaving ? ' leaving' : ''}`} role="alert" data-testid="accepted">
       <p>Your order has been accepted.</p>
     </div>
   );

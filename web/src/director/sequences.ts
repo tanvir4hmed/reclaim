@@ -117,16 +117,20 @@ export async function acceptedSequence(): Promise<void> {
   // visitor who just "bought" her things. Reduced motion shows her still, then a fade.
   set({ scare: true });
   await wait(reducedMotion() ? 1100 : 1650);
-  set({ scare: false });
-  set({ quiet: true, acceptedShown: true, cartRinging: false });
+  // Straight from her to black, in the same frame: the checkout is never shown again. The
+  // words come up in the dark; then, behind the black, the shop goes back to Christmas, and
+  // the black lifts off it.
+  set({ scare: false, quiet: true, acceptedShown: true, cartRinging: false });
   await wait(4000);
   const left = useStory.getState().story.leftBehind;
   markEnded();
   if (left) void sendEcho(left);
   decayUniforms.uDecay.value = 0;
   dispatch({ type: 'RETURN_DONE' });
-  set({ quiet: false, acceptedShown: false, prints: [], batPerch: 'hero-echo', flags: {} });
-  glBus.invalidate();
   nav.go('/');
   window.scrollTo({ top: 0 });
+  set({ quiet: false, prints: [], batPerch: 'hero-echo', flags: { 'accepted-leaving': Date.now() } });
+  glBus.invalidate();
+  await wait(1000);
+  set({ acceptedShown: false, flags: {} });
 }

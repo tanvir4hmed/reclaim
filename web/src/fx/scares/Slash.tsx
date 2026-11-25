@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface Rect {
   left: number;
@@ -13,6 +13,11 @@ interface Rect {
  * estimated on the card.
  */
 export const teddyThroat: { at: { x: number; y: number; rect: Rect; when: number } | null } = { at: null };
+
+/** When the stroke went up on screen (performance.now()); its blade crosses in 0.12–0.26 s after. */
+export const teddySlash: { at: number | null } = { at: null };
+/** Seconds after the stroke appears that the bear comes apart: once the blade is all the way through. */
+export const SLASH_THROUGH = 0.32;
 
 function throat(): { x: number; y: number; rect: Rect } {
   const t = teddyThroat.at;
@@ -42,6 +47,10 @@ const SPATTER = Array.from({ length: 22 }, (_, i) => {
  */
 export function TeddySlash() {
   const [{ x, y, rect }] = useState(throat);
+  // the bear waits for this: it is only cut once the blade has been seen going through
+  useEffect(() => {
+    teddySlash.at = performance.now();
+  }, []);
   const w = window.innerWidth;
   const h = window.innerHeight;
   // slightly downhill, left to right, like a right-handed swing, through the throat

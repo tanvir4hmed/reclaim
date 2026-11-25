@@ -20,7 +20,6 @@ const IDS = [
   'oil-lamp',
   'jack-in-the-box',
   'nutcracker',
-  'spirit-board',
   'candle',
   'teddy-bear',
   'shoes',
@@ -83,7 +82,7 @@ test.describe('visual capture of the Take scares', () => {
       await page.waitForTimeout(2500);
       await page.screenshot({ path: `${OUT}/pv-${id}-d.jpeg`, type: 'jpeg', quality: 60, scale: 'css' });
       // The slow ones are still going: one more, later.
-      if (['typewriter', 'advent-calendar', 'instant-camera', 'doll', 'chocolate-box', 'telephone', 'hourglass', 'oil-lamp', 'spirit-board', 'sleigh'].includes(id)) {
+      if (['typewriter', 'advent-calendar', 'instant-camera', 'doll', 'chocolate-box', 'telephone', 'hourglass', 'oil-lamp', 'sleigh'].includes(id)) {
         await page.waitForTimeout(4000);
         await page.screenshot({ path: `${OUT}/pv-${id}-e.jpeg`, type: 'jpeg', quality: 60, scale: 'css' });
       }
@@ -131,6 +130,9 @@ test.describe('visual capture of the Take scares', () => {
   test('take burst', async ({ page }, info) => {
     test.skip(info.project.name !== 'desktop' || !process.env.BURST_IDS, 'set BURST_IDS to capture');
     test.setTimeout(600_000);
+    const errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
+    page.on('console', (m) => m.type() === 'error' && errors.push(`console: ${m.text().slice(0, 300)}`));
     await fresh(page);
     await catchBat(page, info);
     await page.waitForTimeout(2000);
@@ -143,6 +145,7 @@ test.describe('visual capture of the Take scares', () => {
       await expect(view).toBeVisible({ timeout: 15_000 });
       await page.waitForTimeout(4000);
       const box = await page.getByTestId('inspection-canvas').boundingBox();
+      await page.screenshot({ path: `${OUT}/burst-${id}-pre.jpeg`, type: 'jpeg', quality: 55, scale: 'css', ...(box ? { clip: box } : {}) });
       await page.getByTestId('pv-add').click();
       const t0 = Date.now();
       for (let i = 0; i < Number(process.env.BURST_N ?? 6); i++) {
@@ -154,6 +157,7 @@ test.describe('visual capture of the Take scares', () => {
       await expect(view).toHaveCount(0, { timeout: 15_000 });
       await page.waitForTimeout(1500);
     }
+    console.log(`BURST ERRORS (${errors.length})\n${errors.filter((e) => !e.includes('/api/echo')).join('\n')}`);
   });
 
   // The haunted shop as a whole: the hero, the shelves while scrolling (the 3D must stay on its
@@ -162,6 +166,12 @@ test.describe('visual capture of the Take scares', () => {
     test.skip(info.project.name !== 'desktop' || !process.env.OVERVIEW, 'set OVERVIEW to capture');
     test.setTimeout(300_000);
     await fresh(page);
+    // the Christmas shelves first: every product the same size, centred in its picture
+    for (let i = 0; i < 3; i++) {
+      await page.evaluate((y) => window.scrollTo({ top: y, behavior: 'instant' }), 700 + i * 760);
+      await page.waitForTimeout(1500);
+      await page.screenshot({ path: `${OUT}/ov-day-${i}.jpeg`, type: 'jpeg', quality: 70, scale: 'css' });
+    }
     await catchBat(page, info);
     await page.waitForTimeout(4000);
     await page.screenshot({ path: `${OUT}/ov-hero.jpeg`, type: 'jpeg', quality: 70, scale: 'css' });

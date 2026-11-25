@@ -16,7 +16,7 @@ const PAPER_PX_H = Math.round((PAPER_PX_W * PAPER_H) / PAPER_W);
 const TOP_MARGIN = 110;
 const LINE = 72;
 const FEED_END = TOP_MARGIN + 2 * LINE + 3.2 * LINE;
-/** "Please, Help!!" sits in the blank space between the last typed line and the platen. */
+/** "Help Me!!" sits in the blank space between the last typed line and the platen. */
 const BLOOD_Y = TOP_MARGIN + 2 * LINE + 150;
 /** The platen's top, in the carriage's frame, where the line being typed sits. */
 const PLATEN_TOP = 0.07;
@@ -92,7 +92,7 @@ export default function Typewriter() {
       }
       shown.forEach((l, i) => g.fillText(l, 56, TOP_MARGIN + i * LINE));
       if (blood > 0) {
-        // "Please, Help!!" seeps up through the blank part of the sheet under the typed lines,
+        // "Help Me!!" seeps up through the blank part of the sheet under the typed lines,
         // as if written with a finger on the other side: a stain first, the letters, then runs.
         const a = blood;
         const ink = Math.min(1, a * 1.6);
@@ -103,11 +103,11 @@ export default function Typewriter() {
         g.globalAlpha = 0.35 * ink;
         g.fillStyle = '#7a1a12';
         g.filter = 'blur(7px)';
-        g.fillText('Please, Help!!', w / 2, y);
+        g.fillText('Help Me!!', w / 2, y);
         g.filter = 'none';
         g.globalAlpha = ink;
         g.fillStyle = '#6e0909';
-        g.fillText('Please, Help!!', w / 2, y);
+        g.fillText('Help Me!!', w / 2, y);
         // short runs down toward the platen (the sheet ends there, inside the machine)
         const run = Math.max(0, (a - 0.45) / 0.55);
         for (let i = 0; i < 10; i++) {

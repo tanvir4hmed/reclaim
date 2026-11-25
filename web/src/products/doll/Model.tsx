@@ -17,14 +17,18 @@ import { EYE, EYE_DIRS, HEAD, furBall, furRing, headGeometry, hollyLeaf, laceBan
  * After the Reveal the same doll has been left too long: faded dusty velvet, torn hat and hem,
  * dirty lace, matted wild hair, grey porcelain cracked across, red eyes in dark sockets, a
  * stitched-up teddy with one eye gone. Every size and position is measured from the reference
- * (see shapes.ts). Taken: her head, tilted, comes slowly upright, her eyes turn onto you, and
- * blood runs from both of them down her face.
+ * (see shapes.ts). After the Reveal she has slumped, exhausted: her head hangs over to one side
+ * and turned away, matted hair fallen across her face. Taken: her head snaps round to look at
+ * you, still hanging over at that angle, black eyes through the hair, and blood starts to run
+ * from both of them, slowly, down her face.
  */
 
-/** Seconds into the Take: the head rights itself, the eyes come round, then the blood. */
-const TAKE = { straighten: 0.95, look: 0.8, lookFor: 0.7, bleed: 1.4 };
-/** Before the take, after the Reveal, her head hangs to one side like this. */
-const TILT = { z: 0.24, x: 0.07 };
+/** Seconds into the Take: the snap round, the eyes on you, then the blood. */
+const TAKE = { snap: 0.25, snapFor: 0.22, look: 0.32, lookFor: 0.18, bleed: 1.0 };
+/** After the Reveal her head hangs like this: nodded forward, turned away, fallen to one side. */
+const SLUMP = { x: 0.46, y: -1.0, z: 0.46 };
+/** Taken, it stays fallen to the side, lifted a little so the face shows under the hair. */
+const HELD = { x: 0.1, z: 0.4 };
 /** Where her neck pivots. */
 const NECK_Y = 0.53;
 
@@ -140,49 +144,51 @@ function drawFace(g: CanvasRenderingContext2D, w: number, h: number, haunted: bo
   g.stroke();
 }
 
-/** The iris of a glass doll's eye: hazel-green by day, a red glow after the Reveal. */
+/**
+ * The iris of a glass doll's eye: always black, as old glass doll eyes are. By day a very dark
+ * brown with a black pupil and a bright catchlight; after the Reveal black all through, with only
+ * a dull red ring at its edge and a small cold glint: the eyes of something that is looking.
+ */
 function drawIris(g: CanvasRenderingContext2D, w: number, h: number, haunted: boolean) {
   const c = w / 2;
   g.clearRect(0, 0, w, h);
   const grd = g.createRadialGradient(c, c, w * 0.08, c, c, w * 0.5);
   if (haunted) {
-    grd.addColorStop(0, '#ff4a2a');
-    grd.addColorStop(0.5, '#c01010');
-    grd.addColorStop(1, '#3a0202');
+    grd.addColorStop(0, '#000000');
+    grd.addColorStop(0.78, '#070404');
+    grd.addColorStop(0.93, '#3a0606');
+    grd.addColorStop(1, '#120202');
   } else {
-    grd.addColorStop(0, '#b6a668');
-    grd.addColorStop(0.45, '#7d8a5a');
-    grd.addColorStop(0.85, '#4b5a38');
-    grd.addColorStop(1, '#1e2414');
+    grd.addColorStop(0, '#000000');
+    grd.addColorStop(0.45, '#1c120c');
+    grd.addColorStop(0.85, '#2c1d13');
+    grd.addColorStop(1, '#0c0806');
   }
   g.fillStyle = grd;
   g.beginPath();
   g.arc(c, c, w * 0.5, 0, Math.PI * 2);
   g.fill();
-  // fine streaks out from the pupil
-  g.strokeStyle = haunted ? 'rgba(255,120,80,0.35)' : 'rgba(230,220,170,0.35)';
-  g.lineWidth = 1;
-  for (let i = 0; i < 40; i++) {
-    const a = (i / 40) * Math.PI * 2;
-    g.beginPath();
-    g.moveTo(c + Math.cos(a) * w * 0.14, c + Math.sin(a) * w * 0.14);
-    g.lineTo(c + Math.cos(a) * w * 0.44, c + Math.sin(a) * w * 0.44);
-    g.stroke();
-  }
-  // the pupil: after the Reveal a wide black hole in the middle of the red, with a dark rim
-  if (haunted) {
-    g.fillStyle = 'rgba(20,0,0,0.85)';
-    g.beginPath();
-    g.arc(c, c, w * 0.25, 0, Math.PI * 2);
-    g.fill();
+  // faint streaks in the glass, by day only
+  if (!haunted) {
+    g.strokeStyle = 'rgba(120,86,60,0.25)';
+    g.lineWidth = 1;
+    for (let i = 0; i < 40; i++) {
+      const a = (i / 40) * Math.PI * 2;
+      g.beginPath();
+      g.moveTo(c + Math.cos(a) * w * 0.2, c + Math.sin(a) * w * 0.2);
+      g.lineTo(c + Math.cos(a) * w * 0.44, c + Math.sin(a) * w * 0.44);
+      g.stroke();
+    }
   }
   g.fillStyle = '#000000';
   g.beginPath();
-  g.arc(c, c, w * (haunted ? 0.21 : 0.17), 0, Math.PI * 2);
+  g.arc(c, c, w * 0.2, 0, Math.PI * 2);
   g.fill();
-  g.fillStyle = 'rgba(255,255,255,0.9)';
+  // the catchlight: bright and warm by day, a small cold point after the Reveal
+  g.fillStyle = haunted ? 'rgba(200,210,220,0.55)' : 'rgba(255,255,255,0.92)';
   g.beginPath();
-  g.ellipse(c - w * 0.15, c - w * 0.16, w * 0.07, w * 0.05, -0.5, 0, Math.PI * 2);
+  if (haunted) g.arc(c - w * 0.14, c - w * 0.15, w * 0.035, 0, Math.PI * 2);
+  else g.ellipse(c - w * 0.15, c - w * 0.16, w * 0.07, w * 0.05, -0.5, 0, Math.PI * 2);
   g.fill();
 }
 
@@ -240,7 +246,7 @@ function drawLace(g: CanvasRenderingContext2D, w: number, h: number, haunted: bo
 }
 
 /** One glass eye in its socket; the iris and the glassy cornea turn together to look. */
-function Eye({ side, haunted, iris }: { side: number; haunted: boolean; iris: THREE.Texture }) {
+function Eye({ side, iris }: { side: number; iris: THREE.Texture }) {
   const dir = EYE_DIRS[side < 0 ? 0 : 1]!;
   const centre = useMemo(() => dir.clone().multiplyScalar(HEAD.r * 0.86).setY(dir.y * HEAD.r * 0.86 * 1.07), [dir]);
   return (
@@ -251,7 +257,7 @@ function Eye({ side, haunted, iris }: { side: number; haunted: boolean; iris: TH
         </mesh>
         <mesh position-z={EYE.r * 0.93}>
           <circleGeometry args={[EYE.r * 0.6, 28]} />
-          <meshStandardMaterial map={iris} roughness={0.3} emissive={haunted ? '#ff2a10' : '#000000'} emissiveMap={haunted ? iris : null} emissiveIntensity={haunted ? 0.9 : 0} />
+          <meshStandardMaterial map={iris} roughness={0.15} metalness={0.1} />
         </mesh>
         {/* the glass over it */}
         <mesh position-z={EYE.r * 0.55}>
@@ -278,6 +284,49 @@ function Eye({ side, haunted, iris }: { side: number; haunted: boolean; iris: TH
 function seep(s: number, dur: number, delay: number): number {
   if (s === Infinity) return 1;
   return Math.min(1, Math.max(0, (s - delay) / dur));
+}
+
+/**
+ * After the Reveal: matted strands fallen forward across her face from the hairline, hanging
+ * over both eyes and past the chin, with gaps the eyes look out through. In the head's frame.
+ */
+const FACE_STRANDS: [number, number, number][] = [
+  // [x at the hairline, drift by the chin, thickness]
+  [-0.11, -0.02, 0.011],
+  [-0.082, 0.012, 0.009],
+  [-0.05, -0.016, 0.008],
+  [0.058, 0.018, 0.009],
+  [0.088, -0.01, 0.008],
+  [0.116, 0.014, 0.011],
+];
+
+function FaceHair() {
+  const geos = useMemo(
+    () =>
+      FACE_STRANDS.map(([x0, drift, thick], i) => {
+        const pts: THREE.Vector3[] = [];
+        for (let k = 0; k <= 12; k++) {
+          const t = k / 12;
+          const y = 0.15 - t * 0.38;
+          const x = x0 + drift * t * t + Math.sin(t * 7 + i) * 0.006;
+          // over the surface of the face, a little off it; below the chin it hangs free
+          const yy = Math.max(-1, Math.min(1, y / (HEAD.r * 1.07)));
+          const onFace = Math.sqrt(Math.max(0, HEAD.r * HEAD.r * (1 - yy * yy) - x * x));
+          const z = y > -0.12 ? onFace + 0.012 + t * 0.008 : Math.max(0.09, onFace) + 0.02;
+          pts.push(new THREE.Vector3(x, y, z));
+        }
+        return sweep(new THREE.CatmullRomCurve3(pts), (t) => thick * (1 - 0.55 * t), 40, 6);
+      }),
+    [],
+  );
+  useEffect(() => () => geos.forEach((g) => g.dispose()), [geos]);
+  return (
+    <>
+      {geos.map((g, i) => (
+        <mesh key={i} geometry={g} material={M.dollHair()} />
+      ))}
+    </>
+  );
 }
 
 /** Blood running slowly from both eyes down her face, over the chin, dripping onto the collar. */
@@ -613,6 +662,44 @@ function aimEyes(head: THREE.Object3D, camera: THREE.Camera, haunted: boolean, k
   });
 }
 
+const toCam = new THREE.Vector3();
+
+/** 0→1 in `dur` with a small overshoot and settle: a head that snaps round and stops. */
+function snap(s: number, delay: number, dur: number): number {
+  if (s === Infinity) return 1;
+  const u = Math.min(1, Math.max(0, (s - delay) / dur));
+  const back = 1 + 2.4 * (u - 1) ** 3 + 1.4 * (u - 1) ** 2;
+  const settle = s > delay + dur && s < delay + dur + 0.35 ? Math.sin((s - delay - dur) * 40) * 0.02 * (1 - (s - delay - dur) / 0.35) : 0;
+  return back + settle;
+}
+
+/**
+ * Her head: by day upright; after the Reveal slumped over and turned away (it sags a little as
+ * if breathing); taken, it snaps round to face you, staying fallen to the side (outside the component).
+ */
+function poseHead(h: THREE.Object3D, camera: THREE.Camera, haunted: boolean, taken: boolean, s: number, clock: number) {
+  if (!haunted) {
+    h.rotation.set(0, 0, 0);
+    return;
+  }
+  if (!taken) {
+    const sag = Math.sin(clock * 0.35) * 0.012;
+    h.rotation.set(SLUMP.x + sag, SLUMP.y, SLUMP.z + sag * 0.5);
+    return;
+  }
+  // the turn that would bring her face onto the camera, in her body's frame
+  const parent = h.parent;
+  let yaw = 0;
+  if (parent) {
+    parent.updateWorldMatrix(true, false);
+    toCam.copy(camera.position);
+    parent.worldToLocal(toCam).sub(h.position);
+    yaw = Math.atan2(toCam.x, toCam.z);
+  }
+  const k = snap(s, TAKE.snap, TAKE.snapFor);
+  h.rotation.set(SLUMP.x + (HELD.x - SLUMP.x) * k, SLUMP.y + (yaw - SLUMP.y) * k, SLUMP.z + (HELD.z - SLUMP.z) * Math.min(1, k));
+}
+
 /**
  * The doll (Requirement 15), rebuilt from the round 11 references, Christmas and haunted.
  * Taken (after the Reveal): her head comes upright from where it hung, her eyes turn onto you,
@@ -633,16 +720,12 @@ export default function Doll() {
     const h = head.current;
     if (!h) return;
     const s = since();
-    // haunted, her head hangs to one side; taken, it comes slowly upright, with one small jerk
-    const up = taken ? progress(s, TAKE.straighten, 0.15) : 0;
-    const jerk = taken && s > 0.15 + TAKE.straighten && s < 0.45 + TAKE.straighten ? Math.sin((s - 0.15 - TAKE.straighten) * 30) * 0.015 : 0;
-    const k = haunted ? 1 - up : 0;
-    h.rotation.set(TILT.x * k, 0, TILT.z * k + jerk + (haunted && !taken ? Math.sin(st.clock.elapsedTime * 0.3) * 0.004 : 0));
+    poseHead(h, camera, haunted, taken, s, st.clock.elapsedTime);
     const look = taken ? progress(s, TAKE.lookFor, TAKE.look) : 0;
     aimEyes(h, camera, haunted, haunted ? look : 0);
   });
   return (
-    <group position-y={-0.56} rotation-y={-0.12} scale={1.15}>
+    <group position-y={-0.56} rotation={[0, -0.12, haunted ? -0.05 : 0]} scale={1.15}>
       <Body haunted={haunted} lace={lace} />
       <SmallTeddy haunted={haunted} />
       <group ref={head} position-y={NECK_Y}>
@@ -657,9 +740,10 @@ export default function Doll() {
             </Decal>
           </mesh>
           {[-1, 1].map((s) => (
-            <Eye key={s} side={s} haunted={haunted} iris={iris} />
+            <Eye key={s} side={s} iris={iris} />
           ))}
           <Hair haunted={haunted} />
+          {haunted && <FaceHair />}
           <Hat haunted={haunted} />
           {haunted && taken && <BloodTears since={since} />}
         </group>

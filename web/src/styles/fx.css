@@ -839,7 +839,10 @@
   fill: #141010;
 }
 
-.sheet-ghost:not(.empty) .ghost-cloth {
+/* The whole sheet lifts, eyes and all (the eyes sit inside the cloth's own group, filter too). */
+.sheet-ghost:not(.empty) .ghost-body {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
   animation: hemLift 2.2s ease-in 0.5s both;
 }
 
@@ -864,17 +867,36 @@
   display: none;
 }
 
+/* After the scare the screen stays as black as the dark she came out of; only the words come up
+   in it, then the black lifts off the Christmas shop. The checkout is never seen again. */
 .accepted {
   position: fixed;
   inset: 0;
   z-index: 80;
   display: grid;
   place-items: center;
-  background: rgb(2 3 6 / 0.94);
+  background: #000;
   color: #e6dccb;
   font-family: var(--serif);
   font-size: clamp(22px, 3vw, 34px);
-  animation: fadeIn 1.4s ease-out;
+}
+
+.accepted p {
+  animation: fadeIn 1.4s ease-out 0.4s both;
+}
+
+.accepted.leaving {
+  animation: fadeOut 1s ease-in forwards;
+  pointer-events: none;
+}
+
+.accepted.leaving p {
+  opacity: 0;
+  animation: none;
+}
+
+@keyframes fadeOut {
+  to { opacity: 0; }
 }
 
 @keyframes fadeIn {

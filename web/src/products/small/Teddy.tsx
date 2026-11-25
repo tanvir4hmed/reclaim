@@ -3,7 +3,7 @@ import { Decal } from '@react-three/drei';
 import { useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { seeded } from '../../director/footprints';
-import { teddyThroat } from '../../fx/scares/Slash';
+import { SLASH_THROUGH, teddySlash, teddyThroat } from '../../fx/scares/Slash';
 import { useCanvasTexture } from '../../gl/canvasTex';
 import { M } from '../../gl/materials';
 import { progress, useTaken } from '../../gl/useTaken';
@@ -15,10 +15,25 @@ import { progress, useTaken } from '../../gl/useTaken';
 const NECK_Y = 0.11;
 const FLOOR = -0.79;
 /**
- * When the blade goes through, in seconds after the take: the stroke on screen starts at 0.12 s
- * and crosses the throat (the middle of the picture) at about 0.19 s; the neck parts right then.
+ * When the bear comes apart (performance.now()): only once the sword stroke has been seen all
+ * the way across its picture (fx/scares/Slash), so the blow always comes first. Shared by the
+ * parts of the bear (head, body, blood) and by every view of it.
  */
-const CUT_AT = 0.19;
+const cut: { at: number | null } = { at: null };
+
+/** Seconds since the cut (-1 before it, 99 on reload or under reduced motion). */
+function sinceCut(s: number): number {
+  if (s === Infinity) return 99;
+  if (s < 0) return -1;
+  const now = performance.now();
+  if (cut.at === null) {
+    const stroke = teddySlash.at;
+    if (stroke !== null && now - stroke < 4000) cut.at = stroke + SLASH_THROUGH * 1000;
+    // no stroke on screen (it could not be shown): it is cut anyway
+    else if (s > 0.8) cut.at = now;
+  }
+  return cut.at === null ? -1 : (now - cut.at) / 1000;
+}
 const GRAV = 3.2;
 
 const BODY: [number, number, number, number][] = [
@@ -103,8 +118,9 @@ export function TeddyBear() {
     const b = body.current;
     if (!h || !b) return;
     // where the throat is on screen, for the sword stroke (product view only, before the cut)
-    if (root.current && (!taken || since() < 0.2)) publishThroat(root.current, camera, gl.domElement);
+    if (root.current && (!taken || since() < 0.6)) publishThroat(root.current, camera, gl.domElement);
     if (!taken) {
+      cut.at = null;
       h.position.set(0, NECK_Y, 0);
       h.rotation.set(0, 0, 0);
       b.rotation.set(0, 0, 0);
@@ -112,7 +128,7 @@ export function TeddyBear() {
       return;
     }
     const s = since();
-    const t = s === Infinity ? 9 : s - CUT_AT;
+    const t = sinceCut(s);
     if (t <= 0) return;
     // the head: it slides off down the cut (to its right, a little down), tips, falls, bounces,
     // rolls. The slide starts at full speed, so the neck is seen to part the instant the blade is through.
@@ -288,7 +304,7 @@ function ChestBlood({ since }: { since: () => number }) {
   const [step, setStep] = useState(0);
   useFrame(() => {
     const s = since();
-    const t = s === Infinity ? 99 : s - CUT_AT;
+    const t = sinceCut(s);
     const next = Math.min(40, Math.max(0, Math.floor((t - 0.25) / 0.17)));
     if (next !== step) setStep(next);
   });
@@ -305,7 +321,7 @@ function ChestBlood({ since }: { since: () => number }) {
 function SeveredHead({ since }: { since: () => number }) {
   const drip = useRef<THREE.Mesh>(null);
   useFrame(() => {
-    const t = since() === Infinity ? 9 : since() - CUT_AT;
+    const t = sinceCut(since());
     if (drip.current) drip.current.scale.y = Math.max(0.01, progress(t, 1.5, 0.3));
   });
   return (
@@ -333,7 +349,7 @@ function Bloodshed({ since }: { since: () => number }) {
   const pools = useRef<(THREE.Mesh | null)[]>([]);
   useFrame(() => {
     const s = since();
-    const t = s === Infinity ? 99 : s - CUT_AT;
+    const t = sinceCut(s);
     drops.forEach((d, i) => {
       const dt = t - d.t0;
       const f = flying.current[i];
