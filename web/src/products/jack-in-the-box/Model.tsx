@@ -1053,7 +1053,7 @@ export default function JackInTheBox() {
       </group>
       {/* not drawn: the space the jack rises into, so the product view frames it */}
       {haunted && (
-        <mesh position={[0, 0.9, -0.15]}>
+        <mesh position={[0, 0.9, -0.15]} userData={{ frame: true }}>
           <boxGeometry args={[0.95, 1.8, 1.2]} />
           <meshBasicMaterial visible={false} />
         </mesh>

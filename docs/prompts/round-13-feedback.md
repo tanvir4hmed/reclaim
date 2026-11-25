@@ -14,3 +14,10 @@ A summary of Tanvir's thirteenth review, as a reusable brief. Twelve items and t
 10. **After paying.** When the last ghost leaves, the old "paid" window shows before Christmas returns. Go from the ghost's black straight to Christmas; going back to the previous page after the climax spoils it.
 11. **Shelves.** Some products sit low in their pictures (letter, shoes; the mirror too big and low). Every product the same size, centred, with breathing space all round; extras such as the watch chain do not count. Both by day and after the Reveal.
 12. **Product views.** The same: every full view at the same size with breathing space, and after the Take, if more room is needed, the view resizes as is feasible.
+
+## Follow-up the same day
+
+- **Telephone:** exactly like a reference photo of a W48-style bakelite phone (rotary dial with a maroon centre, horn cradle, cream button and label window, braided cords), the handset held up beside it. No blood on any hand: the blood comes out of the earpiece holes and runs down the receiver.
+- **Camera:** it must not rise up; it only turns to the screen and takes the picture.
+- **Product views:** every product simply fits with enough space from the start, so the Take never has to move or resize it.
+- **Candle:** it must not get small. When taken the flame goes out and one beautiful straight column of smoke rises, in which the ghost's head can just be made out, small. No hair or veils (the earlier reference had been over-read).

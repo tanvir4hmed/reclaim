@@ -17,10 +17,11 @@ import { useHaunted } from '../../store';
  * and spilling over its rim, the holly dead in the wax. It is still lit.
  *
  * Taken, it goes out. The flame shrinks into the wick and dies (0-0.3 s), the wick glows, and a
- * thin thread of smoke rises from it (0.3-1.6 s). The thread climbs and blooms into veils
- * (1.4-3.4 s), and her face comes up in the smoke (2.6-4.0 s): hollow eyes, the mouth open in
- * a long scream. She hangs there, drifting (4.0-5.6 s), then the smoke rises on and comes apart
- * (5.6-7.2 s). A last thin wisp leaves the dying ember (7.0-8.0 s), and then nothing.
+ * thin thread of smoke rises from it (0.3-1.5 s). The thread grows into one straight column of
+ * fine filaments twisting round each other (1.3-3.0 s), and partway up, where the column
+ * thickens, a small face condenses in it (2.4-3.8 s): a pale oval, two hollow eyes, an open
+ * mouth. It hangs there in the swaying smoke (3.8-5.0 s), then the smoke rises on and thins out
+ * (5.0-6.5 s). A last thin wisp leaves the dying ember (6.0-7.0 s), and then nothing.
  *
  * All in the candle's own space: the table at y = -0.62, the dish floor at -0.6, +z toward you.
  */
@@ -35,7 +36,7 @@ const TAU = Math.PI * 2;
 const angDiff = (a: number, b: number) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
 
 /** The Take, seconds after it. Everything is over at `end`. */
-const TAKE = { out: 0.3, end: 8.0 };
+const TAKE = { out: 0.3, end: 7.0 };
 
 type Prof = [number, number][];
 type V3 = [number, number, number];
@@ -746,8 +747,8 @@ const lights = () => (lightParts ??= buildLights());
 function emberAt(s: number): number {
   if (s < 0 || s === Infinity) return 0;
   const on = smooth((s - 0.08) / 0.25);
-  const dim = 1 - 0.4 * smooth((s - 0.8) / 4.8);
-  const off = 1 - smooth((s - 5.6) / 2.4);
+  const dim = 1 - 0.4 * smooth((s - 0.8) / 4.0);
+  const off = 1 - smooth((s - 5.0) / 2.0);
   return on * dim * off * (0.88 + 0.12 * Math.sin(s * 2.3));
 }
 
@@ -756,95 +757,148 @@ function emberAt(s: number): number {
 /* ------------------------------------------------------------------------------------------ */
 
 /*
- * She is painted once into a 1024x1536 texture, one channel per part: red is the smoke (the
- * thread, the veils, the wisps), green her pale face, blue the dark of her eyes, nose, mouth and
- * the streaks under her eyes. The shader warps, reveals and composites them.
+ * The smoke is painted once into a 704x1536 texture (the shape of its picture), one channel per
+ * part: red is the smoke (one column of fine twisting filaments), green the pale oval of the
+ * face in it, blue the dark of its eyes and mouth and the shadow under its jaw. The shader
+ * warps, reveals and composites them.
  */
-const GW = 1024;
+const GW = 704;
 const GH = 1536;
-/** The middle of her face in the texture. */
-const FX = 512;
-const FY = 430;
 /** The smoke's picture in the candle's space: width and height, its foot on the ember. */
-const SMOKE_W = 1.6;
-const SMOKE_H = 2.4;
+const SMOKE_W = 0.46;
+const SMOKE_H = 1.0;
+/** How far up the column the face is (0 at the wick, 1 at the top), and its size in pixels. */
+const FACE_V = 0.53;
+const FACE_RX = GW / 24;
+const FACE_TOP = 32;
+const FACE_BOT = 42;
 
-type P2 = [number, number];
 type Ch = 'r' | 'g' | 'b';
 const ink = (ch: Ch, a: number) =>
   `rgba(${ch === 'r' ? 255 : 0},${ch === 'g' ? 255 : 0},${ch === 'b' ? 255 : 0},${clamp01(a).toFixed(4)})`;
 
-/** A smooth line through the points (Catmull-Rom), as n + 1 points. */
-function spline(pts: P2[], n: number): P2[] {
-  const out: P2[] = [];
-  const m = pts.length - 1;
-  for (let i = 0; i <= n; i++) {
-    const f = (i / n) * m;
-    const k = Math.min(m - 1, Math.floor(f));
-    const t = f - k;
-    const p0 = pts[Math.max(0, k - 1)]!;
-    const p1 = pts[k]!;
-    const p2 = pts[k + 1]!;
-    const p3 = pts[Math.min(m, k + 2)]!;
-    const cr = (a: number, b: number, c: number, d: number) =>
-      0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t * t + (-a + 3 * b - 3 * c + d) * t * t * t);
-    out.push([cr(p0[0], p1[0], p2[0], p3[0]), cr(p0[1], p1[1], p2[1], p3[1])]);
+/**
+ * The middle of the column, x in pixels, at height v (0 at the wick, 1 at the top): straight up
+ * off the wick, then a slight, slow S.
+ */
+function colX(v: number): number {
+  return GW / 2 + GW * smooth(v / 0.35) * (0.022 * Math.sin(v * 4.4 - 0.5) + 0.009) + GW * 0.006 * v * Math.sin(v * 11 + 1.1);
+}
+
+/** Half the column's width at height v: a few px at the wick, about a fifth of the picture at the top, thicker round the face. */
+function colHW(v: number): number {
+  return 1.2 + GW * 0.1 * v ** 1.3 + 15 * Math.exp(-(((v - FACE_V) / 0.075) ** 2));
+}
+
+/** Where the face is, in texture pixels. */
+const FX = colX(FACE_V);
+const FY = GH * (1 - FACE_V);
+
+interface Strand {
+  /** Its angle round the column at the wick, and how many times it winds round as it rises. */
+  ph: number;
+  turns: number;
+  /** How far out from the middle it winds (share of the column's half-width). */
+  amp: number;
+  /** Where it starts and stops (0..1 up the column), and how quickly it fades in. */
+  v0: number;
+  v1: number;
+  fin: number;
+  alpha: number;
+  width: number;
+  /** A slow wobble in its winding. */
+  wob: number;
+  wph: number;
+  /** Which side of the face it passes; 0 for the few that run straight over it. */
+  side: number;
+}
+
+const strandAngle = (s: Strand, v: number) => s.ph + TAU * s.turns * v + s.wob * Math.sin(v * 7 + s.wph);
+
+/** The filaments: most rise from the wick itself, others come into sight a little way up. */
+function makeStrands(): Strand[] {
+  const r = seeded(1225);
+  const out: Strand[] = [];
+  const n = 11;
+  for (let k = 0; k < n; k++) {
+    const s: Strand = {
+      ph: (k / n) * TAU + (r() - 0.5) * 0.4,
+      turns: 2.0 + r() * 0.8,
+      amp: 0.55 + r() * 0.45,
+      v0: k < 5 ? 0 : 0.04 + r() * 0.22,
+      v1: 0.84 + r() * 0.16,
+      fin: k < 5 ? 0.02 : 0.12,
+      alpha: 0.55 + r() * 0.45,
+      width: 0.8 + r() * 0.6,
+      wob: 0.15 + r() * 0.25,
+      wph: r() * TAU,
+      side: 1,
+    };
+    s.side = Math.sin(strandAngle(s, FACE_V)) >= 0 ? 1 : -1;
+    out.push(s);
   }
+  // two faint ones that run on over the face: it is made of the same smoke
+  for (let k = 0; k < 2; k++)
+    out.push({
+      ph: r() * TAU,
+      turns: 1.6 + r() * 0.5,
+      amp: 0.45,
+      v0: 0.3 + r() * 0.08,
+      v1: 0.78 + r() * 0.1,
+      fin: 0.2,
+      alpha: 0.3,
+      width: 0.8,
+      wob: 0.2,
+      wph: r() * TAU,
+      side: 0,
+    });
   return out;
 }
 
-interface Rib {
-  /** How many strands, how far apart they are at the start and at the end. */
-  n: number;
-  s0: number;
-  s1: number;
-  width: number;
-  alpha: number;
-  /** How far each strand wanders off the line, growing along it. */
-  wob?: number;
-  /** Alpha at the start and the end of the strands. */
-  fade?: [number, number];
+/** A point on a filament at height v, and whether it is in front of the column (depth 1) or behind (-1). */
+function strandAt(s: Strand, v: number): { x: number; y: number; depth: number } {
+  const a = strandAngle(s, v);
+  let d = colHW(v) * s.amp * Math.sin(a);
+  if (s.side !== 0) {
+    // the filaments part round the face, hug its sides and close in again above it
+    const w = Math.exp(-((((v - FACE_V) * GH) / (FACE_BOT * 1.5)) ** 2));
+    d = d * (1 - 0.55 * w) + s.side * FACE_RX * 1.1 * w;
+  }
+  return { x: colX(v) + d, y: GH * (1 - v), depth: Math.cos(a) };
 }
 
 /**
- * A ribbon of smoke along a path: many thin strands side by side, fanning out along it, each
- * wandering a little and starting and stopping at its own place, as filaments of smoke do.
+ * Strokes one filament, a short segment at a time so it can thicken and fade as it rises: fine
+ * at the wick, softer higher up, brighter where it winds round the front, gone at the top.
  */
-function ribbon(g: CanvasRenderingContext2D, path: P2[], o: Rib, ch: Ch, r: () => number) {
-  const line = spline(path, 140);
-  const L = line.length - 1;
-  const [f0, f1] = o.fade ?? [1, 1];
-  for (let k = 0; k < o.n; k++) {
-    const u = o.n === 1 ? 0 : k / (o.n - 1) - 0.5 + (r() - 0.5) * (0.6 / o.n);
-    const ph = r() * TAU;
-    const fr = 1.5 + r() * 4;
-    const wob = (o.wob ?? 6) * (0.4 + r());
-    const a = o.alpha * (0.35 + r() * 0.9);
-    const i0 = Math.floor(r() * 0.15 * L);
-    const i1 = L - Math.floor(r() * 0.22 * L);
-    g.beginPath();
-    for (let i = i0; i <= i1; i++) {
-      const t = i / L;
-      const [x, y] = line[i]!;
-      const [xa, ya] = line[Math.max(0, i - 1)]!;
-      const [xb, yb] = line[Math.min(L, i + 1)]!;
-      const nl = Math.hypot(yb - ya, xb - xa) || 1;
-      const nx = -(yb - ya) / nl;
-      const ny = (xb - xa) / nl;
-      const d = u * (o.s0 + (o.s1 - o.s0) * t) + Math.sin(t * fr * Math.PI + ph) * wob * t;
-      if (i === i0) g.moveTo(x + nx * d, y + ny * d);
-      else g.lineTo(x + nx * d, y + ny * d);
+function drawStrand(g: CanvasRenderingContext2D, s: Strand, widthMul: number, alphaMul: number, ch: Ch) {
+  const n = 260;
+  g.save();
+  // butt ends, so the added segments do not pile up into beads where they meet
+  g.lineCap = 'butt';
+  let prev = strandAt(s, s.v0);
+  for (let i = 1; i <= n; i++) {
+    const t = i / n;
+    const v = s.v0 + (s.v1 - s.v0) * t;
+    const p = strandAt(s, v);
+    const a =
+      s.alpha *
+      alphaMul *
+      smooth(t / s.fin) *
+      (1 - smooth((t - 0.75) / 0.25)) *
+      (1 - smooth((v - 0.62) / 0.38)) *
+      (0.45 + 0.55 * (0.5 + 0.5 * p.depth));
+    if (a > 0.002) {
+      g.strokeStyle = ink(ch, a);
+      g.lineWidth = s.width * widthMul * (0.7 + 2.3 * v);
+      g.beginPath();
+      g.moveTo(prev.x, prev.y);
+      g.lineTo(p.x, p.y);
+      g.stroke();
     }
-    const p0 = line[i0]!;
-    const p1 = line[i1]!;
-    const grad = g.createLinearGradient(p0[0], p0[1], p1[0], p1[1] + 0.01);
-    grad.addColorStop(0, ink(ch, a * f0));
-    grad.addColorStop(0.5, ink(ch, a));
-    grad.addColorStop(1, ink(ch, a * f1));
-    g.strokeStyle = grad;
-    g.lineWidth = o.width * (0.6 + r() * 0.8);
-    g.stroke();
+    prev = p;
   }
+  g.restore();
 }
 
 /** A soft round blob (an ellipse fading out from its middle). `hard` keeps it dense further out. */
@@ -864,218 +918,78 @@ function blob(g: CanvasRenderingContext2D, x: number, y: number, rx: number, ry:
   g.restore();
 }
 
-/** Her face's outline: an egg, narrower to the chin, the jaw long because the mouth hangs open. */
-function eggPath(g: CanvasRenderingContext2D, rx: number, top: number, bottom: number) {
+/** The face's outline: an oval, a little narrower and longer to the chin. `k` scales it. */
+function eggPath(g: CanvasRenderingContext2D, k = 1) {
   g.beginPath();
-  for (let i = 0; i <= 72; i++) {
-    const p = (i / 72) * TAU;
+  for (let i = 0; i <= 64; i++) {
+    const p = (i / 64) * TAU;
     const c = Math.cos(p);
-    const narrow = 1 - 0.26 * Math.max(0, -c) ** 1.4;
-    const x = FX + rx * Math.sin(p) * narrow;
-    const y = FY - (c > 0 ? top : bottom) * c;
+    const narrow = 1 - 0.28 * Math.max(0, -c) ** 1.4;
+    const x = FX + k * FACE_RX * Math.sin(p) * narrow;
+    const y = FY - k * (c > 0 ? FACE_TOP : FACE_BOT) * c;
     if (i === 0) g.moveTo(x, y);
     else g.lineTo(x, y);
   }
   g.closePath();
 }
 
-/* The paths of the smoke, in texture pixels (the ember is at the bottom middle, 512, 1536). */
-const THREAD: P2[] = [
-  [512, 1536],
-  [507, 1482],
-  [515, 1424],
-  [528, 1364],
-  [522, 1302],
-  [502, 1244],
-  [496, 1184],
-  [511, 1124],
-];
-const mirror = (p: P2[], jig = 0): P2[] => p.map(([x, y], i): P2 => [1024 - x + (i % 2 ? jig : -jig), y + (i % 3) * jig]);
-const HOOD_L: P2[] = [
-  [505, 235],
-  [430, 245],
-  [372, 320],
-  [352, 450],
-  [362, 600],
-  [380, 760],
-  [420, 900],
-  [470, 1020],
-  [500, 1120],
-];
-const OUTER_L: P2[] = [
-  [490, 215],
-  [380, 210],
-  [290, 290],
-  [250, 450],
-  [262, 640],
-  [300, 820],
-  [370, 960],
-  [455, 1075],
-  [505, 1150],
-];
-const FRAME_L: P2[] = [
-  [470, 262],
-  [415, 330],
-  [396, 450],
-  [402, 580],
-  [425, 690],
-];
-const CURL_L: P2[] = [
-  [470, 230],
-  [360, 160],
-  [240, 150],
-  [150, 222],
-  [122, 332],
-  [170, 410],
-  [245, 396],
-  [262, 330],
-  [225, 296],
-];
-const FLARE_L: P2[] = [
-  [505, 240],
-  [480, 150],
-  [420, 88],
-  [320, 64],
-  [232, 88],
-];
-const SWEEP_L: P2[] = [
-  [382, 700],
-  [282, 682],
-  [192, 722],
-  [146, 820],
-  [176, 902],
-];
-const VEILS: { p: P2[]; s0: number; s1: number; n: number; a: number }[] = [
-  { p: HOOD_L, s0: 10, s1: 70, n: 22, a: 1 },
-  { p: mirror(HOOD_L, 6), s0: 10, s1: 70, n: 22, a: 1 },
-  { p: OUTER_L, s0: 14, s1: 95, n: 20, a: 0.75 },
-  { p: mirror(OUTER_L, 8), s0: 14, s1: 95, n: 20, a: 0.75 },
-  { p: FRAME_L, s0: 4, s1: 22, n: 10, a: 0.9 },
-  { p: mirror(FRAME_L, 4), s0: 4, s1: 22, n: 10, a: 0.9 },
-  {
-    p: [
-      [512, 1180],
-      [500, 1080],
-      [525, 980],
-      [510, 880],
-      [495, 760],
-      [512, 650],
-    ],
-    s0: 8,
-    s1: 60,
-    n: 20,
-    a: 1,
-  },
-  {
-    p: [
-      [505, 1200],
-      [530, 1100],
-      [490, 1000],
-      [540, 900],
-      [480, 800],
-      [530, 700],
-    ],
-    s0: 4,
-    s1: 26,
-    n: 8,
-    a: 0.9,
-  },
-  { p: CURL_L, s0: 12, s1: 46, n: 16, a: 0.85 },
-  { p: mirror(CURL_L, 10), s0: 12, s1: 46, n: 16, a: 0.85 },
-  { p: FLARE_L, s0: 8, s1: 50, n: 12, a: 0.7 },
-  { p: mirror(FLARE_L, 12), s0: 8, s1: 50, n: 12, a: 0.7 },
-  { p: SWEEP_L, s0: 10, s1: 40, n: 10, a: 0.55 },
-  { p: mirror(SWEEP_L, 9), s0: 10, s1: 40, n: 10, a: 0.55 },
-];
-
-/** Haze: the volume of the smoke, very soft (blurred most). */
+/** Haze: the volume of the smoke round the filaments, very soft (blurred most). */
 function paintHaze(g: CanvasRenderingContext2D) {
-  blob(g, 512, 480, 250, 330, 0.1, 'r');
-  blob(g, 512, 870, 160, 260, 0.07, 'r');
-  blob(g, 512, 1200, 60, 170, 0.05, 'r');
-  blob(g, 280, 290, 190, 130, 0.06, 'r', -0.4);
-  blob(g, 744, 290, 190, 130, 0.06, 'r', 0.4);
-  blob(g, 512, 200, 240, 110, 0.05, 'r');
-  // the face's soft presence, and the shadow round the holes and in the cheeks
-  blob(g, FX, FY + 10, 125, 190, 0.22, 'g');
-  for (const sd of [-1, 1]) {
-    blob(g, FX + sd * 44, FY - 20, 52, 48, 0.32, 'b');
-    blob(g, FX + sd * 64, FY + 82, 24, 46, 0.2, 'b');
+  for (let v = 0.02; v < 1; v += 0.02) {
+    const hw = colHW(v);
+    blob(g, colX(v), GH * (1 - v), hw * 1.15, hw * 0.9 + 14, 0.035 * smooth(v / 0.12) * (1 - smooth((v - 0.6) / 0.4)), 'r');
   }
-  blob(g, FX, FY + 140, 50, 88, 0.3, 'b');
+  // the column is a little denser where it thickens round the face
+  blob(g, FX, FY, FACE_RX * 1.9, FACE_BOT * 1.6, 0.07, 'r');
+  blob(g, FX, FY + 2, FACE_RX * 1.25, FACE_BOT * 1.15, 0.12, 'g');
+  for (const sd of [-1, 1]) blob(g, FX + sd * 10, FY - 4, 12, 11, 0.2, 'b');
+  blob(g, FX, FY + 21, 10, 15, 0.18, 'b');
 }
 
-/** Soft: broad ribbons of smoke, her face, the holes in it. */
-function paintSoft(g: CanvasRenderingContext2D, r: () => number) {
-  for (const v of VEILS) ribbon(g, v.p, { n: 5, s0: v.s0 * 0.8, s1: v.s1 * 0.9, width: 14, alpha: 0.045 * v.a, wob: 10 }, 'r', r);
-  ribbon(g, THREAD, { n: 1, s0: 0, s1: 0, width: 9, alpha: 0.16, fade: [0.4, 1] }, 'r', r);
-  // the face: pale, lit a little from below and in front, palest on the brow and cheekbones
-  eggPath(g, 100, 150, 178);
-  const face = g.createRadialGradient(FX, FY - 30, 10, FX, FY + 10, 200);
-  face.addColorStop(0, ink('g', 0.62));
-  face.addColorStop(0.5, ink('g', 0.5));
-  face.addColorStop(0.85, ink('g', 0.25));
-  face.addColorStop(1, ink('g', 0.05));
+/** Soft: the filaments' glow, the pale oval of the face, its eyes and mouth. */
+function paintSoft(g: CanvasRenderingContext2D, strands: Strand[]) {
+  for (const s of strands) drawStrand(g, s, 3.6, 0.16, 'r');
+  // the face: palest on the brow and the cheekbones, thinning out to its edge
+  eggPath(g);
+  const face = g.createRadialGradient(FX, FY - 8, 3, FX, FY + 2, FACE_BOT * 1.1);
+  face.addColorStop(0, ink('g', 0.42));
+  face.addColorStop(0.5, ink('g', 0.32));
+  face.addColorStop(0.85, ink('g', 0.14));
+  face.addColorStop(1, ink('g', 0.02));
   g.fillStyle = face;
   g.fill();
-  blob(g, FX, FY - 90, 60, 34, 0.22, 'g');
-  blob(g, FX, FY + 8, 12, 42, 0.16, 'g');
-  blob(g, FX, FY + 168, 34, 18, 0.12, 'g');
+  blob(g, FX, FY - 19, 15, 8, 0.12, 'g');
+  blob(g, FX, FY + 36, 9, 5, 0.1, 'g');
   for (const sd of [-1, 1]) {
-    blob(g, FX + sd * 56, FY + 32, 30, 22, 0.18, 'g');
-    // the hollow sockets, drooping a little at the outer corners
-    blob(g, FX + sd * 44, FY - 12, 27, 35, 0.95, 'b', -sd * 0.22, 0.7);
+    blob(g, FX + sd * 14, FY + 6, 8, 6, 0.1, 'g');
+    // the hollow eyes, drooping a little at the outer corners
+    blob(g, FX + sd * 10, FY - 4, 6.5, 8.5, 0.85, 'b', -sd * 0.22, 0.7);
+    // hollow cheeks above the jaw, which give the chin its shape
+    blob(g, FX + sd * 19, FY + 22, 4.5, 12, 0.16, 'b', sd * 0.3);
   }
-  blob(g, FX, FY + 62, 11, 24, 0.55, 'b');
-  // the mouth: a long dark oval, open in a scream
-  blob(g, FX, FY + 138, 30, 62, 1, 'b', 0, 0.72);
-  // soft shadow along the streaks
-  for (const sd of [-1, 1]) streaks(g, sd, 8, 0.22, r);
+  blob(g, FX, FY + 9, 2.2, 3.5, 0.3, 'b');
+  // the mouth: a dark oval hanging open
+  blob(g, FX, FY + 21, 5.5, 9, 0.85, 'b', 0, 0.7);
+  // the shadow under the jaw, where the smoke below shows darker
+  blob(g, FX, FY + FACE_BOT + 6, 15, 5, 0.14, 'b');
 }
 
-/** The dark streaks running down from her eyes. */
-function streaks(g: CanvasRenderingContext2D, sd: number, width: number, alpha: number, r: () => number) {
-  const ex = FX + sd * 44;
-  for (const dx of [-8, 7]) {
-    ribbon(
-      g,
-      [
-        [ex + dx, FY + 18],
-        [ex + dx * 1.2 + 3, FY + 70],
-        [ex + dx * 1.1 - 2, FY + 120],
-        [ex + dx * 1.3, FY + 168],
-      ],
-      { n: 1, s0: 0, s1: 0, width, alpha, wob: 3, fade: [1, 0.2] },
-      'b',
-      r,
-    );
+/** Fine: the filaments themselves, smoke strands round the face's edge, the cores of the holes. */
+function paintFine(g: CanvasRenderingContext2D, strands: Strand[]) {
+  for (const s of strands) drawStrand(g, s, 1, 0.55, 'r');
+  // the face is smoke too: faint strands follow its outline
+  g.save();
+  g.lineWidth = 1;
+  for (const k of [0.82, 0.92, 1.0]) {
+    eggPath(g, k);
+    g.strokeStyle = ink('g', 0.08);
+    g.stroke();
+    g.strokeStyle = ink('r', 0.05);
+    g.stroke();
   }
-}
-
-/** Fine: the filaments, the thread, the smoke grain over her face, the cores of the holes. */
-function paintFine(g: CanvasRenderingContext2D, r: () => number) {
-  for (const v of VEILS) ribbon(g, v.p, { n: v.n, s0: v.s0, s1: v.s1, width: 1.3, alpha: 0.11 * v.a, wob: 7 }, 'r', r);
-  ribbon(g, THREAD, { n: 4, s0: 1.5, s1: 10, width: 1.8, alpha: 0.42, wob: 3, fade: [0.5, 1] }, 'r', r);
-  // her face is smoke too: strands follow its outline down each side
-  for (const sd of [-1, 1])
-    for (let k = 0; k < 7; k++) {
-      const pts: P2[] = [];
-      for (let i = 0; i <= 8; i++) {
-        const p = 0.25 + (i / 8) * 2.35;
-        const c = Math.cos(p);
-        const narrow = 1 - 0.26 * Math.max(0, -c) ** 1.4;
-        const s = 0.74 + 0.05 * k;
-        pts.push([FX + sd * 100 * Math.sin(p) * narrow * s, FY - (c > 0 ? 150 : 178) * c * (0.8 + 0.035 * k)]);
-      }
-      ribbon(g, pts, { n: 1, s0: 0, s1: 0, width: 1.6, alpha: 0.13, wob: 4 }, 'g', r);
-      ribbon(g, pts, { n: 1, s0: 0, s1: 0, width: 1.4, alpha: 0.07, wob: 5 }, 'r', r);
-    }
-  for (const sd of [-1, 1]) {
-    blob(g, FX + sd * 44, FY - 10, 15, 21, 0.6, 'b');
-    blob(g, FX + sd * 7, FY + 80, 5, 4, 0.5, 'b');
-    streaks(g, sd, 3.5, 0.5, r);
-  }
-  blob(g, FX, FY + 140, 18, 44, 0.7, 'b');
+  g.restore();
+  for (const sd of [-1, 1]) blob(g, FX + sd * 10, FY - 3, 3.5, 4.5, 0.6, 'b');
+  blob(g, FX, FY + 21, 3, 6, 0.6, 'b');
 }
 
 /** Draws a layer onto the picture, added, blurred by about `px` (by filter, or by scaling). */
@@ -1112,7 +1026,7 @@ function paintGhost(): HTMLCanvasElement {
   if (!g) return main;
   g.fillStyle = '#000';
   g.fillRect(0, 0, GW, GH);
-  const r = seeded(1225);
+  const strands = makeStrands();
   const layer = (paint: (lg: CanvasRenderingContext2D) => void, px: number) => {
     const c = document.createElement('canvas');
     c.width = GW;
@@ -1125,9 +1039,9 @@ function paintGhost(): HTMLCanvasElement {
     paint(lg);
     blurOnto(g, c, px);
   };
-  layer(paintHaze, 24);
-  layer((lg) => paintSoft(lg, r), 7);
-  layer((lg) => paintFine(lg, r), 1);
+  layer(paintHaze, 18);
+  layer((lg) => paintSoft(lg, strands), 4);
+  layer((lg) => paintFine(lg, strands), 0.6);
   return main;
 }
 
@@ -1146,6 +1060,7 @@ uniform float uThread;
 uniform float uFaceMul;
 uniform vec2 uOff;
 varying vec2 vUv;
+const float ASPECT = ${(SMOKE_W / SMOKE_H).toFixed(4)};
 float h3(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
 float n3(vec3 x) {
   vec3 i = floor(x); vec3 f = fract(x); f = f * f * (3.0 - 2.0 * f);
@@ -1157,43 +1072,47 @@ float inside(vec2 u) { return step(0.0, u.x) * step(u.x, 1.0) * step(0.0, u.y) *
 void main() {
   float h = vUv.y;
   float t = uTime * uSpeed;
-  vec2 uv = vUv - uOff * smoothstep(0.2, 0.7, h);
-  // rising on, and spreading as it rises
-  uv.y -= uRise * 0.12 * (0.3 + h);
-  uv.x = 0.5 + (uv.x - 0.5) / (1.0 + uRise * 0.35 * h);
-  // the drift and curl: slow noise travelling upward, steady near the wick, freer higher up
-  vec3 q = vec3(uv.x * 2.4, uv.y * 3.2 - t * 0.22, t * 0.11 + uSeed);
+  vec2 uv = vUv - uOff * smoothstep(0.15, 0.7, h);
+  // rising on, and spreading a little as it rises
+  uv.y -= uRise * 0.14 * (0.25 + h);
+  uv.x = 0.5 + (uv.x - 0.5) / (1.0 + uRise * 0.4 * h);
+  // noise is taken in the picture's true shape, so its swirls are round
+  vec2 p = vec2(uv.x * ASPECT, uv.y);
+  // the sway: slow, broad noise travelling up the column, none at the wick, more higher up
+  vec3 q = vec3(p.x * 2.2, p.y * 2.2 - t * 0.2, t * 0.08 + uSeed);
   vec2 w = vec2(fbm(q), fbm(q + vec3(5.2, 1.3, 2.8))) - 0.5;
-  vec3 q2 = vec3(uv.x * 7.0 + w.x * 2.0, uv.y * 8.0 - t * 0.5 + w.y * 2.0, t * 0.2 + uSeed * 1.7);
+  // and a finer curl along the filaments
+  vec3 q2 = vec3(p.x * 9.0 + w.x * 1.5, p.y * 7.0 - t * 0.45, t * 0.16 + uSeed * 1.7);
   vec2 w2 = vec2(n3(q2), n3(q2 + vec3(3.1, 7.4, 1.9))) - 0.5;
-  float amp = 0.004 + 0.05 * smoothstep(0.04, 0.55, h);
-  vec2 su = uv + w * amp * 1.4 + w2 * amp * 0.45;
-  // her face drifts with it, less, so it holds together
-  vec2 fu = uv + w * amp * 0.35;
+  float amp = 0.003 + 0.09 * smoothstep(0.02, 0.9, h);
+  vec2 sway = vec2(w.x * amp, w.y * amp * 0.25);
+  vec2 su = uv + sway + vec2(w2.x * amp * 0.25, w2.y * amp * 0.1);
+  // the face sways with the column but keeps its shape
+  vec2 fu = uv + sway + w2 * amp * 0.04;
   vec4 s = texture2D(uMap, su) * inside(su);
   vec4 f = texture2D(uMap, fu) * inside(fu);
-  float edge = smoothstep(1.0, 0.92, vUv.y) * smoothstep(0.0, 0.05, vUv.x) * smoothstep(1.0, 0.95, vUv.x);
-  float nz = fbm(vec3(vUv * vec2(5.0, 4.0), uSeed + 9.0));
+  float edge = smoothstep(1.0, 0.9, vUv.y) * smoothstep(0.0, 0.08, vUv.x) * smoothstep(1.0, 0.92, vUv.x);
+  float nz = fbm(vec3(p * 6.0, uSeed + 9.0));
   // revealed from the bottom up as the smoke climbs, its front ragged
-  float shown = smoothstep(uFront + 0.02, uFront - 0.14, h + (nz - 0.5) * 0.14);
+  float shown = smoothstep(uFront + 0.02, uFront - 0.12, h + (nz - 0.5) * 0.1);
   shown *= mix(1.0, smoothstep(0.3, 0.16, h), uThread);
-  // coming apart: holes open in it and spread
-  float b = fbm(vec3(su * vec2(4.0, 5.0), t * 0.25 + 3.0));
+  // denser and thinner patches travelling up the filaments, so the smoke flows
+  float flow = 0.7 + 0.6 * n3(vec3(p.x * 14.0, p.y * 10.0 - t * 0.9, t * 0.3 + uSeed));
+  // thinning out: holes open in it and spread
+  float b = fbm(vec3(p * vec2(9.0, 5.0), t * 0.25 + 3.0));
   float keep = 1.0 - smoothstep(b - 0.12, b + 0.12, uBreak * 1.2 - 0.05);
-  float d = s.r;
-  // brighter and denser than a real wisp, so the veils read against the dark as in the reference
-  float sa = min(1.0, smoothstep(0.0, 0.4, d) * 1.3) * shown * keep * edge * uAlpha;
-  vec3 sc = mix(vec3(0.5, 0.52, 0.55), vec3(0.93, 0.93, 0.92), smoothstep(0.05, 0.6, d));
-  sc *= 0.82 + 0.3 * (1.0 - h);
-  sc += uEmber * vec3(0.4, 0.16, 0.04) * pow(max(0.0, 1.0 - h * 3.0), 3.0);
-  // her face condenses in patches rather than fading in evenly
-  float fm = uFace * uFaceMul * keep * edge * uAlpha;
+  float d = s.r * flow;
+  float sa = smoothstep(0.0, 0.85, d) * 0.9 * shown * keep * edge * uAlpha;
+  vec3 sc = mix(vec3(0.55, 0.57, 0.6), vec3(0.9, 0.9, 0.89), smoothstep(0.05, 0.7, d));
+  sc += uEmber * vec3(0.4, 0.16, 0.04) * pow(max(0.0, 1.0 - h * 5.0), 3.0);
+  // the face condenses in patches rather than fading in evenly
+  float fm = uFace * uFaceMul * keep * edge * uAlpha * shown;
   float cond = smoothstep(nz - 0.25, nz + 0.25, uFace * 1.4 - 0.2);
-  float af = clamp(f.g * 1.15, 0.0, 1.0) * fm * cond * 0.9;
-  float ah = clamp(f.b * 1.1, 0.0, 1.0) * fm * cond * 0.9;
+  float af = clamp(f.g * 1.2, 0.0, 1.0) * fm * cond * 0.72;
+  float ah = clamp(f.b * 1.1, 0.0, 1.0) * fm * cond * 0.75;
   vec3 col = sc * sa;
   float a = sa;
-  col = vec3(0.92, 0.91, 0.88) * af + col * (1.0 - af);
+  col = vec3(0.9, 0.89, 0.86) * af + col * (1.0 - af);
   a = af + a * (1.0 - af);
   col = vec3(0.01, 0.012, 0.016) * ah + col * (1.0 - ah);
   a = ah + a * (1.0 - ah);
@@ -1297,25 +1216,27 @@ function driveSmoke(root: THREE.Group | null, s: number, cam: THREE.Camera) {
   faceCamera(root, cam);
   const p = ghostParts();
   const t = s;
-  // the thread climbs (0.3-1.6 s), then blooms up into the veils (1.4-3.4 s)
-  const front = Math.max(0.32 * smooth((t - 0.3) / 1.3), t > 1.4 ? 0.32 + 0.85 * smooth((t - 1.4) / 2.0) : 0);
-  // then it rises on and comes apart (5.6-7.2 s)
-  const rise = progress(t, 1.6, 5.6);
-  const alpha = 1 - progress(t, 1.0, 6.2);
+  // the thread climbs (0.3-1.5 s), then the column grows up out of it (1.3-3.0 s)
+  const front = Math.max(0.3 * smooth((t - 0.3) / 1.2), t > 1.3 ? 0.3 + 0.85 * smooth((t - 1.3) / 1.7) : 0);
+  // it hangs (3.8-5.0 s), then rises on and thins out (5.0-6.5 s)
+  const rise = progress(t, 1.4, 5.0);
+  const alpha = 1 - progress(t, 1.0, 5.5);
   const ember = emberAt(t);
-  const off: [number, number] = [Math.sin(t * 0.7) * 0.006, Math.sin(t * 0.53 + 1) * 0.005];
-  // her face comes up in it (2.6-4.0 s)
-  setSmoke(p.front, { time: t, front, face: progress(t, 1.4, 2.6), rise, brk: rise, alpha, ember, off });
-  setSmoke(p.back, { time: t + 11, front: front - 0.05, face: 0, rise: rise * 1.1, brk: rise, alpha: alpha * 0.5, ember, off });
-  // a last thin wisp from the ember as it dies (7.0-8.0 s)
-  const wisp = t > 7.0 ? 1 - progress(t, 0.6, 7.4) : 0;
-  setSmoke(p.wisp, { time: t + 3, front: 0.3 * smooth((t - 7.0) / 0.5), face: 0, rise: 0, brk: 0, alpha: wisp * 0.8, ember, off: [0, 0] });
+  const off: [number, number] = [Math.sin(t * 0.7) * 0.006, Math.sin(t * 0.53 + 1) * 0.004];
+  // the face condenses in it (2.4-3.8 s)
+  setSmoke(p.front, { time: t, front, face: progress(t, 1.4, 2.4), rise, brk: rise, alpha, ember, off });
+  // a fainter second layer, swaying on its own, gives the column depth
+  setSmoke(p.back, { time: t + 11, front: front - 0.05, face: 0, rise: rise * 1.1, brk: rise, alpha: alpha * 0.35, ember, off });
+  // a last thin wisp from the ember as it dies (6.0-7.0 s)
+  const wisp = t > 6.0 ? 1 - progress(t, 0.6, 6.4) : 0;
+  setSmoke(p.wisp, { time: t + 3, front: 0.3 * smooth((t - 6.0) / 0.5), face: 0, rise: 0, brk: 0, alpha: wisp * 0.8, ember, off: [0, 0] });
 }
 
 /**
- * The smoke from the blown-out wick: a thin thread curling up, blooming into veils, and in them
- * her face, the eyes and the screaming mouth holes in the smoke. It hangs a moment and drifts,
- * then rises on and comes apart. A picture that always turns to face you, its foot on the ember.
+ * The smoke from the blown-out wick: one straight column of fine twisting filaments rising off
+ * the ember, and partway up, small, a face in it: a pale oval, hollow eyes, an open mouth. It
+ * hangs a moment, swaying, then rises on and thins out. A picture that always turns to face
+ * you, its foot on the ember.
  */
 function SmokeGhost({ since, scale }: { since: () => number; scale: number }) {
   const root = useRef<THREE.Group>(null);
@@ -1324,7 +1245,7 @@ function SmokeGhost({ since, scale }: { since: () => number; scale: number }) {
   useFrame(() => driveSmoke(root.current, since(), camera));
   return (
     <group ref={root} position={OLD_TIP} scale={scale} visible={false} userData={{ extra: true }}>
-      <mesh geometry={p.geo} material={p.mats.back} position-z={-0.03} scale={1.06} renderOrder={6} />
+      <mesh geometry={p.geo} material={p.mats.back} position-z={-0.03} scale={1.04} renderOrder={6} />
       <mesh geometry={p.geo} material={p.mats.front} renderOrder={7} />
       <mesh geometry={p.geo} material={p.mats.wisp} renderOrder={7} />
     </group>
@@ -1424,6 +1345,12 @@ function buildTrim() {
 let trimGeo: ReturnType<typeof buildTrim> | null = null;
 const trimParts = () => (trimGeo ??= buildTrim());
 
+/**
+ * The smoke's scale on a shelf card: the card fits the candle's body, which leaves about 0.6 of
+ * its height above the wick; at this scale the column (0.54 tall) fades out inside it.
+ */
+const SHELF_SMOKE = 0.45;
+
 /** Where the cinnamon lies on the dish: front right, along the gap between candle and wall. */
 const TRIM_AT = 0.85;
 
@@ -1461,7 +1388,7 @@ function Trimmings({ haunted }: { haunted: boolean }) {
 /**
  * The candle for the window (see the top of this file). The flame flickers (with a periodic
  * redraw, so it lives on the on-demand shelf too) and lights the room; that light grows when
- * the mains fail. Taken, it goes out and its smoke rises into her. On the shelf the light it
+ * the mains fail. Taken, it goes out and a face shows in its smoke. On the shelf the light it
  * gave is gone afterwards: the card stands in a low light.
  */
 export default function Candle() {
@@ -1508,7 +1435,7 @@ export default function Candle() {
           <mesh geometry={lp.emberHaloGeo} material={lp.emberHaloMat} renderOrder={6} />
         </group>
       )}
-      {taken && <SmokeGhost since={since} scale={onShelf ? 0.42 : 1} />}
+      {taken && <SmokeGhost since={since} scale={onShelf ? SHELF_SMOKE : 1} />}
       {taken && onShelf && (
         // a dark veil all round the card's camera (seen from inside), over everything in it but the smoke
         <mesh renderOrder={5} userData={{ extra: true }}>
@@ -1516,11 +1443,15 @@ export default function Candle() {
           <meshBasicMaterial color="#020306" transparent opacity={0.6} depthWrite={false} depthTest={false} side={THREE.BackSide} />
         </mesh>
       )}
-      {/* not drawn: the space above the wick the smoke rises into, so the product view frames it */}
-      <mesh position={[0, OLD_TIP[1] + SMOKE_H / 2, 0]}>
-        <boxGeometry args={[SMOKE_W + 0.05, SMOKE_H + 0.05, 0.6]} />
-        <meshBasicMaterial visible={false} />
-      </mesh>
+      {haunted && (
+        // not drawn: the lower part of the smoke column, up to just above her face; the product
+        // view frames it from the start (userData.frame), so the candle keeps nearly its usual
+        // size and the view does not move when the Take happens. The column rises on out of it.
+        <mesh position={[OLD_TIP[0], OLD_TIP[1] + (SMOKE_H * 0.66) / 2, OLD_TIP[2]]} userData={{ frame: true }}>
+          <boxGeometry args={[SMOKE_W * 0.6, SMOKE_H * 0.66, 0.3]} />
+          <meshBasicMaterial visible={false} />
+        </mesh>
+      )}
     </group>
   );
 }

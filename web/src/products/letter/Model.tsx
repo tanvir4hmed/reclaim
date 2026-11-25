@@ -319,7 +319,7 @@ export default function Letter() {
         </group>
       </group>
       {/* not drawn: the room the letter rises into, so the product view frames it */}
-      <mesh position={[0, (RISE + LH / 2 - TOP) / 2, 0]}>
+      <mesh position={[0, (RISE + LH / 2 - TOP) / 2, 0]} userData={{ frame: true }}>
         <boxGeometry args={[W, H + RISE + LH / 2 - TOP, 0.2]} />
         <meshBasicMaterial visible={false} />
       </mesh>

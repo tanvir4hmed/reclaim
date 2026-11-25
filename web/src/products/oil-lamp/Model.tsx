@@ -1072,7 +1072,7 @@ export default function OilLamp() {
         </group>
         {/* not drawn: the space the ghost fills over the lamp, so the product view frames it */}
         {haunted && (
-          <mesh position={[0.22, 1.08, 0.2]}>
+          <mesh position={[0.22, 1.08, 0.2]} userData={{ frame: true }}>
             <boxGeometry args={[1.35, 1.2, 0.9]} />
             <meshBasicMaterial visible={false} />
           </mesh>

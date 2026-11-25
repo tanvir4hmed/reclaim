@@ -145,7 +145,7 @@ export function MusicBox() {
       </group>
       {/* not drawn: after the Reveal, the room the springs shoot up into, so the product view frames it */}
       {haunted && (
-        <mesh position-y={0.62}>
+        <mesh position-y={0.62} userData={{ frame: true }}>
           <boxGeometry args={[1.2, 1.25, 0.8]} />
           <meshBasicMaterial visible={false} />
         </mesh>

@@ -1077,7 +1077,7 @@ export default function Nutcracker() {
         ))}
       </group>
       {/* not drawn: the space the walnut floats through, so the product view frames it */}
-      <mesh position={[0, 0.75, 0.04]}>
+      <mesh position={[0, 0.75, 0.04]} userData={{ frame: true }}>
         <boxGeometry args={[0.72, 1.5, 0.74]} />
         <meshBasicMaterial visible={false} />
       </mesh>

@@ -33,7 +33,8 @@ const EYE = { x: 0.48, y: 0.37 };
 /** The print: about half the body's width, instant-film proportions (88 × 107). */
 const PRINT = { w: 0.76, h: 0.924, z: 0.372 };
 /** How far it rises as it turns to you, so the print it hangs out has room below it. */
-const LIFT = 0.65;
+/** It does not rise: it only turns to face you and takes the picture. */
+const LIFT = 0;
 const STRIPES = ['#c8352e', '#e07b2c', '#e8c23a', '#3e8e4a', '#2f63a8'] as const;
 const STRIPE_W = 0.032;
 const STRIPE_X0 = LENS.x - (STRIPES.length * STRIPE_W) / 2;
@@ -1121,7 +1122,7 @@ export function InstantCamera() {
           <Slot parts={parts} look={look} />
           {taken && <Print parts={parts} group={print} plane={slotPlane} since={since} />}
           {/* where the print hangs once it is out, so the product view frames it after the Take */}
-          <mesh position={[0, SLOT_Y - PRINT.h / 2 - 0.01, 0.385]}>
+          <mesh position={[0, SLOT_Y - PRINT.h / 2 - 0.01, 0.385]} userData={{ frame: true }}>
             <boxGeometry args={[0.82, PRINT.h + 0.06, 0.08]} />
             <meshBasicMaterial visible={false} />
           </mesh>

@@ -86,6 +86,7 @@ _(which requirements, what it caught)_
   - **The ghost photo** is now one drawing (`drawWitchPhoto`) shared by the letter and the camera print, redrawn after the reference print. The letter's message uses Creepster (OFL, self-hosted via `@fontsource/creepster`, recorded in `ASSETS.md`), drawn only after `document.fonts.load` resolves.
   - **Teddy timing coupled, not tuned:** the sword stroke records when it went up on screen, and the bear is only cut a fixed time after that, so the blow is always seen first however late the overlay mounts.
   - **Screenshot review** with a burst capture inside the product view (now with a pre-Take frame and a console-error log) checked each Take; it led to thicker blood runs on the phone, a bigger and denser smoke ghost, and a doll that clearly looks away before it snaps round.
+  - **Follow-up:** the telephone was rebuilt by a sub-agent after a reference photo (W48), the candle's smoke reduced to one straight column with a small face, and the product view now frames a model's `userData.frame` box from the start instead of zooming at the Take. Screenshots caught the phone's blood reading pale pink (a mirror-like clearcoat catching the studio light) and the camera rising out of place.
 ## Agent hooks
 
 - `.kiro/hooks/core-property-tests.json` (PostFileSave on `web/src/core` and the Director's pure modules): runs the core and Director property tests on save.
