@@ -1,10 +1,9 @@
 import { useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { seeded } from '../../director/footprints';
 import { useFx } from '../../fx/fxStore';
-import { useCanvasTexture } from '../../gl/canvasTex';
 import { mat } from '../../gl/decay';
 import { M } from '../../gl/materials';
 import { progress, useTaken } from '../../gl/useTaken';
@@ -971,8 +970,531 @@ const veil = () => (veilParts ??= buildVeil());
 /* The smoke ghost                                                                            */
 /* ------------------------------------------------------------------------------------------ */
 
-/** Turns a thing about its upright axis only to face the camera (a flame stays upright). */
+/*
+ * The smoke is painted once into a 448x916 texture (the shape of its picture), one channel per
+ * part: red is the thread and the column it widens into (it stays on the wick), green the smoke
+ * that is the head, with the wisps flowing round and above it (it rises), blue the dark of its
+ * eyes, nose and mouth. The shader reveals, moves, sways and breaks them up.
+ */
+const GW = 396;
+const GH = 540;
+/** Texture pixels per unit of the candle's space (about twice the screen's, so it stays crisp). */
+const PX = 635;
+const SMOKE_W = GW / PX;
+const SMOKE_H = GH / PX;
+/**
+ * The head: its middle above the wick, its half-width and half-height (all in the candle's
+ * units). The face is about two thirds as wide as the candle is tall, and long.
+ */
+const HEAD_AT = 0.36;
+const HEAD_RX = 0.145;
+const HEAD_RY = 0.22;
+/** The chin, as a share of the picture's height. */
+const CHIN_V = (HEAD_AT - HEAD_RY) / SMOKE_H;
+
+type Ch = 'r' | 'g' | 'b';
+const ink = (ch: Ch, a: number) =>
+  `rgba(${ch === 'r' ? 255 : 0},${ch === 'g' ? 255 : 0},${ch === 'b' ? 255 : 0},${clamp01(a).toFixed(4)})`;
+
+/** The middle of the column at height v (0 at the wick, 1 at the top), in pixels: a gentle S up to the chin. */
+function colX(v: number): number {
+  return GW / 2 + GW * 0.055 * Math.min(1.2, v / CHIN_V) * Math.sin((v / CHIN_V) * TAU);
+}
+
+/** Half the column's width at height v: a hair at the wick, widening into soft smoke under the chin. */
+function colHW(v: number): number {
+  return 2.2 + GW * 0.1 * Math.min(1.3, v / CHIN_V) ** 1.5;
+}
+
+/** The head's middle and size in pixels; `hp` turns head units (x across, y down) into pixels. */
+const HX = colX(CHIN_V) + 3;
+const HY = GH * (1 - HEAD_AT / SMOKE_H);
+const HRX = HEAD_RX * PX;
+const HRY = HEAD_RY * PX;
+const hp = (u: number, w: number): [number, number] => [HX + u * HRX, HY + w * HRY];
+
+/** A soft round blob (an ellipse fading out from its middle). `hard` keeps it dense further out. */
+function blob(g: CanvasRenderingContext2D, x: number, y: number, rx: number, ry: number, a: number, ch: Ch, rot = 0, hard = 0.55) {
+  g.save();
+  g.translate(x, y);
+  g.rotate(rot);
+  g.scale(rx, ry);
+  const gr = g.createRadialGradient(0, 0, 0, 0, 0, 1);
+  gr.addColorStop(0, ink(ch, a));
+  gr.addColorStop(hard, ink(ch, a * (hard > 0.6 ? 0.9 : 0.55)));
+  gr.addColorStop(1, ink(ch, 0));
+  g.fillStyle = gr;
+  g.beginPath();
+  g.arc(0, 0, 1, 0, TAU);
+  g.fill();
+  g.restore();
+}
+
+/** An outline of an ellipse (smoke gathered round a hole). */
+function ellipseLine(g: CanvasRenderingContext2D, x: number, y: number, rx: number, ry: number, rot: number, width: number, a: number, ch: Ch) {
+  g.save();
+  g.strokeStyle = ink(ch, a);
+  g.lineWidth = width;
+  g.beginPath();
+  g.ellipse(x, y, rx, ry, rot, 0, TAU);
+  g.stroke();
+  g.restore();
+}
+
+/**
+ * Strokes a smooth curve through `pts`, a short segment at a time so it can thicken, thin and
+ * fade along its length (width and alpha as functions of 0..1 along it).
+ */
+function band(g: CanvasRenderingContext2D, pts: [number, number][], width: (t: number) => number, alpha: (t: number) => number, ch: Ch, n = 140) {
+  const curve = new THREE.SplineCurve(pts.map(([x, y]) => new THREE.Vector2(x, y)));
+  g.save();
+  // butt ends, so the added segments do not pile up into beads where they meet
+  g.lineCap = 'butt';
+  let prev = curve.getPoint(0);
+  for (let i = 1; i <= n; i++) {
+    const t = i / n;
+    const p = curve.getPoint(t);
+    const a = alpha(t);
+    if (a > 0.002) {
+      g.strokeStyle = ink(ch, a);
+      g.lineWidth = width(t);
+      g.beginPath();
+      g.moveTo(prev.x, prev.y);
+      g.lineTo(p.x, p.y);
+      g.stroke();
+    }
+    prev = p;
+  }
+  g.restore();
+}
+
+/** The face's outline: long, the cranium wider, narrowing to a long jaw. `k` scales it. */
+function eggPath(g: CanvasRenderingContext2D, k = 1) {
+  g.beginPath();
+  for (let i = 0; i <= 72; i++) {
+    const p = (i / 72) * TAU;
+    const c = Math.cos(p);
+    const narrow = 1 - 0.34 * Math.max(0, -c) ** 1.3;
+    const x = HX + k * HRX * Math.sin(p) * narrow;
+    const y = HY - k * HRY * c;
+    if (i === 0) g.moveTo(x, y);
+    else g.lineTo(x, y);
+  }
+  g.closePath();
+}
+
+/** The hollows of the face, in head units: two eye sockets, the nose, the long screaming mouth. */
+interface Hole {
+  u: number;
+  w: number;
+  rx: number;
+  ry: number;
+  rot: number;
+  a: number;
+  /** Smoke gathers round it in a rim. */
+  rim: boolean;
+}
+const HOLES: Hole[] = [
+  // the sockets, big and tall, their tops leaning in (a look of anguish)
+  { u: -0.37, w: -0.2, rx: 0.25, ry: 0.21, rot: 0.38, a: 0.95, rim: true },
+  { u: 0.37, w: -0.2, rx: 0.25, ry: 0.21, rot: -0.38, a: 0.95, rim: true },
+  // the nose: a dark hollow, two nostrils
+  { u: 0, w: 0.12, rx: 0.06, ry: 0.07, rot: 0, a: 0.7, rim: false },
+  { u: -0.06, w: 0.16, rx: 0.05, ry: 0.055, rot: 0.4, a: 0.65, rim: false },
+  { u: 0.06, w: 0.16, rx: 0.05, ry: 0.055, rot: -0.4, a: 0.65, rim: false },
+  // the mouth, hanging open in a long scream
+  { u: 0, w: 0.5, rx: 0.17, ry: 0.27, rot: 0, a: 0.95, rim: true },
+  { u: 0, w: 0.66, rx: 0.18, ry: 0.17, rot: 0, a: 0.95, rim: false },
+];
+
+function drawHoles(g: CanvasRenderingContext2D, k: number, ch: Ch) {
+  for (const h of HOLES) {
+    const [x, y] = hp(h.u, h.w);
+    blob(g, x, y, h.rx * HRX * k, h.ry * HRY * k, h.a, ch, h.rot, 0.7);
+  }
+}
+
+/**
+ * The wisps of smoke flowing round the head and up over it, trailing off to the right at the
+ * top (head units). They rise from the smoke under the chin: smoke, not hair.
+ */
+const WISPS: [number, number][][] = [
+  [
+    [-0.45, 0.95],
+    [-0.98, 0.45],
+    [-1.12, -0.25],
+    [-0.95, -0.82],
+    [-0.5, -1.1],
+    [0.15, -1.18],
+    [0.75, -1.2],
+    [1.2, -1.27],
+    [1.45, -1.22],
+  ],
+  [
+    [0.5, 0.92],
+    [0.98, 0.38],
+    [1.08, -0.3],
+    [0.98, -0.78],
+    [1.12, -1.02],
+    [1.4, -1.1],
+  ],
+  [
+    [0.0, -0.95],
+    [-0.18, -1.1],
+    [0.0, -1.24],
+    [0.45, -1.28],
+    [0.92, -1.2],
+  ],
+  [
+    [-0.62, -1.0],
+    [-0.95, -1.14],
+    [-0.98, -1.28],
+    [-0.76, -1.32],
+    [-0.62, -1.22],
+  ],
+];
+const wispPx = (w: [number, number][], du = 0, dw = 0) => w.map(([u, v]) => hp(u + du, v + dw));
+
+/** The thread's filaments: they leave the wick as one and wind loosely round each other as they widen. */
+interface Strand {
+  ph: number;
+  turns: number;
+  amp: number;
+  v1: number;
+  alpha: number;
+  width: number;
+}
+function makeStrands(): Strand[] {
+  const r = seeded(1225);
+  return Array.from({ length: 5 }, (_, k) => ({
+    ph: (k / 5) * TAU + (r() - 0.5) * 0.5,
+    turns: 1.3 + r() * 0.8,
+    amp: 0.5 + r() * 0.45,
+    v1: CHIN_V + 0.05 + r() * 0.05,
+    alpha: 0.65 + r() * 0.35,
+    width: 2.2 + r() * 0.8,
+  }));
+}
+function strandAt(s: Strand, v: number): { x: number; y: number; depth: number } {
+  const a = s.ph + TAU * s.turns * v;
+  return { x: colX(v) + colHW(v) * s.amp * Math.sin(a), y: GH * (1 - v), depth: Math.cos(a) };
+}
+function drawStrand(g: CanvasRenderingContext2D, s: Strand, widthMul: number, alphaMul: number) {
+  const n = 220;
+  g.save();
+  g.lineCap = 'butt';
+  let prev = strandAt(s, 0);
+  for (let i = 1; i <= n; i++) {
+    const v = (i / n) * s.v1;
+    const p = strandAt(s, v);
+    const a = s.alpha * alphaMul * (1 - smooth((v - (s.v1 - 0.09)) / 0.09)) * (0.5 + 0.25 * (1 + p.depth));
+    if (a > 0.002) {
+      g.strokeStyle = ink('r', a);
+      g.lineWidth = s.width * widthMul * (1 + 4 * v);
+      g.beginPath();
+      g.moveTo(prev.x, prev.y);
+      g.lineTo(p.x, p.y);
+      g.stroke();
+    }
+    prev = p;
+  }
+  g.restore();
+}
+
+/** The column's haze: the soft volume round the filaments, widening as it rises to the chin. */
+function paintColumnHaze(g: CanvasRenderingContext2D) {
+  for (let v = 0.04; v < CHIN_V + 0.08; v += 0.012) {
+    const hw = colHW(v);
+    blob(g, colX(v), GH * (1 - v), hw * 1.3 + 3, hw * 0.8 + 8, 0.1 * smooth(v / 0.1) * (1 - smooth((v - CHIN_V) / 0.08)), 'r');
+  }
+}
+
+/** The thread and its filaments; `soft` draws their wider glow. */
+function paintColumn(g: CanvasRenderingContext2D, strands: Strand[], soft: boolean) {
+  for (const s of strands) drawStrand(g, s, soft ? 2.6 : 1, soft ? 0.3 : 0.9);
+  if (soft) return;
+  // the bright single thread right off the wick, before it opens out
+  const pts: [number, number][] = Array.from({ length: 8 }, (_, k) => {
+    const v = (k / 7) * CHIN_V * 0.7;
+    return [colX(v), GH * (1 - v)];
+  });
+  band(g, pts, (t) => 4.2 + 2 * t, (t) => 0.95 * (1 - smooth((t - 0.5) / 0.5)), 'r', 60);
+}
+
+/** The head's smoke: the long face, brow and cheekbones, the neck it rises from, the wisps; the hollows cut out. */
+function paintHeadSoft(g: CanvasRenderingContext2D) {
+  eggPath(g, 1.05);
+  const face = g.createRadialGradient(HX, HY - 0.25 * HRY, 4, HX, HY, HRY * 1.1);
+  face.addColorStop(0, ink('g', 0.8));
+  face.addColorStop(0.55, ink('g', 0.66));
+  face.addColorStop(0.85, ink('g', 0.36));
+  face.addColorStop(1, ink('g', 0.05));
+  g.fillStyle = face;
+  g.fill();
+  blob(g, ...hp(0, -0.38), 0.8 * HRX, 0.14 * HRY, 0.25, 'g');
+  for (const sd of [-1, 1]) blob(g, ...hp(sd * 0.56, 0.02), 0.3 * HRX, 0.13 * HRY, 0.22, 'g', sd * 0.2);
+  blob(g, ...hp(0, 0.92), 0.36 * HRX, 0.12 * HRY, 0.18, 'g');
+  // the neck: the smoke under the chin that the head rises out of
+  band(g, [hp(0.03, 1.5), hp(0.02, 1.2), hp(0, 0.9)], (t) => HRX * (0.3 + 0.4 * t), (t) => 0.3 * smooth(t / 0.5), 'g', 60);
+  for (const w of WISPS)
+    band(g, wispPx(w), (t) => HRX * (0.3 - 0.15 * t), (t) => 0.26 * smooth(t / 0.12) * (1 - smooth((t - 0.5) / 0.5)), 'g');
+  g.globalCompositeOperation = 'destination-out';
+  drawHoles(g, 1.15, 'g');
+  g.globalCompositeOperation = 'lighter';
+  // the smoke is densest round the sockets and the mouth
+  for (const h of HOLES)
+    if (h.rim) ellipseLine(g, ...hp(h.u, h.w), h.rx * HRX * 1.4, h.ry * HRY * 1.35, h.rot, 0.14 * HRX, 0.34, 'g');
+}
+
+/** The head's fine detail: strands along its outline and brow, the rims of its hollows, curls in the wisps. */
+function paintHeadFine(g: CanvasRenderingContext2D) {
+  g.save();
+  g.lineWidth = 2;
+  for (const k of [0.97, 1.05]) {
+    eggPath(g, k);
+    g.strokeStyle = ink('g', 0.1);
+    g.stroke();
+  }
+  g.restore();
+  for (const h of HOLES) if (h.rim) ellipseLine(g, ...hp(h.u, h.w), h.rx * HRX * 1.22, h.ry * HRY * 1.2, h.rot, 3, 0.36, 'g');
+  band(g, [hp(-0.72, -0.3), hp(0, -0.43), hp(0.72, -0.3)], () => 3, (t) => 0.22 * Math.sin(Math.PI * t), 'g', 60);
+  for (const w of WISPS)
+    for (const off of [-0.06, 0.05])
+      band(g, wispPx(w, off, off * 0.5), (t) => 3 * (1 - 0.6 * t), (t) => 0.36 * smooth(t / 0.1) * (1 - t), 'g');
+  g.globalCompositeOperation = 'destination-out';
+  drawHoles(g, 1.05, 'g');
+  g.globalCompositeOperation = 'lighter';
+}
+
+/** The dark of the hollows, and the faint hollows of the cheeks and temples that make it a skull. */
+function paintHoles(g: CanvasRenderingContext2D) {
+  drawHoles(g, 1, 'b');
+  for (const sd of [-1, 1]) {
+    blob(g, ...hp(sd * 0.5, 0.42), 0.12 * HRX, 0.25 * HRY, 0.16, 'b', sd * 0.2);
+    blob(g, ...hp(sd * 0.74, -0.38), 0.1 * HRX, 0.14 * HRY, 0.1, 'b');
+  }
+}
+
+/** Draws a layer onto the picture, added, blurred by about `px` (by filter, or by scaling). */
+function blurOnto(dst: CanvasRenderingContext2D, src: HTMLCanvasElement, px: number) {
+  dst.save();
+  dst.globalCompositeOperation = 'lighter';
+  // canvas filters are missing in older Safari: there the layer is blurred by scaling it down and up
+  const canFilter = typeof (dst as { filter?: unknown }).filter === 'string';
+  if (px > 0 && canFilter) {
+    dst.filter = `blur(${px}px)`;
+    dst.drawImage(src, 0, 0);
+  } else if (px > 1.5) {
+    const k = Math.max(2, Math.round(px / 1.5));
+    const small = document.createElement('canvas');
+    small.width = Math.ceil(GW / k);
+    small.height = Math.ceil(GH / k);
+    const sg = small.getContext('2d');
+    if (sg) {
+      sg.drawImage(src, 0, 0, small.width, small.height);
+      dst.imageSmoothingEnabled = true;
+      dst.drawImage(small, 0, 0, GW, GH);
+    }
+  } else {
+    dst.drawImage(src, 0, 0);
+  }
+  dst.restore();
+}
+
+function paintGhost(): HTMLCanvasElement {
+  const main = document.createElement('canvas');
+  main.width = GW;
+  main.height = GH;
+  const g = main.getContext('2d');
+  if (!g) return main;
+  g.fillStyle = '#000';
+  g.fillRect(0, 0, GW, GH);
+  const strands = makeStrands();
+  const layer = (paint: (lg: CanvasRenderingContext2D) => void, px: number) => {
+    const c = document.createElement('canvas');
+    c.width = GW;
+    c.height = GH;
+    const lg = c.getContext('2d');
+    if (!lg) return;
+    lg.globalCompositeOperation = 'lighter';
+    lg.lineJoin = 'round';
+    paint(lg);
+    blurOnto(g, c, px);
+  };
+  layer(paintColumnHaze, 9);
+  layer((lg) => paintColumn(lg, strands, true), 3);
+  layer((lg) => paintColumn(lg, strands, false), 0.6);
+  layer(paintHeadSoft, 6);
+  layer(paintHeadFine, 1.2);
+  layer(paintHoles, 2.5);
+  return main;
+}
+
+const SMOKE_FRAG = /* glsl */ `
+uniform sampler2D uMap;
+uniform float uTime;
+uniform float uSeed;
+uniform float uFront;
+uniform float uTail;
+uniform float uCol;
+uniform float uThread;
+uniform float uHead;
+uniform float uLift;
+uniform float uDrift;
+uniform float uStretch;
+uniform float uBreak;
+uniform float uEmber;
+varying vec2 vUv;
+const float ASPECT = ${(SMOKE_W / SMOKE_H).toFixed(4)};
+const float CHIN = ${CHIN_V.toFixed(4)};
+float h3(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+float n3(vec3 x) {
+  vec3 i = floor(x); vec3 f = fract(x); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(mix(h3(i), h3(i + vec3(1, 0, 0)), f.x), mix(h3(i + vec3(0, 1, 0)), h3(i + vec3(1, 1, 0)), f.x), f.y),
+             mix(mix(h3(i + vec3(0, 0, 1)), h3(i + vec3(1, 0, 1)), f.x), mix(h3(i + vec3(0, 1, 1)), h3(i + vec3(1, 1, 1)), f.x), f.y), f.z);
+}
+float fbm(vec3 p) { return 0.55 * n3(p) + 0.3 * n3(p * 2.1) + 0.15 * n3(p * 4.3); }
+float inside(vec2 u) { return step(0.0, u.x) * step(u.x, 1.0) * step(0.0, u.y) * step(u.y, 1.0); }
+void main() {
+  float h = vUv.y;
+  float t = uTime;
+  // noise is taken in the picture's true shape, so its swirls are round
+  vec2 p = vec2(vUv.x * ASPECT, h);
+  // the sway: slow, broad noise travelling up, none at the wick, more higher up
+  vec3 q = vec3(p.x * 2.6, p.y * 2.6 - t * 0.32, t * 0.1 + uSeed);
+  vec2 w = vec2(fbm(q), fbm(q + vec3(5.2, 1.3, 2.8))) - 0.5;
+  // and a finer curl along the filaments
+  vec3 q2 = vec3(p.x * 10.0 + w.x * 1.5, p.y * 8.0 - t * 0.9, t * 0.2 + uSeed * 1.7);
+  vec2 w2 = vec2(n3(q2), n3(q2 + vec3(3.1, 7.4, 1.9))) - 0.5;
+  float amp = 0.002 + 0.06 * smoothstep(0.03, 0.5, h);
+  float nz = fbm(vec3(p * 6.0, uSeed + 9.0));
+  float rag = (nz - 0.5) * 0.08;
+  // the smoke has reached this high (its front ragged), and has let go of the wick below uTail
+  float front = smoothstep(uFront + 0.02, uFront - 0.1, h + rag);
+  float tail = smoothstep(uTail - 0.02, uTail + 0.12, h + rag);
+  float edge = smoothstep(1.0, 0.9, h) * smoothstep(0.0, 0.06, vUv.x) * smoothstep(1.0, 0.94, vUv.x);
+
+  // the thread and its column, which stay on the wick while the smoke flows up through them
+  vec2 cu = vUv + vec2(w.x * amp + w2.x * amp * 0.3, (w.y * 0.3 + w2.y * 0.1) * amp);
+  float cd = texture2D(uMap, cu).r * inside(cu);
+  float flow = 0.6 + 0.8 * n3(vec3(p.x * 12.0, p.y * 9.0 - t * 1.2, t * 0.3 + uSeed));
+  float thread = mix(1.0, smoothstep(0.3, 0.1, h), uThread);
+  float ca = clamp(cd * flow * 1.5, 0.0, 1.0) * front * tail * thread * uCol * edge;
+  vec3 cc = mix(vec3(0.72, 0.74, 0.78), vec3(0.97, 0.97, 0.98), smoothstep(0.05, 0.6, cd));
+  cc += uEmber * vec3(0.45, 0.18, 0.05) * pow(max(0.0, 1.0 - h * 7.0), 3.0);
+  vec3 col = cc * ca;
+  float a = ca;
+
+  if (uHead > 0.0) {
+    // the head rises with the smoke and drifts; it sways less than the thread, so it keeps its shape
+    vec2 hu = vUv;
+    hu.x -= uDrift * smoothstep(0.15, 0.5, h);
+    hu.y -= uLift;
+    // drawn out upward as it comes apart
+    hu.y = CHIN + (hu.y - CHIN) / (1.0 + uStretch);
+    hu += vec2(w.x, w.y * 0.3) * amp * 0.3 + w2 * amp * (0.05 + 0.4 * uBreak);
+    vec4 hd = texture2D(uMap, hu) * inside(hu);
+    // coming apart: holes open in it and spread
+    float b = fbm(vec3(p * vec2(8.0, 5.0) - vec2(0.0, t * 0.4), t * 0.25 + 3.0));
+    float keep = 1.0 - smoothstep(b - 0.15, b + 0.15, uBreak * 1.3 - 0.15);
+    float m = front * keep * uHead * edge;
+    float hf = 0.8 + 0.4 * n3(vec3(p.x * 14.0, p.y * 11.0 - t * 0.7, t * 0.2 + uSeed * 2.3));
+    float ha = clamp(hd.g * 1.45 * hf, 0.0, 0.95) * m;
+    float hk = clamp(hd.b * 1.15, 0.0, 1.0) * m * 0.85;
+    vec3 hc = mix(vec3(0.8, 0.81, 0.84), vec3(1.0, 1.0, 0.99), smoothstep(0.1, 0.65, hd.g));
+    col = hc * ha + col * (1.0 - ha);
+    a = ha + a * (1.0 - ha);
+    col = vec3(0.005, 0.006, 0.01) * hk + col * (1.0 - hk);
+    a = hk + a * (1.0 - hk);
+  }
+  gl_FragColor = vec4(col, a);
+}
+`;
+
+function smokeUniforms(map: THREE.Texture, seed: number, thread: number) {
+  return {
+    uMap: { value: map },
+    uTime: { value: 0 },
+    uSeed: { value: seed },
+    uFront: { value: 0 },
+    uTail: { value: -0.2 },
+    uCol: { value: 0 },
+    uThread: { value: thread },
+    uHead: { value: 0 },
+    uLift: { value: 0 },
+    uDrift: { value: 0 },
+    uStretch: { value: 0 },
+    uBreak: { value: 0 },
+    uEmber: { value: 0 },
+  };
+}
+type SmokeU = ReturnType<typeof smokeUniforms>;
+
+/** Drawn after the veil, on top of everything, never darkened: the smoke comes out toward you. */
+function smokeMat(u: SmokeU): THREE.ShaderMaterial {
+  return new THREE.ShaderMaterial({
+    uniforms: u,
+    vertexShader: BILL_VERT,
+    fragmentShader: SMOKE_FRAG,
+    transparent: true,
+    depthWrite: false,
+    depthTest: false,
+    premultipliedAlpha: true,
+  });
+}
+
+function buildGhost() {
+  const tex = new THREE.CanvasTexture(paintGhost());
+  tex.anisotropy = 4;
+  const geo = new THREE.PlaneGeometry(SMOKE_W, SMOKE_H);
+  geo.translate(0, SMOKE_H / 2, 0);
+  const front = smokeUniforms(tex, 1.3, 0);
+  const back = smokeUniforms(tex, 7.9, 0);
+  const wisp = smokeUniforms(tex, 4.4, 1);
+  return { geo, front, back, wisp, mats: { front: smokeMat(front), back: smokeMat(back), wisp: smokeMat(wisp) } };
+}
+let ghostGeo: ReturnType<typeof buildGhost> | null = null;
+const ghostParts = () => (ghostGeo ??= buildGhost());
+
+interface SmokeState {
+  time: number;
+  front: number;
+  tail: number;
+  col: number;
+  head: number;
+  lift: number;
+  drift: number;
+  stretch: number;
+  brk: number;
+  ember: number;
+}
+
+function setSmoke(u: SmokeU, st: SmokeState) {
+  u.uTime.value = st.time;
+  u.uFront.value = st.front;
+  u.uTail.value = st.tail;
+  u.uCol.value = st.col;
+  u.uHead.value = st.head;
+  u.uLift.value = st.lift;
+  u.uDrift.value = st.drift;
+  u.uStretch.value = st.stretch;
+  u.uBreak.value = st.brk;
+  u.uEmber.value = st.ember;
+}
+
+const qA = new THREE.Quaternion();
+const qB = new THREE.Quaternion();
 const vA = new THREE.Vector3();
+
+/** Turns a thing to face the camera, whatever its parents are turned to. */
+function faceCamera(o: THREE.Object3D, cam: THREE.Camera) {
+  if (!o.parent) return;
+  o.parent.getWorldQuaternion(qA);
+  cam.getWorldQuaternion(qB);
+  o.quaternion.copy(qA.invert().multiply(qB));
+}
+
+/** Turns a thing about its upright axis only to face the camera (a flame stays upright). */
 function faceCameraY(o: THREE.Object3D, cam: THREE.Camera) {
   if (!o.parent) return;
   cam.getWorldPosition(vA);
@@ -980,149 +1502,73 @@ function faceCameraY(o: THREE.Object3D, cam: THREE.Camera) {
   o.rotation.set(0, Math.atan2(vA.x - o.position.x, vA.z - o.position.z), 0);
 }
 
-/*
- * The smoke ghost as it was before the reference pictures: a cloud of soft puffs drawn in its
- * own space (the wick at WICK_Y), placed on this candle's wick and scaled to it (GHOST_K).
- */
-const SMOKE_N = 820;
-const WICK_Y = 0.56;
-/** The smoke ghost's size on this candle, against the space it was drawn in. */
-const GHOST_K = 0.55;
-/** When (s after the take) the smoke thickens into the face, holds a moment, and rises away. */
-const SMOKE = { gather: 0.9, formed: 2.3, hold: 4.3, gone: 6.6 };
-/** The face in the smoke: its middle, and its half width and half height. */
-const FACE = { y: 1.06, rx: 0.21, ry: 0.31 };
-/** The holes in it, where there is no smoke: [x, y, rx, ry]. Eyes, the nose, the open mouth. */
-const HOLES: [number, number, number, number][] = [
-  [-0.082, 1.14, 0.046, 0.058],
-  [0.082, 1.14, 0.046, 0.058],
-  [0, 1.045, 0.018, 0.03],
-  [0, 0.905, 0.052, 0.086],
-];
-
 /**
- * Where the smoke goes: most of it thickens into a face hanging in the smoke, a long hollow
- * face with no head round it and nothing below it but the thread of smoke going down into the
- * wick. Its edge is ragged, and it is only smoke: where the eyes, the nose and the gaping mouth
- * are, there is none, so they are holes you see the dark through. The rest stays in the thread.
+ * Every frame of the smoke, from the seconds since the Take (outside the component). One
+ * movement, no pauses: the front of the smoke climbs at an even pace from 0.12 s; the head is
+ * carried up from the start, so it is already rising when the front reaches it and it forms
+ * (0.85-1.5 s); it drifts on, holding its shape, until 3.3 s, then speeds up, draws out and
+ * breaks up (gone by 5.0 s). The thread lets go of the wick at 3.0 s and follows it.
  */
-function ghostTargets(): THREE.Vector3[] {
-  const r = (() => {
-    let a = 91;
-    return () => {
-      a = (a * 1664525 + 1013904223) >>> 0;
-      return a / 4294967296;
-    };
-  })();
-  const inHole = (x: number, y: number, grow: number) =>
-    HOLES.some(([hx, hy, rx, ry]) => ((x - hx) / (rx + grow)) ** 2 + ((y - hy) / (ry + grow)) ** 2 < 1);
-  const inFace = (x: number, y: number) => {
-    // a ragged edge: the outline wavers with the angle, as smoke does
-    const ang = Math.atan2(y - FACE.y, x);
-    const edge = 1 + Math.sin(ang * 5 + 0.7) * 0.08 + Math.sin(ang * 11) * 0.05;
-    // narrower toward the chin, as a face is
-    const rx = FACE.rx * (y < FACE.y ? 0.8 + 0.2 * ((y - (FACE.y - FACE.ry)) / FACE.ry) : 1);
-    return (x / rx) ** 2 + ((y - FACE.y) / FACE.ry) ** 2 < edge * edge;
-  };
-  const out: THREE.Vector3[] = [];
-  while (out.length < SMOKE_N * 0.86) {
-    const x = (r() - 0.5) * 0.6;
-    const y = FACE.y - 0.38 + r() * 0.76;
-    // clear of the holes, with a little room so the soft puffs do not fill them in
-    if (inFace(x, y) && !inHole(x, y, 0.02)) {
-      // thicker round the holes, so they read as sockets and a mouth, not gaps
-      const rim = HOLES.some(([hx, hy, rx, ry]) => ((x - hx) / (rx + 0.04)) ** 2 + ((y - hy) / (ry + 0.04)) ** 2 < 1);
-      if (rim || r() < 0.72) out.push(new THREE.Vector3(x, y, (r() - 0.5) * 0.05));
-    }
+function driveSmoke(root: THREE.Group | null, s: number, cam: THREE.Camera) {
+  if (!root) return;
+  if (s === Infinity || s > TAKE.end) {
+    root.visible = false;
+    return;
   }
-  // the thread under it, curling down into the wick
-  while (out.length < SMOKE_N) {
-    const t = r();
-    const y = WICK_Y + 0.04 + t * (FACE.y - FACE.ry - WICK_Y);
-    out.push(new THREE.Vector3(Math.sin(t * 9) * 0.02 * t + (r() - 0.5) * 0.02, y, (r() - 0.5) * 0.02));
+  // Before the Take it is drawn, fully clear, so its shaders are ready: no stall (no jerk) the
+  // moment the flame goes out.
+  root.visible = true;
+  faceCamera(root, cam);
+  const p = ghostParts();
+  if (s < 0) {
+    for (const u of [p.front, p.back, p.wisp]) setSmoke(u, { time: 0, front: 0, tail: -0.2, col: 0, head: 0, lift: 0, drift: 0, stretch: 0, brk: 0, ember: 0 });
+    return;
   }
-  return out;
-}
-
-/** A soft round puff for each smoke particle. */
-function drawPuff(g: CanvasRenderingContext2D, w: number, h: number) {
-  const grad = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
-  grad.addColorStop(0, 'rgba(255,255,255,0.9)');
-  grad.addColorStop(0.45, 'rgba(255,255,255,0.35)');
-  grad.addColorStop(1, 'rgba(255,255,255,0)');
-  g.clearRect(0, 0, w, h);
-  g.fillStyle = grad;
-  g.fillRect(0, 0, w, h);
+  const t = s;
+  // never still: the front climbs, and the head is carried up from the first moment, at a
+  // pace that only grows, until it has gone out of the top
+  const front = 0.95 * clamp01((t - 0.05) / 1.6) ** 0.85;
+  const lift = 0.12 * t + 0.04 * t * t;
+  const drift = 0.012 * Math.sin(t * 0.8) + 0.04 * smooth((t - 1.0) / 2.0);
+  const stretch = 0.7 * smooth((t - 2.0) / 1.5);
+  const brk = smooth((t - 2.2) / 1.5);
+  const head = 1 - smooth((t - 3.0) / 0.8);
+  const tail = t < 2.0 ? -0.2 : -0.12 + 0.5 * (t - 2.0);
+  const col = 1 - smooth((t - 3.0) / 0.7);
+  const ember = emberAt(t);
+  setSmoke(p.front, { time: t, front, tail, col, head, lift, drift, stretch, brk, ember });
+  // a fainter second layer, swaying on its own, gives the column depth
+  setSmoke(p.back, { time: t + 11, front: front - 0.04, tail, col: col * 0.35, head: 0, lift: 0, drift: 0, stretch: 0, brk: 0, ember });
+  // a last thin wisp from the ember as it dies (4.4-5.8 s)
+  const wisp = t > 3.2 ? 0.7 * (1 - smooth((t - 3.8) / 0.8)) : 0;
+  setSmoke(p.wisp, { time: t + 3, front: 0.3 * smooth((t - 3.2) / 0.6), tail: -0.2, col: wisp, head: 0, lift: 0, drift: 0, stretch: 0, brk: 0, ember });
 }
 
 /**
- * The smoke of the candle that was blown out: it keeps coming off the wick in a thin curling
- * thread, and higher up, without any show, the smoke thickens into a face, a hollow one, eyes
- * and nose and a mouth open as if calling out, all holes in the smoke. It hangs there a moment,
- * as smoke does, then goes on rising and thins out into nothing. Drawn after the dark.
+ * The smoke from the blown-out wick: a thin thread curling up off the ember and widening, and
+ * at its top the smoke is a face. A picture that always turns to face you, its foot on the
+ * ember, drawn over everything (after the veil) so it stays bright in the dark.
  */
+/** How much narrower than it was painted the smoke and its face are drawn. */
+const SMOKE_SQUEEZE = 0.55;
+
 function SmokeGhost({ since, scale }: { since: () => number; scale: number }) {
-  const targets = useMemo(() => ghostTargets(), []);
-  const puff = useCanvasTexture(64, 64, drawPuff, []);
-  const geo = useMemo(() => {
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(SMOKE_N * 3), 3));
-    g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(SMOKE_N * 4), 4));
-    return g;
-  }, []);
-  useEffect(() => () => geo.dispose(), [geo]);
-  useFrame((st) => updateSmoke(geo, targets, since(), st.clock.elapsedTime));
+  const root = useRef<THREE.Group>(null);
+  const camera = useThree((s) => s.camera);
+  const p = ghostParts();
+  useFrame(() => {
+    const s = since();
+    // fast forward
+    driveSmoke(root.current, s < 0 || s === Infinity ? s : s * 1.8, camera);
+  });
   return (
-    <group position={OLD_TIP} scale={scale} userData={{ extra: true }}>
-      <points geometry={geo} position-y={-WICK_Y} renderOrder={9} frustumCulled={false}>
-        {/* small soft puffs, many of them, overlapping: smoke, with room for the holes to show */}
-        <pointsMaterial map={puff} size={0.17 * scale} sizeAttenuation vertexColors transparent depthWrite={false} />
-      </points>
+    // squeezed narrow: a thin column, a thin face
+    <group ref={root} position={OLD_TIP} scale={[scale * SMOKE_SQUEEZE, scale, scale]} visible={false} userData={{ extra: true }}>
+      <mesh geometry={p.geo} material={p.mats.back} position-z={-0.02} scale={1.06} renderOrder={9} />
+      <mesh geometry={p.geo} material={p.mats.front} renderOrder={10} />
+      <mesh geometry={p.geo} material={p.mats.wisp} renderOrder={10} />
     </group>
   );
-}
-
-/** Outside the component, so the React compiler rules see no mutation of hook values. */
-function updateSmoke(geo: THREE.BufferGeometry, targets: THREE.Vector3[], s: number, clock: number) {
-  const pos = geo.attributes.position as THREE.BufferAttribute;
-  const col = geo.attributes.color as THREE.BufferAttribute;
-  const p = pos.array as Float32Array;
-  const c = col.array as Float32Array;
-  // reduced motion or a reload: it has been and gone; nothing is left
-  const t = s === Infinity ? 99 : s;
-  const ease = (v: number) => v * v * (3 - 2 * v);
-  const leave = Math.min(1, Math.max(0, (t - SMOKE.hold) / (SMOKE.gone - SMOKE.hold)));
-  for (let i = 0; i < SMOKE_N; i++) {
-    const tg = targets[i]!;
-    // each puff leaves the wick in turn and rises, curling, into place: the lower parts of the
-    // face first, so it seems to form upward in the smoke rather than appear
-    const born = (i / SMOKE_N) * 1.4;
-    const age = Math.max(0, t - born);
-    const rise = Math.min(0.9, age * 0.42);
-    const curl = i * 2.399 + age * 2.2;
-    const wx = Math.sin(curl) * (0.012 + rise * 0.05) + Math.sin(clock * 0.9 + i) * 0.008;
-    const wz = Math.cos(curl) * (0.012 + rise * 0.04);
-    const wy = WICK_Y + rise;
-    const low = Math.min(1, Math.max(0, (tg.y - WICK_Y) / 0.8));
-    const g0 = SMOKE.gather + low * 0.5;
-    const gather = ease(Math.min(1, Math.max(0, (t - g0) / (SMOKE.formed - SMOKE.gather))));
-    // then it goes on up, slowly, spreading and thinning, the top first
-    const drift = leave * (0.28 + low * 0.18 + (i % 7) * 0.02);
-    const sx = (Math.sin(i * 1.7) * 0.09 + Math.sin(clock * 0.7 + i) * 0.02) * leave * (0.5 + low);
-    // while it hangs there it still stirs, a little, the way smoke never quite holds still
-    const stir = Math.sin(clock * 1.1 + i * 0.37) * 0.005 * gather;
-    p[i * 3] = wx + (tg.x - wx) * gather + sx + stir;
-    p[i * 3 + 1] = wy + (tg.y - wy) * gather + drift + Math.sin(clock * 1.3 + i * 0.5) * 0.004 * gather;
-    p[i * 3 + 2] = wz + (tg.z - wz) * gather;
-    const seen = age > 0 ? Math.min(1, age / 0.4) : 0;
-    const a = seen * (0.05 + 0.13 * gather) * (1 - leave);
-    c[i * 4] = 0.8;
-    c[i * 4 + 1] = 0.79;
-    c[i * 4 + 2] = 0.76;
-    c[i * 4 + 3] = a;
-  }
-  pos.needsUpdate = true;
-  col.needsUpdate = true;
 }
 
 /* ------------------------------------------------------------------------------------------ */
@@ -1145,10 +1591,8 @@ function driveCandle(r: Rig, s: number, clock: number, base: number, cam: THREE.
   if (f) {
     f.visible = lit > 0.002;
     f.position.set(at[0], at[1] - 0.008 * (1 - lit), at[2]);
-    const fk = 1 + Math.sin(clock * 13) * 0.08 + Math.sin(clock * 7.3) * 0.05;
-    f.scale.set(0.55 + 0.45 * lit, fk * lit ** 0.8, 0.55 + 0.45 * lit);
+    f.scale.set((0.55 + 0.45 * lit) * (1 - (fl - 1) * 0.5), fl * lit ** 0.8, 1);
     faceCameraY(f, cam);
-    f.rotation.z = Math.sin(clock * 3.1) * 0.06;
   }
   lp.flameU.uSway.value = Math.sin(clock * 3.1) * 0.6 + Math.sin(clock * 5.7) * 0.3;
   lp.flameU.uBright.value = Math.min(1, lit * 1.4);
@@ -1240,10 +1684,7 @@ function Holly() {
  * The smoke's scale on a shelf card. The card fits the candlestick and its flame, which leaves
  * a little over half a unit above the wick; at this scale the face and its wisps fit inside it.
  */
-const SHELF_SMOKE = GHOST_K * 0.9;
-
-/** The flame as it was before the reference pictures: a small cone, sized to this candle. */
-const FLAME_CONE = { r: 0.035, h: 0.13 };
+const SHELF_SMOKE = 0.7;
 
 /**
  * How tall the room the Take rises into is, above the wick, in the product view. With the
@@ -1273,6 +1714,12 @@ export default function Candle() {
     const t = setInterval(() => invalidate(), 80);
     return () => clearInterval(t);
   }, [invalidate]);
+  // paint the smoke ahead of time, so the Take does not stall while it is drawn
+  useEffect(() => {
+    if (!haunted) return;
+    const t = setTimeout(() => ghostParts(), 700);
+    return () => clearTimeout(t);
+  }, [haunted]);
   const base = 1.2 + (1 - mains);
   const at = haunted ? OLD_FLAME : NEW_FLAME;
   const lp = lights();
@@ -1287,16 +1734,18 @@ export default function Candle() {
       {!haunted && <Holly />}
       {/* the flame counts toward the object's size (it is tall), its glow does not */}
       <group ref={flame} position={at}>
-        <mesh material={M.flame()} position-y={FLAME_CONE.h / 2 - 0.006}>
-          <coneGeometry args={[FLAME_CONE.r, FLAME_CONE.h, 16]} />
-        </mesh>
+        <mesh geometry={lp.flameGeo} material={lp.flameMat} renderOrder={4} />
+        <group userData={{ extra: true }}>
+          <mesh geometry={lp.haloGeo} material={lp.haloMat} renderOrder={4} />
+        </group>
       </group>
       <pointLight ref={light} position={[at[0], at[1] + 0.1, 0.12]} intensity={base} distance={2.5} color="#ffb860" />
-      {taken && (
-        // the dark: over the candle and the room, under the ember and the smoke
+      {haunted && (
+        // the dark: over the candle and the room, under the ember and the smoke (clear until
+        // it is taken; mounted before, so its shader is ready and nothing stalls)
         <mesh geometry={vp.geo} material={vp.mat} renderOrder={5} frustumCulled={false} userData={{ extra: true }} />
       )}
-      {taken && (
+      {haunted && (
         // the wick glowing after it is blown out, then going dark
         <group ref={ember} position={OLD_TIP} visible={false} userData={{ extra: true }}>
           <mesh material={lp.emberMat} renderOrder={8}>
@@ -1305,7 +1754,7 @@ export default function Candle() {
           <mesh geometry={lp.emberHaloGeo} material={lp.emberHaloMat} renderOrder={8} />
         </group>
       )}
-      {taken && <SmokeGhost since={since} scale={onShelf ? SHELF_SMOKE : GHOST_K} />}
+      {haunted && <SmokeGhost since={since} scale={onShelf ? SHELF_SMOKE : 1} />}
       {haunted && (
         // not drawn: the room above the wick that the smoke and the face rise into; the product
         // view frames it from the start (userData.frame), so the view does not move when the
