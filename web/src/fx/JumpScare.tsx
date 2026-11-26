@@ -10,224 +10,189 @@ function seeded(seed: number) {
   };
 }
 
-/** Long thin white hair hanging from the sides of the bald head, and the beard below the mouth. */
-const HAIR = (() => {
-  const r = seeded(17);
+/** Long wet strands of black hair falling from the crown past the shoulders. */
+const STRANDS = (() => {
+  const r = seeded(44);
   const out: { d: string; w: number; o: number }[] = [];
-  for (let i = 0; i < 90; i++) {
+  for (let i = 0; i < 70; i++) {
     const side = i % 2 ? 1 : -1;
-    const x0 = 245 + side * (52 + r() * 34);
-    const y0 = 80 + r() * 70;
-    const x1 = 245 + side * (70 + r() * 90);
-    const y1 = y0 + 120 + r() * 160;
-    const bend = side * (10 + r() * 40);
-    out.push({ d: `M${x0.toFixed(1)} ${y0.toFixed(1)} C ${(x0 + bend).toFixed(1)} ${(y0 + 60).toFixed(1)}, ${(x1 - bend).toFixed(1)} ${(y1 - 70).toFixed(1)}, ${x1.toFixed(1)} ${y1.toFixed(1)}`, w: 0.5 + r() * 1.4, o: 0.35 + r() * 0.5 });
+    const start = 200 + side * (4 + r() * 46);
+    const sway = side * (18 + r() * 70);
+    const end = 200 + side * (40 + r() * 150);
+    const len = 360 + r() * 140;
+    out.push({
+      d: `M${start.toFixed(1)} ${(128 + r() * 18).toFixed(1)} C ${(start + sway * 0.4).toFixed(1)} 230, ${(end - sway * 0.3).toFixed(1)} ${(len * 0.7).toFixed(1)}, ${end.toFixed(1)} ${len.toFixed(1)}`,
+      w: 0.8 + r() * 2.6,
+      o: 0.45 + r() * 0.5,
+    });
   }
   return out;
 })();
 
-const BEARD = (() => {
-  const r = seeded(29);
-  const out: { d: string; w: number; o: number }[] = [];
-  for (let i = 0; i < 110; i++) {
-    const t = i / 110;
-    const x0 = 180 + t * 135 + (r() - 0.5) * 8;
-    const y0 = 205 + Math.abs(t - 0.5) * 60 + r() * 20;
-    const x1 = 245 + (x0 - 245) * (0.5 + r() * 0.6) + (r() - 0.5) * 30;
-    const y1 = 400 + r() * 140;
-    out.push({ d: `M${x0.toFixed(1)} ${y0.toFixed(1)} C ${(x0 + (r() - 0.5) * 30).toFixed(1)} ${(y0 + 80).toFixed(1)}, ${(x1 + (r() - 0.5) * 30).toFixed(1)} ${(y1 - 90).toFixed(1)}, ${x1.toFixed(1)} ${y1.toFixed(1)}`, w: 0.5 + r() * 1.5, o: 0.4 + r() * 0.5 });
-  }
-  return out;
+/** A few wet strands stuck across the face: thin, wavy, mostly at the sides. */
+const FACE_STRANDS = (() => {
+  const r = seeded(9);
+  const xs = [154, 160, 168, 230, 238, 246, 192];
+  return xs.map((x) => {
+    const w = (r() - 0.5) * 14;
+    return `M${x} 130 C ${(x + w).toFixed(1)} 180, ${(x - w).toFixed(1)} 230, ${(x + w * 1.4).toFixed(1)} ${(300 + r() * 50).toFixed(1)}`;
+  });
 })();
 
-/** Deep wrinkles across the brow and the bald crown, and round the eyes. */
-const WRINKLES = (() => {
-  const r = seeded(5);
-  const out: string[] = [];
-  for (let i = 0; i < 9; i++) {
-    const y = 58 + i * 9;
-    const half = 30 + i * 4 + r() * 8;
-    out.push(`M${(245 - half).toFixed(1)} ${(y + 4).toFixed(1)} Q 245 ${(y - 6 - r() * 4).toFixed(1)} ${(245 + half).toFixed(1)} ${(y + 4).toFixed(1)}`);
-  }
-  for (const s of [-1, 1]) {
-    for (let i = 0; i < 4; i++) out.push(`M${245 + s * 66} ${118 + i * 10} q ${s * 10} ${4 + i * 2} ${s * 18} ${10 + i * 4}`);
-  }
-  return out;
-})();
-
-/** The long fangs, top and bottom, round the gaping mouth. */
-const FANGS_TOP = [196, 212, 228, 246, 264, 280, 296].map((x, i) => ({ x, len: i === 0 || i === 6 ? 26 : 40 + ((i * 13) % 12) }));
-const FANGS_LOW = [214, 232, 250, 268, 286].map((x, i) => ({ x, len: 22 + ((i * 7) % 10) }));
-
-/** A gnarled old hand: palm, four long fingers and a thumb, knuckles and nails. */
-function Hand({ x, y, s, rot, blur }: { x: number; y: number; s: number; rot: number; blur?: boolean }) {
+function Hand({ x, y, flip, scale }: { x: number; y: number; flip: boolean; scale: number }) {
+  // Palm toward the camera, fingers spread and hooked, long nails, close enough to blur.
   return (
-    <g transform={`translate(${x} ${y}) rotate(${rot}) scale(${s})`} filter={blur ? 'url(#jsNear)' : undefined}>
+    <g transform={`translate(${x} ${y}) scale(${flip ? -scale : scale} ${scale})`} filter="url(#rc-scare-near)">
       <path
-        fill="url(#jsSkinDark)"
-        d="M-40 70 C-46 30 -44 6 -34 -10 C-46 -36 -54 -70 -46 -86 C-38 -96 -28 -82 -24 -54 C-24 -84 -22 -116 -10 -120 C2 -122 2 -92 0 -60 C6 -94 14 -120 26 -116 C38 -110 30 -78 26 -50 C34 -74 46 -94 56 -88 C66 -82 52 -52 44 -28 C52 -36 66 -40 70 -30 C74 -18 54 4 40 22 C34 44 30 58 26 72 Z"
+        fill="url(#rc-scare-skin-dark)"
+        d="M-30 60 C-34 30 -36 10 -30 -6 C-40 -30 -46 -58 -40 -70 C-34 -76 -28 -66 -24 -46 C-22 -66 -22 -94 -14 -98 C-6 -100 -6 -78 -6 -52 C-2 -78 4 -102 12 -100 C20 -96 14 -70 12 -46 C18 -66 26 -86 34 -82 C42 -78 32 -52 26 -30 C34 -40 46 -48 52 -40 C58 -30 40 -10 30 8 C26 30 22 46 20 60 Z"
       />
-      <path d="M-30 -40 q6 -5 12 0 M-6 -48 q6 -5 12 0 M20 -42 q6 -5 12 0 M-26 14 q22 10 46 0 M-22 -10 q4 -3 8 0" stroke="#3a2620" strokeOpacity="0.6" strokeWidth="1.6" fill="none" />
-      <path d="M-46 -86 l-3 -9 l8 4 Z M-10 -120 l-1 -10 l8 7 Z M26 -116 l2 -10 l6 8 Z M56 -88 l4 -9 l3 9 Z" fill="#2b1c16" />
+      {/* knuckle creases and tendons */}
+      <path d="M-24 -30 q4 -4 8 0 M-4 -36 q4 -4 8 0 M14 -30 q4 -4 8 0 M-18 10 q14 8 30 0" stroke="#3a332c" strokeOpacity="0.5" strokeWidth="1.4" fill="none" />
+      {/* cracked nails */}
+      <path d="M-40 -70 l-2 -8 l6 4 Z M-14 -98 l-1 -9 l6 6 Z M12 -100 l1 -9 l5 7 Z M34 -82 l3 -8 l3 8 Z" fill="#2a241e" />
     </g>
   );
 }
 
 /**
- * The last thing in the shop, after Accept: the old priest who kept it, at the lens. A found-
- * footage frame (grain, scan lines, REC, the date stamp), dark with a dull red light: a bald,
- * wrinkled head before a cracked gold halo, long white hair and beard, bulging white eyes with
- * pin pupils weeping black, a mouth torn open far too long and lined with fangs, a gnarled hand
- * reaching out of the frame at you, the other clutching his book. He cuts in already close,
- * jerks, then lunges. Drawn in code. No flashing: the frame never goes bright.
+ * The jump scare after Accept (the climax's last beat). A found-footage frame: camcorder grain,
+ * REC, a date stamp from the night the shop was left. The tape cuts in and she is already at
+ * the lens, face filling the screen; she jerks there, then lunges, arms out, mouth unhinging,
+ * until she is all there is. Then the shop goes back to Christmas. Drawn in code.
+ * No flashing: the frame never goes bright, so the flash limit (Req 9.4) is not involved.
  */
 export function JumpScare() {
   const on = useFx((s) => s.scare);
-  const leaving = useFx((s) => s.flags['accepted-leaving'] !== undefined);
-  const words = useFx((s) => s.acceptedShown);
   if (!on) return null;
   const still = reducedMotion();
   return (
-    <div className={`scare${still ? ' scare-still' : ''}${leaving ? ' scare-leaving' : ''}`} aria-hidden="true" data-testid="scare">
+    <div className={`scare${still ? ' scare-still' : ''}`} aria-hidden="true" data-testid="scare">
       <div className="scare-stage">
-        <svg className="scare-figure" viewBox="0 0 400 520" preserveAspectRatio="xMidYMid slice">
+        <svg className="scare-figure" viewBox="0 0 400 500" preserveAspectRatio="xMidYMid slice">
           <defs>
-            <radialGradient id="jsRoom" cx="58%" cy="30%" r="75%">
-              <stop offset="0" stopColor="#3a120c" />
-              <stop offset="0.45" stopColor="#170605" />
-              <stop offset="1" stopColor="#030101" />
+            <radialGradient id="rc-scare-room" cx="50%" cy="42%" r="65%">
+              <stop offset="0" stopColor="#3a3a36" />
+              <stop offset="0.5" stopColor="#141412" />
+              <stop offset="1" stopColor="#030303" />
             </radialGradient>
-            <radialGradient id="jsHalo" cx="50%" cy="50%" r="50%">
-              <stop offset="0.55" stopColor="#c07a2a" stopOpacity="0" />
-              <stop offset="0.72" stopColor="#d99a48" stopOpacity="0.55" />
-              <stop offset="0.86" stopColor="#8a4a1c" stopOpacity="0.85" />
-              <stop offset="1" stopColor="#2a0c04" stopOpacity="0" />
+            <radialGradient id="rc-scare-face" cx="50%" cy="38%" r="62%">
+              <stop offset="0" stopColor="#d9d4ca" />
+              <stop offset="0.55" stopColor="#a39d92" />
+              <stop offset="1" stopColor="#4a463f" />
             </radialGradient>
-            <radialGradient id="jsHaloGlow" cx="50%" cy="50%" r="50%">
-              <stop offset="0" stopColor="#ff9a40" stopOpacity="0.4" />
-              <stop offset="1" stopColor="#ff5a20" stopOpacity="0" />
-            </radialGradient>
-            <radialGradient id="jsFace" cx="50%" cy="34%" r="66%">
-              <stop offset="0" stopColor="#d2ab98" />
-              <stop offset="0.55" stopColor="#9a6c5c" />
-              <stop offset="1" stopColor="#3e2420" />
-            </radialGradient>
-            <linearGradient id="jsSkinDark" x1="0" x2="0" y1="1" y2="0">
-              <stop offset="0" stopColor="#5a3a32" />
-              <stop offset="1" stopColor="#c49a8a" />
+            <linearGradient id="rc-scare-skin-dark" x1="0" x2="0" y1="1" y2="0">
+              <stop offset="0" stopColor="#5d5850" />
+              <stop offset="1" stopColor="#b5afa4" />
             </linearGradient>
-            <radialGradient id="jsEye" cx="45%" cy="40%" r="60%">
-              <stop offset="0" stopColor="#f4ece4" />
-              <stop offset="0.7" stopColor="#d9bfb2" />
-              <stop offset="1" stopColor="#7a3a30" />
+            <radialGradient id="rc-scare-mouth" cx="50%" cy="35%" r="70%">
+              <stop offset="0" stopColor="#1a0808" />
+              <stop offset="0.7" stopColor="#060202" />
+              <stop offset="1" stopColor="#2a1414" />
             </radialGradient>
-            <radialGradient id="jsThroat" cx="50%" cy="40%" r="65%">
-              <stop offset="0" stopColor="#000" />
-              <stop offset="0.8" stopColor="#0a0202" />
-              <stop offset="1" stopColor="#4a0c0c" />
+            <radialGradient id="rc-scare-eye" cx="50%" cy="45%" r="55%">
+              <stop offset="0" stopColor="#f2efe6" />
+              <stop offset="0.75" stopColor="#bdb8ad" />
+              <stop offset="1" stopColor="#5a554c" />
             </radialGradient>
-            <linearGradient id="jsRobe" x1="0" x2="1" y1="0" y2="1">
-              <stop offset="0" stopColor="#7a1010" />
-              <stop offset="1" stopColor="#2a0404" />
+            <linearGradient id="rc-scare-gown" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0" stopColor="#c9c3b6" />
+              <stop offset="1" stopColor="#4d4a43" />
             </linearGradient>
-            <linearGradient id="jsVest" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0" stopColor="#c9b89a" />
-              <stop offset="1" stopColor="#5a4c38" />
-            </linearGradient>
-            <filter id="jsSoft">
-              <feGaussianBlur stdDeviation="1" />
+            <radialGradient id="rc-scare-socket" cx="50%" cy="50%" r="50%">
+              <stop offset="0" stopColor="#1a1714" />
+              <stop offset="0.6" stopColor="#3a3530" stopOpacity="0.9" />
+              <stop offset="1" stopColor="#6a645a" stopOpacity="0" />
+            </radialGradient>
+            <filter id="rc-scare-soft">
+              <feGaussianBlur stdDeviation="1.1" />
             </filter>
-            <filter id="jsNear">
-              <feGaussianBlur stdDeviation="3.5" />
+            <filter id="rc-scare-near">
+              <feGaussianBlur stdDeviation="4" />
             </filter>
-            <filter id="jsSkin">
-              <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" seed="11" result="n" />
-              <feDisplacementMap in="SourceGraphic" in2="n" scale="1.4" result="d" />
-              <feGaussianBlur in="d" stdDeviation="0.6" />
+            <filter id="rc-scare-skin">
+              <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="5" result="n" />
+              <feDisplacementMap in="SourceGraphic" in2="n" scale="1.2" result="d" />
+              <feGaussianBlur in="d" stdDeviation="0.7" />
             </filter>
           </defs>
 
-          {/* the dark room, a dull red light in it */}
-          <rect width="400" height="520" fill="url(#jsRoom)" />
-          {/* the cracked gold halo behind his head, glowing */}
-          <circle cx="250" cy="150" r="185" fill="url(#jsHaloGlow)" />
-          <circle cx="250" cy="150" r="150" fill="url(#jsHalo)" />
-          <path d="M140 120 l20 8 l-6 14 M330 70 l-14 16 l8 10 M352 190 l-18 -4 l-4 16 M170 250 l14 -10" stroke="#3a1a08" strokeWidth="1.4" fill="none" opacity="0.8" />
+          {/* the hallway behind her: a door frame in perspective, a dead light */}
+          <rect width="400" height="500" fill="url(#rc-scare-room)" />
+          <path d="M120 40 L136 470 M280 40 L264 470 M120 40 L280 40" stroke="#1c1c1a" strokeWidth="6" fill="none" />
+          <path d="M60 0 L96 500 M340 0 L304 500" stroke="#0a0a09" strokeWidth="14" fill="none" />
 
-          {/* the vestment and the red cloak, torn */}
-          <path fill="url(#jsVest)" d="M120 330 C 150 290, 340 280, 380 330 L 400 520 L 90 520 Z" />
-          <path fill="#1f3a2a" opacity="0.8" d="M150 340 C 190 320, 250 320, 270 345 L 290 520 L 140 520 Z" />
-          <path fill="url(#jsRobe)" d="M0 250 C 60 240, 120 280, 160 330 C 150 400, 130 470, 120 520 L 0 520 Z" />
-          <path d="M20 270 l10 30 M60 262 l6 40 M100 290 l-4 36 M130 320 l-10 30" stroke="#a82020" strokeWidth="2" opacity="0.6" />
-          {/* the gold cross on the stole */}
-          <path fill="#c8963a" stroke="#5a3a10" strokeWidth="1" d="M182 400 h10 v-14 h8 v14 h10 v8 h-10 v24 h-8 v-24 h-10 Z" />
-
-          {/* the book he holds, and his hand on it */}
-          <g transform="translate(300 400) rotate(10)">
-            <rect x="0" y="0" width="90" height="120" rx="6" fill="#3a2418" stroke="#1a0e08" strokeWidth="2" />
-            <rect x="8" y="8" width="74" height="104" rx="4" fill="none" stroke="#8a6a3a" strokeWidth="1.5" />
-            <path fill="#8a6a3a" d="M40 30 h10 v20 h16 v10 h-16 v34 h-10 v-34 h-16 v-10 h16 Z" />
-          </g>
-          <Hand x={330} y={470} s={0.75} rot={-70} />
-
-          {/* long white hair from the sides of the head */}
-          <g stroke="#cfc6bc" fill="none" strokeLinecap="round" filter="url(#jsSoft)">
-            {HAIR.map((h, i) => (
-              <path key={i} d={h.d} strokeWidth={h.w} strokeOpacity={h.o} />
+          {/* hair mass behind the head and shoulders */}
+          <path fill="#060606" d="M200 112 C 120 110, 104 190, 92 300 C 80 400, 60 470, 40 500 L360 500 C 340 470, 320 400, 308 300 C 296 190, 280 110, 200 112 Z" />
+          <g stroke="#0d0d0c" fill="none" strokeLinecap="round">
+            {STRANDS.map((s, i) => (
+              <path key={i} d={s.d} strokeWidth={s.w} strokeOpacity={s.o} />
             ))}
           </g>
 
-          {/* the head: bald, wrinkled, gaunt, lit warm from the halo */}
-          <g filter="url(#jsSkin)">
-            <path fill="url(#jsFace)" d="M245 40 C 300 40, 330 80, 326 140 C 322 190, 306 220, 292 250 L 200 250 C 186 220, 168 190, 164 140 C 160 80, 190 40, 245 40 Z" />
-            <g stroke="#4a2a22" strokeOpacity="0.55" strokeWidth="1.3" fill="none">
-              {WRINKLES.map((d, i) => (
-                <path key={i} d={d} />
-              ))}
-            </g>
-            {/* deep sockets round the bulging eyes */}
-            <ellipse cx="208" cy="134" rx="32" ry="26" fill="#3a1c18" opacity="0.8" />
-            <ellipse cx="284" cy="134" rx="32" ry="26" fill="#3a1c18" opacity="0.8" />
-            {/* the hooked nose */}
-            <path fill="#a87866" d="M246 140 C 238 170, 230 190, 232 204 C 240 212, 256 212, 262 204 C 262 186, 254 166, 246 140 Z" />
-            <path d="M234 204 q6 6 12 2 M248 206 q6 4 12 -2" stroke="#3a1c16" strokeWidth="1.4" fill="none" />
+          {/* gown: torn neckline, the arms come forward out of it */}
+          <path fill="url(#rc-scare-gown)" d="M124 330 C 150 300, 250 300, 276 330 L 300 500 L 100 500 Z" filter="url(#rc-scare-soft)" />
+
+          {/* the face: gaunt, lit from below by something, jaw hanging open */}
+          <g filter="url(#rc-scare-skin)">
+            <path fill="url(#rc-scare-face)" d="M200 128 C 236 128, 252 160, 250 204 C 248 250, 236 296, 220 322 C 212 334, 188 334, 180 322 C 164 296, 152 250, 150 204 C 148 160, 164 128, 200 128 Z" />
+            {/* hollow cheeks and temples */}
+            <path d="M160 214 C 166 246, 172 268, 180 290 M240 214 C 234 246, 228 268, 220 290" stroke="#5a554c" strokeOpacity="0.6" strokeWidth="6" fill="none" filter="url(#rc-scare-soft)" />
+            {/* eye sockets, sunk and bruised, fading into the skin */}
+            <ellipse cx="179" cy="196" rx="21" ry="15" fill="url(#rc-scare-socket)" />
+            <ellipse cx="221" cy="196" rx="21" ry="15" fill="url(#rc-scare-socket)" />
+            {/* veins standing out under grey skin, from the temples and the forehead */}
+            <path
+              d="M156 170 q8 6 10 16 q2 6 8 8 M244 168 q-8 7 -10 17 q-2 6 -8 7 M186 140 q4 10 2 18 q-2 6 2 12 M214 142 q-3 9 -1 17 M160 236 q6 4 8 12 M240 236 q-6 4 -8 12"
+              stroke="#2e2622"
+              strokeOpacity="0.55"
+              strokeWidth="1"
+              fill="none"
+            />
+            {/* eyes: wide open, all white, a pinprick pupil, bloodshot at the rims */}
+            <ellipse cx="179" cy="197" rx="13" ry="9.5" fill="url(#rc-scare-eye)" />
+            <ellipse cx="221" cy="197" rx="13" ry="9.5" fill="url(#rc-scare-eye)" />
+            <path
+              d="M167 196 q5 -1 7 2 M168 200 q4 0 6 -2 M191 195 q-4 0 -6 3 M190 200 q-4 -1 -5 -3 M209 196 q5 -1 7 2 M210 200 q4 0 6 -2 M233 195 q-4 0 -6 3 M232 200 q-4 -1 -5 -3"
+              stroke="#8a1c1c"
+              strokeOpacity="0.7"
+              strokeWidth="0.7"
+              fill="none"
+            />
+            <circle cx="180" cy="196" r="1.1" fill="#0a0808" />
+            <circle cx="220" cy="196" r="1.1" fill="#0a0808" />
+            {/* dark blood run from the lower lids down the cheeks */}
+            <path fill="#3e0808" opacity="0.85" d="M174 205 C 173 218, 175 232, 172 252 C 176 240, 178 226, 178 206 Z M224 205 C 225 222, 223 238, 226 262 C 228 244, 229 226, 228 206 Z" />
+            {/* the corners of the mouth have torn up toward the cheeks */}
+            <path d="M174 270 C 168 258, 166 248, 160 238 M226 270 C 232 258, 234 248, 240 238" stroke="#2a0d0b" strokeWidth="1.6" strokeLinecap="round" fill="none" />
+            {/* brows pulled up in the scream */}
+            <path d="M160 180 q19 -12 36 -2 M204 178 q17 -10 36 2" stroke="#2d2924" strokeOpacity="0.55" strokeWidth="1.6" fill="none" filter="url(#rc-scare-soft)" />
+            {/* nose */}
+            <path d="M200 206 C 196 226, 194 236, 192 242 C 198 246, 204 246, 210 242" stroke="#544f46" strokeWidth="2.2" fill="none" />
           </g>
 
-          {/* the eyes: bulging white, veined red, a pin pupil each, black tears running */}
-          {[208, 284].map((cx) => (
-            <g key={cx}>
-              <path fill="#060202" opacity="0.92" d={`M${cx - 6} 150 C ${cx - 8} 200, ${cx - 2} 260, ${cx - 6} 330 C ${cx + 2} 270, ${cx + 6} 210, ${cx + 6} 150 Z`} />
-              <circle cx={cx} cy="132" r="24" fill="url(#jsEye)" />
-              <path d={`M${cx - 22} 128 q8 2 12 -4 M${cx + 22} 136 q-9 0 -13 -5 M${cx - 18} 142 q8 -3 10 -9 M${cx + 18} 122 q-7 3 -10 8`} stroke="#9a1a1a" strokeWidth="0.8" strokeOpacity="0.8" fill="none" />
-              <circle cx={cx + 1} cy="132" r="2" fill="#0a0404" />
-            </g>
-          ))}
-
-          {/* the mouth torn open far too long, black inside, red gums, long fangs */}
+          {/* The scream: the jaw unhinges, dropping far past where a chin should stop. A black
+              throat, gums and a few long yellowed teeth. */}
           <g className="scare-jaw">
-            <path fill="#5a1a14" d="M245 212 C 290 212, 302 260, 298 330 C 294 390, 272 430, 245 430 C 218 430, 196 390, 192 330 C 188 260, 200 212, 245 212 Z" />
-            <path fill="url(#jsThroat)" d="M245 222 C 282 222, 290 266, 286 330 C 282 384, 264 418, 245 418 C 226 418, 208 384, 204 330 C 200 266, 208 222, 245 222 Z" />
-            {FANGS_TOP.map(({ x, len }) => (
-              <path key={x} fill="#e2d6b8" stroke="#6a5a3a" strokeWidth="0.6" d={`M${x - 6} 222 L ${x} ${222 + len} L ${x + 6} 222 Z`} />
-            ))}
-            {FANGS_LOW.map(({ x, len }) => (
-              <path key={x} fill="#d8caa8" stroke="#6a5a3a" strokeWidth="0.6" d={`M${x - 5} 416 L ${x} ${416 - len} L ${x + 5} 416 Z`} />
+            <path fill="#4a2c27" opacity="0.75" d="M200 248 C 228 248, 236 268, 234 294 C 232 326, 216 344, 200 344 C 184 344, 168 326, 166 294 C 164 268, 172 248, 200 248 Z" />
+            <path fill="#5a1414" opacity="0.8" d="M200 252 C 224 252, 230 268, 229 292 C 227 320, 214 336, 200 336 C 186 336, 173 320, 171 292 C 170 268, 176 252, 200 252 Z" />
+            <path fill="url(#rc-scare-mouth)" d="M200 258 C 218 258, 224 272, 223 292 C 221 314, 212 328, 200 328 C 188 328, 179 314, 177 292 C 176 272, 182 258, 200 258 Z" />
+            <path fill="#c2b597" d="M180 258 l3 14 l3 -13 Z M188 256 l2.5 10 l2.5 -10 Z M196 255 l2 8 l2 -8 Z M203 255 l2.5 9 l2.5 -9 Z M211 256 l3 12 l3 -11 Z" />
+            <path fill="#9a8d72" d="M184 330 l3 -10 l3 10 Z M196 332 l2 -7 l2 7 Z M208 330 l3 -11 l3 11 Z" />
+          </g>
+
+          {/* hair hanging across the face */}
+          <g stroke="#080707" fill="none" strokeLinecap="round" strokeOpacity="0.55" filter="url(#rc-scare-soft)">
+            {FACE_STRANDS.map((d, i) => (
+              <path key={i} d={d} strokeWidth={i % 2 ? 0.6 : 1} />
             ))}
           </g>
 
-          {/* the beard round the mouth, long and thin, down over the chest */}
-          <g stroke="#d6cec4" fill="none" strokeLinecap="round" filter="url(#jsSoft)">
-            {BEARD.map((h, i) => (
-              <path key={i} d={h.d} strokeWidth={h.w} strokeOpacity={h.o} />
-            ))}
-          </g>
-
-          {/* his hand, reaching out of the frame at you: huge and blurred, nearly at the lens */}
-          <path d="M20 520 C 40 460, 80 420, 120 400" stroke="url(#jsSkinDark)" strokeWidth="56" strokeLinecap="round" fill="none" filter="url(#jsNear)" />
-          <Hand x={120} y={370} s={1.55} rot={58} blur />
-
-          {/* the red light over everything */}
-          <rect width="400" height="520" fill="#7a1008" opacity="0.18" style={{ mixBlendMode: 'multiply' }} />
+          {/* arms out to the camera, hands huge and blurred because they are nearly at the lens */}
+          <path d="M130 340 C 100 380, 80 420, 60 470" stroke="url(#rc-scare-skin-dark)" strokeWidth="40" strokeLinecap="round" fill="none" filter="url(#rc-scare-soft)" />
+          <path d="M270 340 C 300 380, 320 420, 340 470" stroke="url(#rc-scare-skin-dark)" strokeWidth="40" strokeLinecap="round" fill="none" filter="url(#rc-scare-soft)" />
+          <Hand x={52} y={470} flip={false} scale={1.35} />
+          <Hand x={348} y={470} flip scale={1.35} />
         </svg>
       </div>
       {/* camcorder frame on top: grain, scan lines, vignette, REC and the date stamp */}
@@ -237,9 +202,12 @@ export function JumpScare() {
       <div className="scare-ui">
         <span className="scare-rec">● REC</span>
         <span className="scare-batt">▮▮▯</span>
-        <span className="scare-date">6 DECEMBER AD 343</span>
+        <span className="scare-date">
+          DEC 24 1944
+          <br />
+          11:47 PM
+        </span>
       </div>
-      {words && <p className="scare-words">Forgive me, Lord, for I have sinned.</p>}
     </div>
   );
 }

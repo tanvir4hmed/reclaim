@@ -11,8 +11,8 @@
 .scare-stage {
   position: absolute;
   inset: 0;
-  /* Dark, crushed blacks, a dull red light: not black-and-white. */
-  filter: saturate(0.85) contrast(1.15) brightness(0.82) sepia(0.15);
+  /* Desaturated, crushed blacks, a little camcorder bloom. */
+  filter: grayscale(0.85) contrast(1.25) brightness(0.92);
   animation: scareShake 0.09s steps(2) infinite;
 }
 
@@ -44,17 +44,7 @@
   26% { transform: scale(0.66) rotate(-0.8deg); }
   34% { transform: scale(0.63) translate(-0.5%, 0.3%) rotate(2.2deg); }
   42% { transform: scale(0.68) rotate(-1deg); animation-timing-function: cubic-bezier(0.7, 0, 0.9, 0.5); }
-  /* he stops close, his face filling the screen, and stays there behind the words */
-  100% { transform: scale(0.86); }
-}
-
-/* After the words, he and the dark lift off the Christmas shop together. */
-.scare-leaving {
-  animation: scareOut 1s ease-in forwards;
-}
-
-@keyframes scareOut {
-  to { opacity: 0; }
+  100% { transform: scale(1.5); }
 }
 
 /* Her jaw keeps dropping as she comes. */
@@ -66,8 +56,8 @@
 
 @keyframes jawDrop {
   0% { transform: scaleY(1); }
-  42% { transform: scaleY(1.05); }
-  100% { transform: scaleY(1.15); }
+  42% { transform: scaleY(1.1); }
+  100% { transform: scaleY(1.5); }
 }
 
 /* Tape glitch at the jump cut: torn horizontal bands. */
@@ -143,27 +133,6 @@
   bottom: 6vh;
 }
 
-/* His confession, large in the middle, over him. */
-.scare-words {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  translate: -50% -50%;
-  width: min(92vw, 1100px);
-  margin: 0;
-  text-align: center;
-  color: #f1e6d4;
-  font: 400 clamp(36px, 7vw, 96px) / 1.1 'Creepster', Georgia, serif;
-  letter-spacing: 0.02em;
-  text-shadow: 0 0 18px rgb(0 0 0 / 0.95), 0 0 6px rgb(0 0 0 / 0.9), 0 0 28px rgb(140 10 10 / 0.6);
-  animation: wordsIn 1.2s ease-out both;
-}
-
-@keyframes wordsIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
 /* Reduced motion: no rush and no shake; she is simply there, close, and the frame fades. */
 .scare-still .scare-stage,
 .scare-still .scare-grain {
@@ -175,10 +144,6 @@
   transform: scale(0.75);
 }
 
-.scare-still.scare-leaving {
-  animation: none;
-}
-
 .scare-still .scare-jaw,
 .scare-still .scare-glitch {
   animation: none;
@@ -186,5 +151,6 @@
 
 @keyframes scareFade {
   from { opacity: 0; }
-  to { opacity: 1; }
+  30%, 80% { opacity: 1; }
+  to { opacity: 0; }
 }
