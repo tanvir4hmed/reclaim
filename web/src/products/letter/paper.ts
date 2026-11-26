@@ -150,7 +150,19 @@ export function drawSmear(g: CanvasRenderingContext2D, x: number, y: number, len
  * edges, scratches through them, spatter round them, and drips running down from the bottom
  * of several letters. Only the one line.
  */
-export function drawBloodWords(g: CanvasRenderingContext2D, text: string, x: number, y: number, size: number, maxW: number, seed: number, face = 'Creepster') {
+export function drawBloodWords(
+  g: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  size: number,
+  maxW: number,
+  seed: number,
+  face = 'Creepster',
+  /** run: how far the drips have run (0..1); spatter: dots and scratches round the words; center: x is the middle. */
+  opts: { run?: number; spatter?: boolean; center?: boolean } = {},
+) {
+  const runK = opts.run ?? 1;
   const r = seeded(seed);
   g.save();
   g.font = `${size}px "${face}", "Brush Script MT", "Segoe Script", cursive`;
@@ -160,7 +172,7 @@ export function drawBloodWords(g: CanvasRenderingContext2D, text: string, x: num
   let scale = 1;
   const width = g.measureText(text).width + gap * (text.length - 1);
   if (width > maxW) scale = maxW / width;
-  g.translate(x, y);
+  g.translate(opts.center ? x - (width * scale) / 2 : x, y);
   g.scale(scale, 1);
   // a wet halo soaked into the paper under the words
   // (each letter's own soak is drawn with it, below)
@@ -197,7 +209,7 @@ export function drawBloodWords(g: CanvasRenderingContext2D, text: string, x: num
   for (let i = 0; i < parts.length; i++) {
     if (parts[i] === ' ' || r() < 0.35) continue;
     const dx = pos[i]! + (g.measureText(parts[i]!).width * (0.3 + r() * 0.4));
-    const len = size * (0.25 + r() * 0.9);
+    const len = size * (0.25 + r() * 0.9) * runK;
     const wd = size * (0.035 + r() * 0.03);
     g.beginPath();
     g.moveTo(dx - wd / 2, -size * 0.05);
@@ -211,6 +223,10 @@ export function drawBloodWords(g: CanvasRenderingContext2D, text: string, x: num
     g.fill();
   }
   // spatter round the words, and a few scratches through them
+  if (opts.spatter === false) {
+    g.restore();
+    return;
+  }
   for (let i = 0; i < 60; i++) {
     g.fillStyle = `rgba(${100 + r() * 30},10,12,${0.6 + r() * 0.35})`;
     g.beginPath();

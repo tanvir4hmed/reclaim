@@ -4,30 +4,33 @@ import { FootprintShape } from './Decals';
 
 /**
  * Where each bloody print falls, in the shoe picture's own 0..100 square: [x, y, heading in
- * degrees (0 points right), foot]. The walk starts right under the boots and goes off along
- * the floor in front of them, left, right, left, then turns away. Seven prints, then nothing.
+ * degrees (0 points right), foot]. The shoes stand in the middle, toes to the front left. The
+ * walk starts where the right shoe (the one behind) would step next, just in front of its toe,
+ * goes off along the floor in front of the pair, right, left, right, then turns away up past
+ * the left shoe's toe. Seven prints, then nothing. Kept clear of the shoes both on the card
+ * and in the product view, which frame them a little differently.
  */
 const WALK: [number, number, number, 'left' | 'right'][] = [
-  [78, 85, 196, 'left'],
-  [63, 92, 184, 'right'],
-  [48, 86, 180, 'left'],
-  [33, 92, 184, 'right'],
-  [19, 85, 204, 'left'],
-  [11, 72, 246, 'right'],
-  [17, 58, 268, 'left'],
+  [47, 80, 152, 'right'],
+  [33, 89, 170, 'left'],
+  [19, 87, 192, 'right'],
+  [8, 78, 226, 'left'],
+  [5.5, 63, 258, 'right'],
+  [8, 48, 274, 'left'],
+  [6, 34, 264, 'right'],
 ];
 /** About an inch long in the product view (18 of the picture's 100 units). */
 const PRINT_SCALE = 0.38;
-/** Seconds: the blood seeps out from under the boots first, the first steps are slow, then it walks. */
+/** Seconds: the blood wells out from under the shoes first (in their model), the first steps are slow, then it walks. */
 const DELAYS = [1.3, 2.4, 3.1, 3.7, 4.3, 4.9, 5.5];
 
 /**
- * Shoes (Requirement 13.3–13.4, revised in round 11). Taken, blood seeps out from under the
- * boots, then one slow print, a second, and five more, left and right, about an inch long in
- * the product view; then it stops. It is drawn inside the shoes' own picture, the product view
- * or the card on the shelf, and never anywhere else on the page. If the shoes were already
- * taken when the picture appears (a reload, or the card behind the view), the prints are
- * simply there.
+ * Shoes (Requirement 13.3–13.4, revised in round 11). Taken, blood wells out from under the
+ * whole of both soles (drawn by the shoes' model, products/shoes, as a pool on their floor),
+ * then one slow print, a second, and five more, right and left, about an inch long in the
+ * product view; then it stops. It is drawn inside the shoes' own picture, the product view or
+ * the card on the shelf, and never anywhere else on the page. If the shoes were already taken
+ * when the picture appears (a reload, or the card behind the view), the prints are simply there.
  */
 export function ShoePrints() {
   const { taken } = useTaken('shoes');
@@ -41,8 +44,6 @@ export function ShoePrints() {
       aria-hidden="true"
       data-testid="shoe-prints"
     >
-      {/* what has run out from under the boots */}
-      <path className="shoe-pool" d="M60 79 C 63 76.6, 70 76.2, 76 77 C 80 77.6, 82 79.4, 79 81 C 75 82.6, 69 81.8, 66 82.4 C 62 83, 58 81.6, 60 79 Z" />
       {WALK.map(([x, y, a, foot], i) => (
         <g
           key={i}

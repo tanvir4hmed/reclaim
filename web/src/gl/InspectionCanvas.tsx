@@ -5,7 +5,8 @@ import * as THREE from 'three';
 import type { ProductId } from '../core/ids';
 import { MODELS } from '../products/models';
 import { useHaunted } from '../store';
-import { bodyBounds } from './fit';
+import { fitBounds } from './fit';
+import { useTaken } from './useTaken';
 import { SceneEnv } from './env';
 import { Shadow } from './Shadow';
 import { Studio } from './Studio';
@@ -42,7 +43,7 @@ export default function InspectionCanvas({ id, inspecting = false }: { id: Produ
         {/* the distance is only a start: Framed fits the camera to the object */}
         <Studio distance={2.8} fov={32} />
         <Suspense fallback={null}>
-          <Framed margin={inspecting ? 1.08 : 1.32} refit={inspecting} onFitted={() => setFitted(true)}>
+          <Framed id={id} margin={inspecting ? 1.08 : 1.32} refit={inspecting} onFitted={() => setFitted(true)}>
             <Model open />
           </Framed>
         </Suspense>
@@ -70,7 +71,10 @@ const FROM = new THREE.Vector3(0, 0.25, 2.8).normalize();
  * The first fit happens before anything is shown (the canvas fades in once framed), so the
  * object never jumps as the view opens; a later refit (Inspect, a resize) glides there.
  */
-function Framed({ children, margin, refit, onFitted }: { children: ReactNode; margin: number; refit: boolean; onFitted: () => void }) {
+function Framed({ id, children, margin, refit, onFitted }: { id: ProductId; children: ReactNode; margin: number; refit: boolean; onFitted: () => void }) {
+  const haunted = useHaunted();
+  const { taken } = useTaken(id);
+  const key = `view:${id}:${haunted ? 'h' : 'd'}`;
   const group = useRef<THREE.Group>(null);
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
   const controls = useThree((s) => s.controls) as unknown as Orbit | null;
@@ -89,7 +93,7 @@ function Framed({ children, margin, refit, onFitted }: { children: ReactNode; ma
     if (!g || !controls || frames.current > 2) return;
     frames.current += 1;
     if (frames.current !== 2) return;
-    const fit = fitFor(g, camera, width / Math.max(1, height), margin);
+    const fit = fitFor(g, camera, width / Math.max(1, height), margin, key, taken);
     if (!fit) return;
     if (fitted.current) {
       glide.current = { from: camera.position.clone(), fromTarget: controls.target.clone(), fit, t: 0 };
@@ -107,8 +111,9 @@ type Fit = { centre: THREE.Vector3; position: THREE.Vector3; dist: number };
 type Glide = { from: THREE.Vector3; fromTarget: THREE.Vector3; fit: Fit; t: number };
 
 /** Where the camera must stand to frame what is drawn, seen from `FROM`. */
-function fitFor(g: THREE.Object3D, camera: THREE.PerspectiveCamera, aspect: number, margin: number): Fit | null {
-  const b = bodyBounds(g, box, true);
+function fitFor(g: THREE.Object3D, camera: THREE.PerspectiveCamera, aspect: number, margin: number, key: string, taken: boolean): Fit | null {
+  // the same size after the Take as before it, every time the view is opened
+  const b = fitBounds(g, box, key, taken, true);
   if (b.isEmpty()) return null;
   b.getCenter(centre);
   b.getSize(extent);

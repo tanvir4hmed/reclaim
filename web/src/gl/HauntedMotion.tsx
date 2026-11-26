@@ -47,7 +47,8 @@ const MOTION: Partial<Record<ProductId, (t: number) => Pose>> = {
   'photo-frame': (t) => ({ rz: Math.sin(t * 0.9) * 0.05 }),
   // The globe turns slowly, keeping its burnt house facing you.
   'snow-globe': (t) => ({ ry: Math.sin(t * 0.35) * 0.35 }),
-  'valve-radio': (t) => ({ s: 1 + Math.sin(t * 50) * 0.002 + burst(t, 7, 0.5, 0.1) * 0.01 }),
+  // The set hums: the faintest tremble, now and then a jolt.
+  television: (t) => ({ s: 1 + Math.sin(t * 50) * 0.002 + burst(t, 7, 0.5, 0.1) * 0.01 }),
   typewriter: (t) => ({ y: -Math.abs(shake(t, 30)) * burst(t, 5, 1.2, 0.9) * 0.015 }),
   'instant-camera': (t) => ({ rx: -burst(t, 8, 0.25, 0.35) * 0.08 }),
   letter: (t) => ({ rx: Math.sin(t * 2.1) * 0.03 * burst(t, 6, 2.5, 0.2) }),

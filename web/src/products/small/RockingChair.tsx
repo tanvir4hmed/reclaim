@@ -7,7 +7,7 @@ import { useTaken } from '../../gl/useTaken';
 
 /*
  * An old Victorian rocking chair, deep and reclined, built for sleeping in: long curved rockers,
- * turned legs, a seat and a tall leaning back of thin striped cloth stretched on the frame (a
+ * turned legs, a seat and a tall leaning back of thin plain cloth stretched on the frame (a
  * sling, no foam), scrolled arms and a carved crest rail. Chair space: x forward, y up, z across.
  */
 
@@ -68,53 +68,22 @@ function Bent({ pts, r }: { pts: [number, number, number][]; r: number }) {
   return <mesh geometry={geo} material={M.wood()} />;
 }
 
-/** Regency stripes on cream: deep red bands edged with fine gold lines, a small sprig between. */
-function stripeTexture(): THREE.CanvasTexture {
-  const c = document.createElement('canvas');
-  c.width = 512;
-  c.height = 512;
-  const g = c.getContext('2d');
-  if (g) {
-    g.fillStyle = '#eee1c4';
-    g.fillRect(0, 0, 512, 512);
-    for (let i = 0; i < 4; i++) {
-      const x = i * 128;
-      g.fillStyle = '#7d1d26';
-      g.fillRect(x + 44, 0, 40, 512);
-      g.fillStyle = '#b8954a';
-      g.fillRect(x + 36, 0, 3, 512);
-      g.fillRect(x + 89, 0, 3, 512);
-      // a little sprig in the cream band
-      g.fillStyle = '#9a7a3e';
-      for (let y = 32; y < 512; y += 64) {
-        g.beginPath();
-        g.ellipse(x + 112, y, 3, 6, 0.4, 0, Math.PI * 2);
-        g.ellipse(x + 116, y + 5, 3, 6, -0.4, 0, Math.PI * 2);
-        g.fill();
-      }
-    }
-    // the weave, so it reads as cloth up close
-    g.globalAlpha = 0.08;
-    g.fillStyle = '#000';
-    for (let y = 0; y < 512; y += 3) g.fillRect(0, y, 512, 1);
-    g.globalAlpha = 1;
-  }
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace;
-  t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  t.anisotropy = 4;
-  return t;
-}
-
-/** The chair's cloth: striped, thin and soft; it greys, yellows and wears through after the Reveal. */
+/**
+ * The chair's cloth: plain, thin and soft, in the old gold of "Every night, rocking her to sleep"
+ * (the shop's aged brass), a mid tone with a soft sheen so every hollow pressed into it shows.
+ * After the Reveal it darkens, greys and wears through.
+ */
 function cloth(): THREE.MeshPhysicalMaterial {
-  const m = mat('chairCloth', { surface: 'fabric', color: '#ffffff', roughness: 0.9, sheen: 0.35, sheenColor: '#fff2dc', side: THREE.DoubleSide, decay: { age: 0.55, dust: 0.45, tear: 0.06 } });
-  if (!m.userData.striped) {
-    m.userData.striped = true;
-    m.map = stripeTexture();
-    m.needsUpdate = true;
-  }
-  return m;
+  return mat('chairClothGold', {
+    surface: 'fabric',
+    color: '#a8894e',
+    roughness: 0.86,
+    sheen: 0.6,
+    sheenColor: '#f0d9a0',
+    hauntedColor: '#6e5836',
+    side: THREE.DoubleSide,
+    decay: { age: 0.45, dust: 0.4, tear: 0.06 },
+  });
 }
 
 /** A dent pressed into the cloth: centre (u, v) on it, spread, depth. */
@@ -188,7 +157,7 @@ const BACK_DENTS: Dent[] = [
 ];
 
 /**
- * An old rocking chair, deep and reclined, upholstered in thin striped cloth. After the Reveal
+ * An old rocking chair, deep and reclined, upholstered in thin old-gold cloth. After the Reveal
  * it is grey and worn; taken, it starts to rock on its own and never stops, slow and even, and
  * the cloth gives as if someone lay back in it: the seat sinks under the hips and thighs, the
  * back under the shoulders, and the head rests near the top. No one is there.

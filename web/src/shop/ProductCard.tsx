@@ -10,9 +10,8 @@ import { CartIcon, HeartIcon } from './icons';
 import { ObjectBox } from './ObjectBox';
 import { Stepper } from './Stepper';
 import { CartNoteLine } from './Toast';
-import { LetterOpen, useRollCallName } from '../fx/Extras';
+import { LetterOpen } from '../fx/Extras';
 import { useChocolateCountdown } from '../fx/Haunts';
-import { CATALOG } from '../products/catalog';
 
 export function Rating({ p }: { p: ProductMeta }) {
   return (
@@ -34,7 +33,6 @@ export function ProductCard({ p }: { p: ProductMeta }) {
   const copy = haunted ? p.haunted : p.day;
   const off = discountPercent(p);
   const titleId = `title-${p.id}`;
-  const rollName = useRollCallName(p.id, CATALOG.indexOf(p));
   const choc = useChocolateCountdown(p.id);
   const playing = useFx((s) => s.playing === p.id || s.flags[`remind-${p.id}`] !== undefined);
 
@@ -66,7 +64,7 @@ export function ProductCard({ p }: { p: ProductMeta }) {
       <div className="card-body">
         <h3 className="card-title" id={titleId}>
           <Link to={`/product/${p.id}${currentSearch()}`} state={{ background: location }}>
-            {rollName ?? copy.name}
+            {copy.name}
           </Link>
         </h3>
         <p className="card-blurb">{copy.blurb}</p>

@@ -1,6 +1,4 @@
-import { useFrame } from '@react-three/fiber';
-import { useEffect, useRef, useState } from 'react';
-import * as THREE from 'three';
+import { useEffect, useState } from 'react';
 import { useCanvasTexture } from '../../gl/canvasTex';
 import { M } from '../../gl/materials';
 import { useTaken } from '../../gl/useTaken';
@@ -20,8 +18,10 @@ const MONTHS = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 
  */
 const CAL = { cross1: 0.3, cross1For: 0.13, cross2: 0.58, cross2For: 0.17, nameFrom: 1.2, nameFor: 2.3, cutFrom: 3.75, cutFor: 0.3, meltFrom: 3.85, meltFor: 2.4, end: 6.4 };
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
-/** The red of the name and the cross: blood, still wet. */
-const BLOOD = '#8f0a10';
+/** The red of the name and the cross: dark blood, not a bright paint red. */
+const BLOOD = '#6c070b';
+/** The stroke through the name: darker still, where the pen pressed. */
+const CUT_BLOOD = '#4e0408';
 
 /**
  * One quick, straight pen stroke from a to b, drawn up to `k` of its length: thin where the
@@ -136,46 +136,63 @@ function meltLetter(g: CanvasRenderingContext2D, c: string, i: number, melt: num
 }
 
 /**
- * One cut straight through the middle of the name, left to right: a narrow ragged slit, black
- * where the board shows through, a few torn fibres at its lips, running well past both ends.
+ * One stroke struck through the middle of the name, left to right, like a fountain pen dragged
+ * hard across it: a dark wet blood line, thin where the nib lands, full and even along the way,
+ * running past both ends; where it stops the ink has pooled, and a short drip runs down from it.
  */
-function thinCut(g: CanvasRenderingContext2D, line: { x0: number; y0: number; len: number }, k: number) {
+function thinCut(g: CanvasRenderingContext2D, line: { x0: number; y0: number; len: number }, k: number, drip: number) {
   if (k <= 0) return;
   const dx = Math.cos(NAME_RISE);
   const dy = Math.sin(NAME_RISE);
   // through the middle of the letters' height, well past both ends
   const over = 46;
-  const sx = line.x0 - dx * over + dy * 20;
-  const sy = line.y0 - dy * over - dx * 20;
+  const sx = line.x0 - dx * over + dy * 24;
+  const sy = line.y0 - dy * over - dx * 24;
   const len = (line.len + over * 2) * k;
-  const steps = 30;
-  g.fillStyle = '#050303';
+  const steps = 40;
+  const half = (t: number, side: number) => {
+    // the nib lands thin, the line swells at once, and ends round where it pooled
+    const land = Math.min(1, t * 12);
+    const wobble = 1 + 0.08 * Math.sin(t * 31 + side);
+    return 5 * (0.25 + 0.75 * land) * wobble;
+  };
+  g.save();
+  g.fillStyle = CUT_BLOOD;
   g.beginPath();
   g.moveTo(sx, sy);
-  for (let s = 1; s <= steps; s++) {
-    const t = s / steps;
-    const half = Math.sin(t * Math.PI) * 2.6 * (0.7 + ((s * 37) % 5) / 10);
-    g.lineTo(sx + dx * len * t - dy * half, sy + dy * len * t + dx * half);
+  for (let i = 1; i <= steps; i++) {
+    const t = i / steps;
+    const h = half(t, 1);
+    g.lineTo(sx + dx * len * t - dy * h, sy + dy * len * t + dx * h);
   }
-  for (let s = steps - 1; s >= 0; s--) {
-    const t = s / steps;
-    const half = Math.sin(t * Math.PI) * 2.3 * (0.7 + ((s * 53) % 5) / 10);
-    g.lineTo(sx + dx * len * t + dy * half, sy + dy * len * t - dx * half);
+  for (let i = steps; i >= 0; i--) {
+    const t = i / steps;
+    const h = half(t, -1);
+    g.lineTo(sx + dx * len * t + dy * h, sy + dy * len * t - dx * h);
   }
   g.closePath();
   g.fill();
-  g.strokeStyle = 'rgba(214,196,160,0.7)';
-  g.lineWidth = 0.8;
-  for (let s = 2; s < steps; s += 3) {
-    const t = s / steps;
-    const px = sx + dx * len * t;
-    const py = sy + dy * len * t;
-    const side = s % 2 ? 1 : -1;
+  // the end, where the nib stopped and the blood pooled, and a short drip down from it
+  const ex = sx + dx * len;
+  const ey = sy + dy * len;
+  g.beginPath();
+  g.arc(ex, ey, 6, 0, Math.PI * 2);
+  g.fill();
+  if (k >= 1 && drip > 0) {
+    const run = 16 * drip;
+    g.fillRect(ex - 2.4, ey, 4.8, run);
     g.beginPath();
-    g.moveTo(px - dy * 2.6 * side, py + dx * 2.6 * side);
-    g.lineTo(px - dy * 5 * side + dx * 1.5, py + dx * 5 * side + dy * 1.5);
-    g.stroke();
+    g.arc(ex, ey + run, 3.4, 0, Math.PI * 2);
+    g.fill();
   }
+  // a darker edge along its lower lip, where the wet line thickened
+  g.strokeStyle = 'rgba(30,2,3,0.5)';
+  g.lineWidth = 1.2;
+  g.beginPath();
+  g.moveTo(sx + dy * 4, sy - dx * 4);
+  g.lineTo(sx + dx * len + dy * 4, sy + dy * len - dx * 4);
+  g.stroke();
+  g.restore();
 }
 
 export function AdventCalendar() {
@@ -244,7 +261,7 @@ export function AdventCalendar() {
         // the name of the one who comes in the night, written by hand, rising as it goes
         const line = writeName(g, w, midY, named, melt);
         // then one thin cut through the middle of it
-        thinCut(g, line, cut);
+        thinCut(g, line, cut, melt);
       }
     },
     [haunted, stroke1, stroke2, named, cut, melt, today],
@@ -275,115 +292,6 @@ export function AdventCalendar() {
     </group>
   );
 }
-
-/**
- * Walnut valve radio with a lit tuning scale (kHz, station ticks, a needle and a tuning knob).
- * One station is marked with a red smear and "Hz" scratched beside it. Taken: an unseen hand
- * turns the knob, the needle stopping at each station in turn, until it lands on the red mark.
- */
-export function ValveRadio() {
-  const haunted = useHaunted();
-  const { taken, since } = useTaken('valve-radio');
-  const needle = useRef<THREE.Mesh>(null);
-  const knob = useRef<THREE.Mesh>(null);
-  const dial = useCanvasTexture(512, 160, (g, w, h) => drawDial(g, w, h, haunted), [haunted]);
-  useFrame(() => {
-    const f = tunedAt(since(), taken, haunted);
-    if (needle.current) needle.current.position.x = 0.38 - DIAL_W / 2 + 0.03 + f * (DIAL_W - 0.06);
-    if (knob.current) knob.current.rotation.y = f * Math.PI * 3;
-  });
-  return (
-    <group rotation={[0.1, -0.4, 0]} position-y={-0.1}>
-      <mesh material={M.wood()}>
-        <boxGeometry args={[1.4, 0.9, 0.55]} />
-      </mesh>
-      <mesh material={M.wood()} position-y={0.45} rotation-x={Math.PI / 2}>
-        <cylinderGeometry args={[0.7, 0.7, 0.55, 40, 1, false, -Math.PI / 2, Math.PI]} />
-      </mesh>
-      <mesh material={M.knit()} position={[-0.32, 0.16, 0.28]}>
-        <circleGeometry args={[0.3, 40]} />
-      </mesh>
-      {/* the tuning scale, lit from behind, and its needle */}
-      <mesh material={M.darkBrass()} position={[0.38, 0.16, 0.279]}>
-        <planeGeometry args={[DIAL_W + 0.05, 0.26]} />
-      </mesh>
-      <mesh position={[0.38, 0.16, 0.282]}>
-        <planeGeometry args={[DIAL_W, 0.2]} />
-        <meshBasicMaterial map={dial} toneMapped={false} />
-      </mesh>
-      <mesh ref={needle} position={[0.38, 0.16, 0.286]}>
-        <planeGeometry args={[0.01, 0.2]} />
-        <meshBasicMaterial color="#b0120c" />
-      </mesh>
-      {[-0.15, 0.2].map((x) => (
-        <mesh key={x} material={M.brass()} position={[x, -0.28, 0.3]} rotation-x={Math.PI / 2}>
-          <cylinderGeometry args={[0.07, 0.07, 0.07, 24]} />
-        </mesh>
-      ))}
-      {/* the tuning knob, with a ridge so you can see it turn */}
-      <mesh ref={knob} material={M.brass()} position={[0.55, -0.28, 0.3]} rotation-x={Math.PI / 2}>
-        <cylinderGeometry args={[0.09, 0.09, 0.08, 10]} />
-      </mesh>
-    </group>
-  );
-}
-
-/** Where the needle stops while someone unseen tunes through the stations (fractions of the dial). */
-const TUNING = [0.08, 0.22, 0.36, 0.5, 0.42, 0.6, 0.55, 0.78];
-/** The station marked in red, the one it always ends on. */
-const RED_STATION = 0.78;
-const DIAL_W = 0.62;
-
-/** Needle position 0..1: idle by day or haunted, stepping through the stations once taken. */
-function tunedAt(s: number, taken: boolean, haunted: boolean): number {
-  if (!taken) return haunted ? 0.3 : 0.2;
-  if (s === Infinity) return RED_STATION;
-  const per = 0.78; // 0.6 s held at a station, 0.18 s to swing to the next
-  const i = Math.min(TUNING.length - 1, Math.floor(s / per));
-  const k = Math.min(1, Math.max(0, (s - i * per - 0.6) / 0.18));
-  const a = TUNING[i] ?? RED_STATION;
-  const b = TUNING[Math.min(TUNING.length - 1, i + 1)] ?? RED_STATION;
-  return a + (b - a) * k;
-}
-
-/** The lit scale: kHz numbers, station ticks, and the red station marked "Hz". */
-function drawDial(g: CanvasRenderingContext2D, w: number, h: number, haunted: boolean) {
-  const glow = g.createLinearGradient(0, 0, 0, h);
-  glow.addColorStop(0, haunted ? '#3a2a12' : '#f3cf7a');
-  glow.addColorStop(1, haunted ? '#1a1208' : '#c8902e');
-  g.fillStyle = glow;
-  g.fillRect(0, 0, w, h);
-  g.strokeStyle = haunted ? '#d8b876' : '#3a2410';
-  g.fillStyle = haunted ? '#d8b876' : '#3a2410';
-  g.lineWidth = 2;
-  g.beginPath();
-  g.moveTo(24, h * 0.62);
-  g.lineTo(w - 24, h * 0.62);
-  g.stroke();
-  for (let i = 0; i <= 40; i++) {
-    const x = 24 + (i / 40) * (w - 48);
-    g.beginPath();
-    g.moveTo(x, h * 0.62);
-    g.lineTo(x, h * (i % 5 === 0 ? 0.42 : 0.52));
-    g.stroke();
-  }
-  const labels = ['55', '60', '70', '80', '100', '120', '140', '160'];
-  g.font = 'bold 22px "Courier New", monospace';
-  g.textAlign = 'center';
-  labels.forEach((l, i) => g.fillText(l, 24 + (i / (labels.length - 1)) * (w - 48), h * 0.32));
-  g.font = '18px "Courier New", monospace';
-  g.fillText('kHz × 10', w - 70, h * 0.92);
-  const rx = 24 + RED_STATION * (w - 48);
-  g.fillStyle = 'rgba(150,10,10,0.9)';
-  g.beginPath();
-  g.ellipse(rx, h * 0.6, 12, 26, 0.2, 0, Math.PI * 2);
-  g.fill();
-  g.fillRect(rx - 2, h * 0.6, 4, h * 0.36);
-  g.fillStyle = '#9a0c0c';
-  g.font = 'italic bold 26px "Brush Script MT", cursive';
-  g.fillText('Hz', rx + 30, h * 0.86);
-}
-
 
 export { InstantCamera } from './InstantCamera';
 export { UnopenedGift } from './SurpriseGift';

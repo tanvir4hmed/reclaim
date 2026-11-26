@@ -13,7 +13,7 @@ export const FEATURED_IDS = [
 /** Tier A products from the creative direction (Requirement 39). */
 export const TIER_A_IDS = [
   'advent-calendar',
-  'valve-radio',
+  'television',
   'instant-camera',
   'unopened-gift',
   'rocking-chair',

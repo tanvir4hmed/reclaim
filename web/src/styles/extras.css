@@ -143,10 +143,6 @@
   to { background-position: 10px 400px; opacity: 0; }
 }
 
-[data-roll-call] .card-title {
-  font-style: italic;
-}
-
 .pv-notes {
   display: grid;
   gap: 4px;

@@ -22,7 +22,7 @@ Re:Claim opens as a cheerful Christmas shop, Reclaim & Co. Holiday Market. A sma
   - a face rises in the mirror
   - the photo makes room for one more
   - the cart rings and you can answer it
-  - the other products have their own, in their own picture: a radio roll call, a camera that turns to you and prints, an hourglass whose sand runs back up, a reindeer that turns its skull to you, a lamp that lets out a ghost, a jack-in-the-box, a hungry nutcracker, doors slamming
+  - the other products have their own, in their own picture: a camera that turns to you and prints, an hourglass whose sand runs back up, a reindeer that turns its skull to you, a lamp that lets out a ghost, a jack-in-the-box, a hungry nutcracker, doors slamming
 - **Closing time, checkout and the ending:** dust sheets, eyes, the sheet ghost, and a payment of time, age or a memory. One tremor, "Your order has been accepted.", and the opening shop returns with what you left behind. A receipt then lists the dark patterns the shop used.
 - **Echo service:** the next visitor sees what the previous player left, with no identifiers stored.
 

@@ -11,11 +11,12 @@ function useWatchTime() {
   const { taken } = useTaken('pocket-watch');
   const whirling = useFx((s) => s.flags['watch-shudder'] !== undefined);
   const invalidate = useThree((s) => s.invalidate);
-  // Redraw every second for the ticks, and smoothly while the hands whip back.
+  // Redraw every second for the ticks; smoothly while the hands whip back and, once taken,
+  // for the backward sweep.
   useEffect(() => {
-    const id = setInterval(() => invalidate(), whirling ? 33 : 1000);
+    const id = setInterval(() => invalidate(), whirling || taken ? 33 : 1000);
     return () => clearInterval(id);
-  }, [invalidate, whirling]);
+  }, [invalidate, whirling, taken]);
   return () => watchSeconds(taken);
 }
 

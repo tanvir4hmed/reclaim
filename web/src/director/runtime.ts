@@ -96,6 +96,13 @@ export async function onStage(
   return true;
 }
 
+/** Stops an ambient light pattern in progress and puts the light back on (tab hidden). */
+export function calmAmbient(): void {
+  ambientAbort?.abort();
+  fx().set({ mains: 1 });
+  glBus.invalidate();
+}
+
 export function stageBusy(): boolean {
   return stage.holder !== null;
 }

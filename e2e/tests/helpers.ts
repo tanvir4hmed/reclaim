@@ -25,7 +25,8 @@ export async function catchBat(page: Page, info: TestInfo, via: 'pointer' | 'key
   }
   // The Reveal takes under 4 s on a real GPU; software WebGL in CI is far slower.
   try {
-    await expect(page.locator('html')).toHaveAttribute('data-state', 'haunted', { timeout: 20_000 });
+    // (software WebGL compiles every haunted model's shaders here: about 20 s on a loaded machine)
+    await expect(page.locator('html')).toHaveAttribute('data-state', 'haunted', { timeout: 60_000 });
   } catch (e) {
     const why = await page.evaluate(() => ({
       lunge: document.querySelector('[data-testid="lunge"]')?.className ?? 'none',

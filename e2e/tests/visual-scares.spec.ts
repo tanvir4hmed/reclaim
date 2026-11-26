@@ -9,7 +9,7 @@ const IDS = [
   'photo-frame',
   'typewriter',
   'advent-calendar',
-  'valve-radio',
+  'television',
   'unopened-gift',
   'rocking-chair',
   'snow-globe',
@@ -38,7 +38,7 @@ test.describe('visual capture of the Take scares', () => {
       if ((await page.locator(`[data-product="${id}"] [data-testid="note-have"]`).count()) > 0) continue;
       await add(page, id);
       // Most Take events happen inside the product's own picture; give them time to play out.
-      await page.waitForTimeout(id === 'valve-radio' ? 6500 : 2400);
+      await page.waitForTimeout(id === 'television' ? 3000 : 2400);
       await page.screenshot({ path: `${OUT}/scare-${id}.jpeg`, type: 'jpeg', quality: 60, scale: 'css' });
       // Let the Stage clear before the next one (the shoes walk the longest).
       await page.waitForTimeout(id === 'shoes' ? 8000 : id === 'candle' ? 5000 : 1800);
@@ -156,6 +156,14 @@ test.describe('visual capture of the Take scares', () => {
       await view.getByRole('button', { name: 'Close', exact: true }).click({ force: true });
       await expect(view).toHaveCount(0, { timeout: 15_000 });
       await page.waitForTimeout(1500);
+      // opened again after the Take: the same size and look as right after it
+      await link.evaluate((el) => (el as HTMLElement).click());
+      await expect(view).toBeVisible({ timeout: 15_000 });
+      await page.waitForTimeout(3000);
+      await page.screenshot({ path: `${OUT}/burst-${id}-reopen.jpeg`, type: 'jpeg', quality: 55, scale: 'css', ...(box ? { clip: box } : {}) });
+      await view.getByRole('button', { name: 'Close', exact: true }).click({ force: true });
+      await expect(view).toHaveCount(0, { timeout: 15_000 });
+      await page.waitForTimeout(1000);
     }
     console.log(`BURST ERRORS (${errors.length})\n${errors.filter((e) => !e.includes('/api/echo')).join('\n')}`);
   });

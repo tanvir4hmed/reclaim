@@ -6,6 +6,7 @@ import { M } from '../../gl/materials';
 import { useHaunted, useStory } from '../../store';
 import { cartedTime } from '../../director/consequences';
 import { KEY_ROWS, confession, keyFor } from './confession';
+import { drawBloodWords } from '../letter/paper';
 
 /** The sheet: wide and tall enough to read, about half of it still inside the machine at the end. */
 const PAPER_W = 1.3;
@@ -94,31 +95,14 @@ export default function Typewriter() {
       if (blood > 0) {
         // "Help Me!!" seeps up through the blank part of the sheet under the typed lines,
         // as if written with a finger on the other side: a stain first, the letters, then runs.
+        // The same blood lettering as the letter's message: drips that run down from the
+        // letters, no stray dots. A little room between "Me" and the "!!".
         const a = blood;
         const ink = Math.min(1, a * 1.6);
-        const y = BLOOD_Y;
-        g.save();
-        g.textAlign = 'center';
-        g.font = 'bold 124px "Brush Script MT", "Segoe Script", cursive';
-        g.globalAlpha = 0.35 * ink;
-        g.fillStyle = '#7a1a12';
-        g.filter = 'blur(7px)';
-        g.fillText('Help Me!!', w / 2, y);
-        g.filter = 'none';
-        g.globalAlpha = ink;
-        g.fillStyle = '#6e0909';
-        g.fillText('Help Me!!', w / 2, y);
-        // short runs down toward the platen (the sheet ends there, inside the machine)
         const run = Math.max(0, (a - 0.45) / 0.55);
-        for (let i = 0; i < 10; i++) {
-          const x = w * 0.18 + i * w * 0.07;
-          const len = (14 + ((i * 53) % 40)) * run;
-          if (len < 1) continue;
-          g.fillRect(x, y - 4, 6, len);
-          g.beginPath();
-          g.arc(x + 3, y - 4 + len, 6.5, 0, Math.PI * 2);
-          g.fill();
-        }
+        g.save();
+        g.globalAlpha = ink;
+        drawBloodWords(g, 'Help Me !!', w / 2, BLOOD_Y, 124, w * 0.86, 61, 'Brush Script MT', { run, spatter: false, center: true });
         g.restore();
       }
     },

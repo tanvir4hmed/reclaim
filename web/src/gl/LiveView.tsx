@@ -6,7 +6,8 @@ import type { ProductId } from '../core/ids';
 import { MODELS } from '../products/models';
 import { useHaunted } from '../store';
 import { glBus } from './bus';
-import { bodyBounds } from './fit';
+import { bodyBounds, fitBounds, remember } from './fit';
+import { useTaken } from './useTaken';
 import { HauntedMotion } from './HauntedMotion';
 import { SceneEnv } from './env';
 import { Shadow } from './Shadow';
@@ -37,12 +38,14 @@ function Turntable({ hover, children }: { hover: { current: boolean }; children:
  */
 const FILL = { h: 0.6, w: 0.62 };
 const box = new THREE.Box3();
+const framed = new THREE.Box3();
 const mid = new THREE.Vector3();
 const ext = new THREE.Vector3();
 
-function Fit({ children, onFloor }: { children: ReactNode; onFloor: (y: number) => void }) {
+function Fit({ id, children, onFloor }: { id: ProductId; children: ReactNode; onFloor: (y: number) => void }) {
   const group = useRef<THREE.Group>(null);
   const haunted = useHaunted();
+  const { taken } = useTaken(id);
   const width = useThree((s) => s.size.width);
   const height = useThree((s) => s.size.height);
   const progress = useRef({ frames: 0, done: false });
@@ -57,7 +60,7 @@ function Fit({ children, onFloor }: { children: ReactNode; onFloor: (y: number) 
     p.frames += 1;
     st.invalidate();
     if (p.frames < 3) return;
-    const floor = fitCard(g, st.camera as THREE.PerspectiveCamera, width / Math.max(1, height));
+    const floor = fitCard(g, st.camera as THREE.PerspectiveCamera, width / Math.max(1, height), id, haunted, taken);
     p.done = true;
     if (floor !== null) onFloor(floor);
   });
@@ -69,11 +72,14 @@ function Fit({ children, onFloor }: { children: ReactNode; onFloor: (y: number) 
 }
 
 /** Outside the component, so the React compiler rules see no mutation of hook values. */
-function fitCard(g: THREE.Group, camera: THREE.PerspectiveCamera, aspect: number): number | null {
+function fitCard(g: THREE.Group, camera: THREE.PerspectiveCamera, aspect: number, id: ProductId, haunted: boolean, taken: boolean): number | null {
   g.scale.setScalar(1);
   g.position.set(0, 0, 0);
   g.visible = true;
-  const b = bodyBounds(g, box);
+  const state = haunted ? 'h' : 'd';
+  const b = fitBounds(g, box, `card:${id}:${state}`, taken);
+  // while it is whole, also remember the product view's measure, for its views after the Take
+  if (!taken) remember(`view:${id}:${state}`, bodyBounds(g, framed, true));
   if (b.isEmpty()) return null;
   b.getCenter(mid);
   b.getSize(ext);
@@ -108,7 +114,7 @@ export function LiveView({ id, className }: { id: ProductId; className?: string 
         <Suspense fallback={null}>
           <Turntable hover={hover}>
             <HauntedMotion id={id}>
-              <Fit onFloor={setFloor}>
+              <Fit id={id} onFloor={setFloor}>
                 <Model />
               </Fit>
             </HauntedMotion>

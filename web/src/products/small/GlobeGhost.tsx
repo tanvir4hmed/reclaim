@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { reducedMotion } from '../../director/runtime';
 import { seeded } from '../../director/footprints';
 import { useCanvasTexture } from '../../gl/canvasTex';
+import { paintGhostHand, type HandTone } from '../television/Model';
 
 /** Just inside the globe's glass (its outer radius is 0.6). */
 const GLASS_IN = 0.575;
@@ -11,51 +12,23 @@ const HAND_H = 0.25;
 /** One cycle of a hand: slammed flat on the glass, held, dragged a little, lifted away, gone. */
 const CYCLE = 1.5;
 
+/** Pale, bluish white: the same hand the television shows pressed on its screen. */
+const GLOBE_HAND: HandTone = { skin: '#dde7f2', shade: '#6d7f96', press: '#f6faff' };
+
 /**
- * A hand pressed flat from inside, palm to the glass: palm, four fingers spread, the thumb.
- * Its alpha carries a grain, so as it lifts off the glass it does not fade evenly but breaks
- * up and goes, like the mark of a hand on cold glass.
+ * A hand pressed flat from inside, palm to the glass: the television ghost's hand, slender,
+ * the fingers spread, the pads white where they press, the wrist fading to nothing (there is no
+ * body to see). Its alpha carries a grain, so as it lifts off the glass it does not fade evenly
+ * but breaks up and goes, like the mark of a hand on cold glass.
  */
 function drawHand(g: CanvasRenderingContext2D, w: number, h: number) {
   g.clearRect(0, 0, w, h);
-  g.save();
-  g.filter = 'blur(2px)';
-  g.fillStyle = '#fff';
-  // palm
-  g.beginPath();
-  g.ellipse(w * 0.5, h * 0.72, w * 0.25, h * 0.2, 0, 0, Math.PI * 2);
-  g.fill();
-  // fingers, spread, the middle ones longest
-  const fingers: [number, number, number][] = [
-    [0.3, 0.27, -0.18],
-    [0.44, 0.2, -0.06],
-    [0.58, 0.22, 0.06],
-    [0.71, 0.3, 0.2],
-  ];
-  g.lineCap = 'round';
-  g.strokeStyle = '#fff';
-  g.lineWidth = w * 0.12;
-  for (const [x, top, lean] of fingers) {
-    g.beginPath();
-    g.moveTo(w * x, h * 0.62);
-    g.lineTo(w * (x + lean * 0.5), h * top);
-    g.stroke();
-  }
-  // the thumb, out to the side
-  g.lineWidth = w * 0.13;
-  g.beginPath();
-  g.moveTo(w * 0.28, h * 0.76);
-  g.lineTo(w * 0.1, h * 0.55);
-  g.stroke();
-  g.restore();
+  paintGhostHand(g, w * 0.43, h * 0.48, h * 0.78, GLOBE_HAND, { wrist: 0.32 });
   // the grain: alpha 0.5..1 inside the hand, so a rising alphaTest eats it away in specks
   const img = g.getImageData(0, 0, w, h);
   const r = seeded(7);
   for (let i = 0; i < img.data.length; i += 4) {
     const a = img.data[i + 3]!;
-    img.data[i] = 0;
-    img.data[i + 1] = 0;
-    img.data[i + 2] = 0;
     img.data[i + 3] = a > 30 ? Math.round(a * (0.5 + 0.5 * r())) : 0;
   }
   g.putImageData(img, 0, 0);
@@ -83,10 +56,10 @@ const HANDS: Hand[] = [
  */
 export function GlobeGhost() {
   const root = useRef<THREE.Group>(null);
-  const tex = useCanvasTexture(128, 160, drawHand, []);
+  const tex = useCanvasTexture(256, 320, drawHand, []);
   // Opaque with an alpha test, not transparent: the globe's glass uses transmission, and
   // three.js leaves transparent objects out of what is seen through it.
-  const mats = useMemo(() => HANDS.map(() => new THREE.MeshBasicMaterial({ map: tex, color: '#0b0707', alphaTest: 0.05, side: THREE.DoubleSide })), [tex]);
+  const mats = useMemo(() => HANDS.map(() => new THREE.MeshBasicMaterial({ map: tex, color: '#ffffff', alphaTest: 0.05, side: THREE.DoubleSide })), [tex]);
   useEffect(() => () => mats.forEach((m) => m.dispose()), [mats]);
   const meshes = useRef<(THREE.Mesh | null)[]>([]);
   const places = useMemo(

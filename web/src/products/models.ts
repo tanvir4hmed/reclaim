@@ -13,8 +13,9 @@ import PocketWatch from './pocket-watch/Model';
 import Shoes from './shoes/Model';
 import Sleigh from './sleigh/Model';
 import { ChildsDrawing, ChocolateBox, MusicBox, SnowGlobe, TeddyBear } from './small/Models';
-import { AdventCalendar, InstantCamera, RockingChair, UnopenedGift, ValveRadio } from './small/TierA';
+import { AdventCalendar, InstantCamera, RockingChair, UnopenedGift } from './small/TierA';
 import Telephone from './telephone/Model';
+import Television from './television/Model';
 import Typewriter from './typewriter/Model';
 
 export interface ModelProps {
@@ -33,7 +34,7 @@ export const MODELS: Partial<Record<ProductId, ComponentType<ModelProps>>> = {
   typewriter: Typewriter,
   telephone: Telephone,
   'advent-calendar': AdventCalendar,
-  'valve-radio': ValveRadio,
+  television: Television,
   'instant-camera': InstantCamera,
   'unopened-gift': UnopenedGift,
   'rocking-chair': RockingChair,

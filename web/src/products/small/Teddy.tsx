@@ -7,13 +7,15 @@ import { SLASH_THROUGH, teddySlash, teddyThroat } from '../../fx/scares/Slash';
 import { useCanvasTexture } from '../../gl/canvasTex';
 import { M } from '../../gl/materials';
 import { progress, useTaken } from '../../gl/useTaken';
+import { TEDDY_FLOOR, TEDDY_HEAD_BOX, TEDDY_NECK_Y, TeddyArm, TeddyHead, TeddyTorso } from './TeddyFigure';
 
 /*
- * The bear is built round its neck: the body below (chest top at y 0.1), a short neck, the head
- * above. The cut is through the neck at NECK_Y, so the blade goes through the throat.
+ * The bear (TeddyFigure: the same mohair bear as the one on the doll's lap) is built round its
+ * neck: the torso below, cut flat at NECK_Y, the head a separate part above. The cut is through
+ * the neck at NECK_Y, so the blade goes through the throat.
  */
-const NECK_Y = 0.11;
-const FLOOR = -0.79;
+const NECK_Y = TEDDY_NECK_Y;
+const FLOOR = TEDDY_FLOOR;
 /**
  * When the bear comes apart (performance.now()): only once the sword stroke has been seen all
  * the way across its picture (fx/scares/Slash), so the blow always comes first. Shared by the
@@ -36,21 +38,6 @@ function sinceCut(s: number): number {
 }
 const GRAV = 3.2;
 
-const BODY: [number, number, number, number][] = [
-  [0, -0.3, 0, 0.4],
-  [-0.24, -0.64, 0.18, 0.15],
-  [0.24, -0.64, 0.18, 0.15],
-];
-const ARMS: [number, number, number][] = [
-  [-0.38, -0.14, 0.1],
-  [0.38, -0.14, 0.1],
-];
-/** The head, measured from the cut. */
-const HEAD: [number, number, number, number][] = [
-  [0, 0.27, 0.02, 0.28],
-  [-0.22, 0.47, 0, 0.1],
-  [0.22, 0.47, 0, 0.1],
-];
 /** Where the head comes to rest: on its side on the floor in front of the body, face to you. */
 const HEAD_REST = new THREE.Vector3(-0.02, FLOOR + 0.26, 0.5);
 
@@ -99,8 +86,8 @@ function publishThroat(root: THREE.Object3D, camera: THREE.Camera, canvas: HTMLC
 }
 
 /**
- * Christmas teddy bear with a ribbon. Taken: one sword stroke through the throat. The head is
- * cut clean off: it slides down the slope of the cut, tips, drops and rolls onto the floor in
+ * Christmas teddy bear (a jointed mohair bear with a red velvet bow; worn and darned after the
+ * Reveal). Taken: one sword stroke through the throat. The head is cut clean off: it slides down the slope of the cut, tips, drops and rolls onto the floor in
  * front of the body, and lies there on its side, still looking at you. The body jerks back,
  * then twitches; blood sprays out along the stroke, pumps up out of the neck in weakening
  * pulses, runs down the chest, soaks the fur and spreads across the floor under both.
@@ -109,7 +96,7 @@ export function TeddyBear() {
   const { taken, since } = useTaken('teddy-bear');
   const head = useRef<THREE.Group>(null);
   const body = useRef<THREE.Group>(null);
-  const arms = useRef<(THREE.Mesh | null)[]>([]);
+  const arms = useRef<(THREE.Group | null)[]>([]);
   const root = useRef<THREE.Group>(null);
   const camera = useThree((s) => s.camera);
   const gl = useThree((s) => s.gl);
@@ -156,58 +143,38 @@ export function TeddyBear() {
   return (
     <group ref={root} position-y={0.05} rotation-y={-0.25} scale={0.9}>
       <group ref={body}>
-        {BODY.map(([x, y, z, r], i) => (
-          <mesh key={i} material={M.plush()} position={[x, y, z]}>
-            <sphereGeometry args={[r, 28, 20]} />
-            {i === 0 && taken && <ChestBlood since={since} />}
-          </mesh>
-        ))}
-        {ARMS.map(([x, y, z], i) => (
-          <mesh
-            key={i}
+        <TeddyTorso>{taken && <ChestBlood since={since} />}</TeddyTorso>
+        {[-1, 1].map((side, i) => (
+          <TeddyArm
+            key={side}
+            side={side}
             ref={(m) => {
               arms.current[i] = m;
             }}
-            material={M.plush()}
-            position={[x, y, z]}
-            scale={[1, 1.25, 1]}
-          >
-            <sphereGeometry args={[0.13, 20, 16]} />
-          </mesh>
+          />
         ))}
-        {/* the lower half of the neck, up to the cut */}
-        <mesh material={M.plush()} position-y={(NECK_Y + 0.02) / 2}>
-          <cylinderGeometry args={[0.16, 0.19, NECK_Y - 0.02, 24]} />
-        </mesh>
-        <mesh material={M.ribbon()} position={[0, 0.04, 0.02]} rotation-x={Math.PI / 2}>
-          <torusGeometry args={[0.19, 0.03, 8, 30]} />
-        </mesh>
         {taken && <Stump />}
+        {/*
+         * The head's place on the body, drawn as nothing: the head itself is not counted when the
+         * card measures the bear (it rolls away), so this keeps the bear the same size on its
+         * card before and after the Take.
+         */}
+        <mesh position={TEDDY_HEAD_BOX.centre}>
+          <boxGeometry args={TEDDY_HEAD_BOX.size} />
+          <meshBasicMaterial colorWrite={false} depthWrite={false} />
+        </mesh>
       </group>
-      <group ref={head} position-y={NECK_Y}>
-        {/* the upper half of the neck */}
-        <mesh material={M.plush()} position-y={0.03}>
-          <cylinderGeometry args={[0.15, 0.16, 0.06, 24]} />
-        </mesh>
-        {HEAD.map(([x, y, z, r], i) => (
-          <mesh key={i} material={M.plush()} position={[x, y, z]}>
-            <sphereGeometry args={[r, 28, 20]} />
-          </mesh>
-        ))}
-        <mesh material={M.cream()} position={[0, 0.2, 0.25]} scale={[1, 0.8, 0.7]}>
-          <sphereGeometry args={[0.12, 20, 14]} />
-        </mesh>
-        <mesh material={M.ink()} position={[0, 0.24, 0.34]}>
-          <sphereGeometry args={[0.035, 12, 10]} />
-        </mesh>
-        {[-0.1, 0.1].map((x) => (
-          <mesh key={x} material={M.ink()} position={[x, 0.34, 0.24]}>
-            <sphereGeometry args={[0.03, 12, 10]} />
-          </mesh>
-        ))}
-        {taken && <SeveredHead since={since} />}
+      <group userData={{ extra: true }}>
+        <group ref={head} position-y={NECK_Y}>
+          <TeddyHead />
+          {taken && <SeveredHead since={since} />}
+        </group>
       </group>
-      {taken && <Bloodshed since={since} />}
+      {taken && (
+        <group userData={{ extra: true }}>
+          <Bloodshed since={since} />
+        </group>
+      )}
     </group>
   );
 }
@@ -311,7 +278,7 @@ function ChestBlood({ since }: { since: () => number }) {
   const k = step / 40;
   const tex = useCanvasTexture(CHEST_W, CHEST_H, (g, w, h) => drawChest(g, w, h, k), [k]);
   return (
-    <Decal position={[0, 0.14, 0.3]} rotation={[0, 0, 0]} scale={[0.62, 0.8, 0.7]}>
+    <Decal position={[0, -0.16, 0.3]} rotation={[0, 0, 0]} scale={[0.62, 0.8, 0.7]}>
       <meshLambertMaterial map={tex} transparent polygonOffset polygonOffsetFactor={-10} depthWrite={false} />
     </Decal>
   );

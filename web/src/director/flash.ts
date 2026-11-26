@@ -61,28 +61,41 @@ export function stormPattern(): LightKey[] {
   ]);
 }
 
-/** A Brownout: sag over about a second with small noise, hold, uneven recovery (Req 34.2). */
+/**
+ * A Brownout: sag over about half a second with small noise, a short hold, uneven recovery
+ * (Req 34.2). Never very dark, never long: a dip the visitor can keep shopping through.
+ */
 export function brownoutPattern(depth: number, rand: () => number): LightKey[] {
-  const low = 0.3 + Math.min(0.4, Math.max(0, depth)) ;
+  const low = 0.55 + Math.min(0.15, Math.max(0, depth) * 0.35);
   const keys: LightKey[] = [];
-  for (let i = 1; i <= 8; i++) keys.push({ t: i * 120, level: 1 - (1 - low) * (i / 8) + (rand() - 0.5) * 0.06 });
-  const hold = 900 + rand() * 900;
-  keys.push({ t: 960 + hold, level: low + 0.15 });
-  keys.push({ t: 1200 + hold, level: low + 0.05 });
-  keys.push({ t: 1500 + hold, level: 0.8 });
-  keys.push({ t: 1800 + hold, level: 1 });
+  for (let i = 1; i <= 6; i++) keys.push({ t: i * 80, level: 1 - (1 - low) * (i / 6) + (rand() - 0.5) * 0.05 });
+  const hold = 400 + rand() * 500;
+  keys.push({ t: 480 + hold, level: low + 0.1 });
+  keys.push({ t: 640 + hold, level: low + 0.04 });
+  keys.push({ t: 860 + hold, level: 0.85 });
+  keys.push({ t: 1060 + hold, level: 1 });
   return limitFlashes(keys);
 }
 
-/** A Blackout of up to 3 s, then the light returns in two or three steps (Req 34.3). */
+/** A Blackout of about a second, not quite black, then the light returns in steps (Req 34.3). */
 export function blackoutPattern(rand: () => number): LightKey[] {
-  const dark = 1200 + rand() * 1700;
+  const dark = 700 + rand() * 600;
+  return limitFlashes([
+    { t: 0, level: 0.7 },
+    { t: 120, level: 0.3 },
+    { t: dark, level: 0.5 },
+    { t: dark + 350, level: 0.4 },
+    { t: dark + 650, level: 0.75 },
+    { t: dark + 1000, level: 1 },
+  ]);
+}
+
+/** Coming back to the tab: two short dips and the light is steady again (no long dark). */
+export function returnPattern(): LightKey[] {
   return limitFlashes([
     { t: 0, level: 0.6 },
-    { t: 120, level: 0 },
-    { t: dark, level: 0.25 },
-    { t: dark + 500, level: 0.1 },
-    { t: dark + 900, level: 0.6 },
-    { t: dark + 1500, level: 1 },
+    { t: 220, level: 1 },
+    { t: 1050, level: 0.6 },
+    { t: 1270, level: 1 },
   ]);
 }

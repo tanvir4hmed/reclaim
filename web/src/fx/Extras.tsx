@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import type { ProductId } from '../core';
 import { productById } from '../products/catalog';
 import { useHaunted, useStory } from '../store';
 import { useFx } from './fxStore';
@@ -37,18 +36,6 @@ export function LetterOpen() {
   );
 }
 
-const NAMES = ['Ana Petrov', 'Tomas Hale', 'Ellie Hale', 'Marta Ruiz', 'Joseph Okoro', 'Lena Varga', 'Sami Haddad', 'Iris Novak'];
-
-/** Roll call: titles become names for three seconds; one card keeps its name (Tier A radio). */
-export function useRollCallName(id: ProductId, index: number): string | null {
-  const calling = useFx((s) => s.flags['roll-call'] !== undefined);
-  const played = useStory((s) => s.story.played['valve-radio'] === true);
-  const haunted = useHaunted();
-  if (!haunted) return null;
-  if (calling) return NAMES[index % NAMES.length] ?? null;
-  if (played && id === 'rocking-chair') return 'Ellie Hale';
-  return null;
-}
 
 /** Exit-intent plea, once per visit, dismissible, never blocking (Requirement 32.10). */
 export function ExitPlea() {

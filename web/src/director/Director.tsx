@@ -7,8 +7,8 @@ import { nav } from './bridge';
 import { playConsequence, playReminder } from './consequences';
 import { dayLoop, hauntedLoop } from './ambient';
 import { loadEcho } from './echo';
-import { stormPattern } from './flash';
-import { onStage, playLight } from './runtime';
+import { returnPattern, stormPattern } from './flash';
+import { calmAmbient, onStage, playLight, reducedMotion } from './runtime';
 import { acceptedSequence, closingSequence, revealSequence } from './sequences';
 
 /**
@@ -74,8 +74,13 @@ export function Director() {
   useEffect(() => {
     const original = document.title;
     const onVis = () => {
-      const haunted = isHauntedPhase(useStory.getState().story.phase);
+      const phase = useStory.getState().story.phase;
+      const haunted = isHauntedPhase(phase);
       document.title = document.hidden ? (haunted ? 'Come back…' : 'Your cart misses you') : original;
+      // A dip that was under way when the tab was left must not be waiting for the visitor on
+      // the way back: it stops, and coming back gives two short dips, nothing more.
+      if (document.hidden) calmAmbient();
+      else if (phase === 'haunted' && !reducedMotion()) void onStage('tab-return', 'major', false, (s) => playLight(returnPattern(), s));
     };
     document.addEventListener('visibilitychange', onVis);
     return () => document.removeEventListener('visibilitychange', onVis);

@@ -34,7 +34,6 @@ export function Theme() {
     setAttr(root, 'data-telephone-played', haunted && played.telephone === true);
     setAttr(root, 'data-gift-heavy', haunted && played['unopened-gift'] === true);
     setAttr(root, 'data-doors-slam', flags['doors-slam'] !== undefined);
-    setAttr(root, 'data-roll-call', flags['roll-call'] !== undefined);
     setAttr(root, 'data-stuffing', flags['stuffing-fall'] !== undefined);
   }, [sign, quiet, played, haunted, flags]);
 

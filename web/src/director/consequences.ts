@@ -102,7 +102,7 @@ const CONSEQUENCES: Partial<Record<ProductId, () => Promise<void>>> = {
     markWatchTaken();
     return flag('watch-shudder', 1600);
   },
-  doll: () => flag('doll-look', 2000),
+  doll: () => flag('doll-look', 3800),
   mirror: () => flag('mirror-face', 4000),
   // The seal breaks, the flap opens; the letter rises with her photograph and "REMEMBER ME?" (in the model).
   letter: () => flag('letter-carted', 3200),
@@ -113,8 +113,8 @@ const CONSEQUENCES: Partial<Record<ProductId, () => Promise<void>>> = {
   telephone,
   // Today is crossed out on the calendar (in the model); every door slams shut.
   'advent-calendar': advent,
-  // Someone unseen tunes it, station by station, to the red mark (in the model); roll call.
-  'valve-radio': () => flag('roll-call', 4000),
+  // The picture cuts to her, pressed against the glass (in the model).
+  television: hold(TAKE_MS.television),
   // It turns to look at you, flashes once, and prints the picture (in the model).
   'instant-camera': camera,
   // The lid blows off: a skull with burning eyes; the bat shut in with it gets out.

@@ -5,8 +5,9 @@
  */
 export const TAKE_MS = {
   candle: 8000,
+  television: 2500,
   hourglass: 6000,
-  sleigh: 5200,
+  sleigh: 3200,
   'oil-lamp': 6500,
   'jack-in-the-box': 5000,
   nutcracker: 4200,

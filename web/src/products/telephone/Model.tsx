@@ -618,7 +618,10 @@ const SIDE_LOW = DOWN.z >= 0 ? 1 : -1;
 const LIFT = 0.0032;
 /** Seconds after the Take. */
 const WELL_AT = LIFT_S + 1.2;
-const MAIN_AT = WELL_AT + 0.35;
+/** Each hole's own thin stream across the face, joining the others at the bottom of the face. */
+const HOLE_AT = WELL_AT + 0.25;
+const HOLE_DUR = 0.8;
+const MAIN_AT = HOLE_AT + HOLE_DUR - 0.1;
 const MAIN_DUR = 2.9;
 const DRIPS_AT = LIFT_S + 4.5;
 const DRIP_EVERY = 0.75;
@@ -671,14 +674,29 @@ const BRANCH_PTS = [
   ].map(([x, d]) => onHandle(x!, 180 + SIDE_LOW * d!, LIFT)),
 ];
 type Run = { line: THREE.CatmullRomCurve3; r: number; at: number; dur: number };
+/** From every hole a thin line of blood runs downhill over the face to where they all meet. */
+function holeLines(): THREE.CatmullRomCurve3[] {
+  const join = cupPt(EAR_X, PHI_LOW, 0.054, FACE_Y - LIFT);
+  const phi = (PHI_LOW * Math.PI) / 180;
+  return EAR_HOLES.map(([x, z], i) => {
+    const from = new V3(EAR_X + x, FACE_Y - LIFT, z);
+    const mid = from.clone().lerp(join, 0.5);
+    // a slight wander, each its own
+    const side = (i % 2 ? 1 : -1) * 0.004;
+    mid.x += -Math.sin(phi) * side;
+    mid.z += Math.cos(phi) * side;
+    return new THREE.CatmullRomCurve3([from, mid, join]);
+  });
+}
 const RUNS: Run[] = (() => {
-  const main = new THREE.CatmullRomCurve3(MAIN_PTS);
+  const main = new THREE.CatmullRomCurve3(MAIN_PTS.slice(2));
   const branch = new THREE.CatmullRomCurve3(BRANCH_PTS);
   const pace = main.getLength() / MAIN_DUR;
-  const reach = new THREE.CatmullRomCurve3(MAIN_PTS.slice(0, BRANCH_FROM + 1)).getLength() / pace;
+  const reach = new THREE.CatmullRomCurve3(MAIN_PTS.slice(2, BRANCH_FROM + 1)).getLength() / pace;
   return [
     { line: main, r: 0.0068, at: MAIN_AT, dur: MAIN_DUR },
     { line: branch, r: 0.005, at: MAIN_AT + reach, dur: (branch.getLength() / pace) * 1.6 },
+    ...holeLines().map((line, i) => ({ line, r: 0.0026, at: HOLE_AT + (i % 3) * 0.05, dur: HOLE_DUR })),
   ];
 })();
 /** The lowest point of the mouthpiece rim, where it gathers, and the drop hanging under it. */
@@ -710,50 +728,33 @@ function showRuns(s: number, geos: THREE.TubeGeometry[], beads: (THREE.Mesh | nu
   });
 }
 
-function bloodMaterial(offset: boolean) {
-  return new THREE.MeshPhysicalMaterial({
-    // wet, but not a mirror: a glossy clearcoat caught the studio light and read pale pink
-    color: '#5a050a',
-    roughness: 0.32,
-    clearcoat: 0.35,
-    clearcoatRoughness: 0.25,
-    envMapIntensity: 0.35,
-    polygonOffset: offset,
-    polygonOffsetFactor: offset ? -2 : 0,
-    polygonOffsetUnits: offset ? -2 : 0,
-  });
+function bloodMaterial() {
+  // dark and wet, never pale: no clearcoat, little reflection (a bright reflection read white)
+  return new THREE.MeshStandardMaterial({ color: '#4e0408', roughness: 0.38, metalness: 0, envMapIntensity: 0.25 });
 }
 
 /**
- * On the lifted handset: it wells out of each earpiece hole, spreads in a wet film over the
- * face, runs over the bottom of the rim and down the inside of the handle in a narrow stream
- * (a thinner one splits off and stops), round the mouthpiece cup, and gathers at its rim.
+ * On the lifted handset: it wells out of every earpiece hole at once, each hole's own thin line
+ * runs down over the face, they meet at its bottom edge and run on together over the rim and
+ * down the inside of the handle in a narrow stream (a thinner one splits off and stops), round
+ * the mouthpiece cup, and gathers at its rim. The face itself is not covered.
  */
 function HandsetBlood({ since }: { since: () => number }) {
   const geos = useMemo(() => RUNS.map((r) => new THREE.TubeGeometry(r.line, Math.max(24, Math.round(r.line.getLength() * 420)), r.r, 6, false)), []);
-  const blood = useMemo(() => bloodMaterial(false), []);
-  const film = useMemo(() => bloodMaterial(true), []);
+  const blood = useMemo(() => bloodMaterial(), []);
   useEffect(
     () => () => {
       geos.forEach((g) => g.dispose());
       blood.dispose();
-      film.dispose();
     },
-    [geos, blood, film],
+    [geos, blood],
   );
-  const filmRef = useRef<THREE.Mesh>(null);
   const cap = useRef<THREE.Mesh>(null);
   const wells = useRef<(THREE.Mesh | null)[]>([]);
   const beads = useRef<(THREE.Mesh | null)[]>([]);
   useFrame(() => {
     const s = since();
-    wells.current.forEach((m, i) => m?.scale.setScalar(Math.max(0.01, progress(s, 0.4, WELL_AT + i * 0.05))));
-    const f = progress(s, 1.1, WELL_AT + 0.2);
-    if (filmRef.current) {
-      filmRef.current.scale.setScalar(Math.max(0.01, f));
-      // it runs a little downhill as it spreads
-      filmRef.current.position.set(EAR_X + Math.cos((PHI_LOW * Math.PI) / 180) * 0.006 * f, FACE_Y - 0.0012, Math.sin((PHI_LOW * Math.PI) / 180) * 0.006 * f);
-    }
+    wells.current.forEach((m) => m?.scale.setScalar(Math.max(0.01, progress(s, 0.35, WELL_AT))));
     showRuns(s, geos, beads.current);
     if (cap.current) cap.current.scale.setScalar(Math.max(0.01, progress(s, 0.45, DRIPS_AT - 0.3)));
   });
@@ -769,12 +770,9 @@ function HandsetBlood({ since }: { since: () => number }) {
           position={[EAR_X + x, FACE_Y - 0.0008, z]}
           scale={0.01}
         >
-          <sphereGeometry args={[0.0045, 10, 8]} />
+          <sphereGeometry args={[0.0034, 10, 8]} />
         </mesh>
       ))}
-      <mesh ref={filmRef} material={film} position={[EAR_X, FACE_Y - 0.0012, 0]} rotation-x={Math.PI / 2} scale={0.01}>
-        <circleGeometry args={[0.06, 32]} />
-      </mesh>
       {geos.map((g, i) => (
         <mesh key={i} geometry={g} material={blood} />
       ))}
@@ -854,10 +852,10 @@ function Drips({ since }: { since: () => number }) {
     <group>
       <mesh ref={drop} visible={false}>
         <sphereGeometry args={[0.0105, 12, 10]} />
-        <meshPhysicalMaterial color="#5a050a" roughness={0.3} clearcoat={0.35} envMapIntensity={0.35} />
+        <meshStandardMaterial color="#4e0408" roughness={0.38} envMapIntensity={0.25} />
       </mesh>
       <mesh ref={poolRef} geometry={pool} position={POOL_AT} rotation-x={-Math.PI / 2} scale={0.01}>
-        <meshPhysicalMaterial color="#3e0306" roughness={0.3} clearcoat={0.3} clearcoatRoughness={0.3} envMapIntensity={0.3} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
+        <meshStandardMaterial color="#3e0306" roughness={0.35} envMapIntensity={0.25} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
       </mesh>
       <mesh ref={ripple} position={[POOL_AT.x, POOL_AT.y + 0.001, POOL_AT.z]} rotation-x={-Math.PI / 2} visible={false}>
         <ringGeometry args={[0.022, 0.026, 32]} />

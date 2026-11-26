@@ -38,7 +38,7 @@ function wallSeconds(d: Date): number {
  * The one time every copy of the watch shows (card and full view): a function of the wall
  * clock only, so they can never disagree. Until it is taken, by day and after the Reveal alike,
  * it keeps the visitor's own time, ticking forward. Taken, the hands whip back to ten to three,
- * and from then on it runs backward, a second at a time, for good (Req 14.2–14.3).
+ * and from then on it runs backward, the hands sweeping smoothly, for good (Req 14.2–14.3).
  */
 export function watchSeconds(taken: boolean): number {
   const now = Date.now();
@@ -51,5 +51,6 @@ export function watchSeconds(taken: boolean): number {
     const k = dt / WHIRL_MS;
     return start - back * (1 - (1 - k) ** 3);
   }
-  return BACK_FROM - Math.floor(Math.max(0, dt - WHIRL_MS) / 1000);
+  // backward with a smooth sweep, not a tick a second
+  return BACK_FROM - Math.max(0, dt - WHIRL_MS) / 1000;
 }

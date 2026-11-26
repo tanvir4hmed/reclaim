@@ -12,7 +12,7 @@ export const PRODUCTS = [
   'photo-frame',
   'telephone',
   'advent-calendar',
-  'valve-radio',
+  'television',
   'instant-camera',
   'unopened-gift',
   'rocking-chair',

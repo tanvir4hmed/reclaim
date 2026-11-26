@@ -26,7 +26,8 @@ import { sweep } from '../doll/shapes';
 type V3 = [number, number, number];
 
 /** Seconds into the Take. */
-const TAKE = { turn: 0.2, turnFor: 1.2, jaw: 1.4, jawFor: 0.4, nose: 1.8, noseFor: 0.6, push1: 2.6, push1End: 3.4, push2: 3.8, push2End: 4.6, hand: 4.15, handFor: 0.35 };
+/** Quicker than before, and the sack is jolted once, hard, before the hand comes out (no first push). */
+const TAKE = { turn: 0.15, turnFor: 0.7, jaw: 0.85, jawFor: 0.3, nose: 1.1, noseFor: 0.4, push1: -10, push1End: -9, push2: 1.5, push2End: 2.3, hand: 1.72, handFor: 0.32 };
 /** The body of the sleigh stands on its runners this high; the side panels are this far out. */
 const BODY_Y = 0.06;
 const PANEL_Z = 0.2;
@@ -512,9 +513,9 @@ function Sack({ taken, since }: { taken: boolean; since: () => number }) {
     const a1 = taken ? push1(s) : 0;
     const a2 = taken ? push2(s) : 0;
     bulgeSack(sg, a1, a2);
-    // the sack shudders while it is pushed
-    const strain = a1 + (s >= TAKE.push2 && s <= TAKE.push2End ? a2 : 0);
-    const shake = s === Infinity ? 0 : Math.sin(s * 36) * 0.016 * strain;
+    // one hard jolt as it is shoved from inside, then the hand comes out (no shiver)
+    const jt = s === Infinity ? -1 : (s - TAKE.push2) / 0.22;
+    const shake = jt > 0 && jt < 1 ? Math.sin(jt * Math.PI) * 0.06 : 0;
     const g = group.current;
     if (g) g.rotation.set(shake * 0.6, 0, 0.12 + shake);
     const settle = taken ? progress(s, 0.4, TAKE.push2 + 0.1) : 0;
@@ -527,7 +528,8 @@ function Sack({ taken, since }: { taken: boolean; since: () => number }) {
     if (h) {
       const up = taken ? progress(s, TAKE.handFor, TAKE.hand) : 0;
       h.visible = taken && (s === Infinity || s >= TAKE.hand);
-      h.position.y = 0.26 + 0.09 * up;
+      // further out than before: the whole hand, up past the knuckles
+      h.position.y = 0.26 + 0.16 * up;
     }
   });
   return (
@@ -548,7 +550,7 @@ function Sack({ taken, since }: { taken: boolean; since: () => number }) {
           <Gift size={[0.07, 0.09, 0.065]} paper={S.giftGreen()} ribbon={M.ribbon()} position={[0.045, 0.36, -0.025]} rotation={[-0.15, -0.3, 0.3]} />
           <Gift size={[0.06, 0.06, 0.06]} paper={S.giftCream()} ribbon={M.velvetRed()} position={[-0.055, 0.34, 0.035]} rotation={[0.1, 0.9, 0.35]} />
         </group>
-        <group ref={hand} position={[0.014, 0.26, 0.03]} rotation={[-0.1, FACING, 0]} visible={false}>
+        <group ref={hand} position={[0.014, 0.26, 0.03]} rotation={[-0.1, FACING, 0]} scale={1.35} visible={false}>
           {taken && <BoneHand />}
         </group>
       </group>
@@ -1172,11 +1174,10 @@ function Reindeer({ haunted, taken, since }: { haunted: boolean; taken: boolean;
 }
 
 /**
- * Santa's sleigh and reindeer (product 'sleigh'). Taken (after the Reveal): 0.2–1.4 s the
- * reindeer's skull turns round on its neck to look at you; 1.4–1.8 s its jaw drops; 1.8–2.4 s the
- * red nose dims to dark; 2.6–3.4 s something in the sack pushes its side out, palm and fingers,
- * straining; 3.8–4.6 s it pushes again at the neck and, from 4.15 s, bony fingers come up out of
- * the top and stay.
+ * Santa's sleigh and reindeer (product 'sleigh'). Taken (after the Reveal): 0.15–0.85 s the
+ * reindeer's skull turns round on its neck to look at you; 0.85–1.15 s its jaw drops; 1.1–1.5 s
+ * the red nose dims to dark; at 1.5 s the sack is jolted once from inside, and from 1.72 s a
+ * big bony hand comes up out of its neck and stays.
  */
 export default function Sleigh() {
   const haunted = useHaunted();

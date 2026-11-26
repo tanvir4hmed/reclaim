@@ -10,20 +10,22 @@ import { progress, useTaken } from '../../gl/useTaken';
 import { useHaunted } from '../../store';
 
 /*
- * The candle for the window. By day a new cinnamon pillar candle, cream wax with a crisp rim and
- * a few small drips, burning in a polished brass dish with two cinnamon sticks and a sprig of
- * holly. After the Reveal it is the same candle burnt down for eighty hours of waiting: the rim
- * slumped and uneven round a crater, drips all down its sides, wax pooled in an old dark dish
- * and spilling over its rim, the holly dead in the wax. It is still lit.
+ * The candle for the window, in a brass chamberstick: a round drip pan with a rolled rim on a
+ * short stepped foot, a socket in its middle and a ring handle at its side. By day a new cream
+ * pillar candle, tall and slim, a crisp rim and a few small drips, burning with a tall flame,
+ * and a sprig of holly in the pan. After the Reveal it is the same candle burnt for eighty hours
+ * of waiting: the rim thick and slumped, long drips all down its upper half, one fat drip hanging
+ * over the socket's lip; the brass worn, tarnished in its corners. It is still lit.
  *
- * Taken, it goes out. The flame shrinks into the wick and dies (0-0.3 s), the wick glows, and a
- * thin thread of smoke rises from it (0.3-1.5 s). The thread grows into one straight column of
- * fine filaments twisting round each other (1.3-3.0 s), and partway up, where the column
- * thickens, a small face condenses in it (2.4-3.8 s): a pale oval, two hollow eyes, an open
- * mouth. It hangs there in the swaying smoke (3.8-5.0 s), then the smoke rises on and thins out
- * (5.0-6.5 s). A last thin wisp leaves the dying ember (6.0-7.0 s), and then nothing.
+ * Taken, it goes out, and the rest is one movement: the flame shrinks into the wick (0-0.3 s),
+ * the wick glows, and a thin thread of smoke rises from it at once, curling in an S (from 0.1 s).
+ * Where the smoke reaches the top it is a face: long and skull-like, hollow eyes, an open scream.
+ * It forms as the smoke arrives (0.85-1.5 s), rises on with the smoke, drifting, holding its
+ * shape (1.5-3.3 s), then stretches upward and comes apart (3.3-5.0 s) while the thread lets go
+ * of the wick and follows it up (3.0-4.9 s). A last wisp leaves the ember (4.4-5.8 s) and the
+ * ember goes dark (by 5.8 s). Over at 6 s. The room stays dark round it afterwards.
  *
- * All in the candle's own space: the table at y = -0.62, the dish floor at -0.6, +z toward you.
+ * All in the candle's own space: the table at y = -0.62, +z toward you.
  */
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
@@ -36,7 +38,7 @@ const TAU = Math.PI * 2;
 const angDiff = (a: number, b: number) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
 
 /** The Take, seconds after it. Everything is over at `end`. */
-const TAKE = { out: 0.3, end: 7.0 };
+const TAKE = { out: 0.3, end: 6.0 };
 
 type Prof = [number, number][];
 type V3 = [number, number, number];
@@ -174,7 +176,7 @@ function tube(
 /** A ball of wax at the end of a drip. */
 function bulb(at: THREE.Vector3, r: number): THREE.BufferGeometry {
   const g = new THREE.SphereGeometry(r, 14, 10);
-  g.scale(1, 1.15, 1);
+  g.scale(1, 1.18, 0.9);
   g.translate(at.x, at.y, at.z);
   return g;
 }
@@ -193,7 +195,7 @@ function ring(seed: number, n = 6): (th: number) => number {
   return (th) => terms.reduce((s, t) => s + t.a * Math.sin(t.k * th + t.ph), 0) / norm;
 }
 
-/** Seeded 3D value noise, 0..1 (for the patina on the old dish). */
+/** Seeded 3D value noise, 0..1 (for the tarnish on the old brass). */
 function hash3(x: number, y: number, z: number): number {
   let h = (Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(z, 1440662683)) | 0;
   h = Math.imul(h ^ (h >>> 13), 1274126177);
@@ -219,163 +221,223 @@ function vnoise(x: number, y: number, z: number): number {
 }
 
 /* ------------------------------------------------------------------------------------------ */
-/* The dish                                                                                   */
+/* The chamberstick                                                                           */
 /* ------------------------------------------------------------------------------------------ */
 
-/** A shallow round tray on a low foot, the wall flaring out to a rolled rim. Floor at -0.6. */
-const DISH: Prof = [
-  [0, -0.612],
-  [0.25, -0.612],
-  [0.28, -0.615],
-  [0.29, -0.62],
-  [0.312, -0.62],
-  [0.322, -0.614],
-  [0.34, -0.604],
-  [0.372, -0.594],
-  [0.4, -0.58],
-  [0.42, -0.566],
-  [0.433, -0.556],
-  [0.439, -0.549],
-  [0.437, -0.543],
-  [0.428, -0.5395],
-  [0.416, -0.5405],
-  [0.404, -0.547],
-  [0.39, -0.56],
-  [0.37, -0.578],
-  [0.352, -0.592],
-  [0.338, -0.5985],
-  [0.32, -0.6],
-  [0.16, -0.6],
-  [0, -0.6],
+/** The pan's floor, the floor of the socket (where the candle stands) and the socket's rim. */
+const PAN_FLOOR = -0.536;
+const CUP_FLOOR = -0.528;
+const CUP_TOP = -0.45;
+
+/**
+ * The chamberstick in one turned profile: a stepped foot flaring up to a neck, the shallow pan
+ * out to its rolled rim and back down to its floor, then the socket: up its outside, over its
+ * beaded lip and down inside it.
+ */
+const HOLDER: Prof = [
+  // the foot, hollow underneath, two steps up to the neck
+  [0, -0.611],
+  [0.128, -0.611],
+  [0.144, -0.6195],
+  [0.157, -0.62],
+  [0.1615, -0.6172],
+  [0.1625, -0.6115],
+  [0.1595, -0.6065],
+  [0.15, -0.6035],
+  [0.14, -0.6022],
+  [0.1365, -0.5985],
+  [0.1352, -0.5925],
+  [0.1305, -0.5885],
+  [0.118, -0.5862],
+  [0.1, -0.5805],
+  [0.086, -0.5725],
+  [0.0765, -0.5625],
+  [0.0715, -0.5535],
+  [0.0725, -0.5492],
+  // the pan's underside out to the rim
+  [0.09, -0.5462],
+  [0.15, -0.5432],
+  [0.22, -0.5372],
+  [0.258, -0.5312],
+  [0.278, -0.5242],
+  [0.2872, -0.5162],
+  // the rolled rim
+  [0.2905, -0.5125],
+  [0.2918, -0.508],
+  [0.2905, -0.5035],
+  [0.287, -0.5013],
+  [0.282, -0.5012],
+  [0.2775, -0.5035],
+  [0.2755, -0.508],
+  // the pan's inside down to its floor
+  [0.272, -0.515],
+  [0.262, -0.5242],
+  [0.245, -0.5312],
+  [0.22, -0.5348],
+  [0.17, -0.536],
+  [0.135, PAN_FLOOR],
+  [0.126, -0.5348],
+  [0.1212, -0.5312],
+  // the socket: its outside, its beaded lip, its inside
+  [0.1192, -0.52],
+  [0.118, -0.49],
+  [0.118, -0.462],
+  [0.1225, -0.4595],
+  [0.1245, -0.455],
+  [0.122, -0.4505],
+  [0.117, -0.4498],
+  [0.1128, -0.4525],
+  [0.112, -0.46],
+  [0.112, -0.5235],
+  [0.105, CUP_FLOOR],
+  [0, CUP_FLOOR],
 ];
 
-/** The old dish: dark bronze, green patina in blotches, grime in the corners, worn on the rim. */
-function patina(g: THREE.BufferGeometry) {
+/** The ring handle on the right of the pan: a loop about as tall as the socket, on the rim. */
+const HANDLE = { x: 0.3305, y: -0.503, R: 0.0405, tube: 0.0062 };
+
+/**
+ * The old brass: warm and polished where hands have worn it (the rims, the top of the ring),
+ * browner in blotches, dark tarnish gathered in the recesses: round the socket's foot, in the
+ * corner of the pan, inside the socket, in the foot's steps and on every underside.
+ */
+function tarnish(g: THREE.BufferGeometry) {
   const p = g.attributes.position as THREE.BufferAttribute;
+  const n = g.attributes.normal as THREE.BufferAttribute;
   const col = new Float32Array(p.count * 3);
+  const brass = new THREE.Color(0.3, 0.205, 0.09);
+  const brown = new THREE.Color(0.17, 0.11, 0.05);
+  const dark = new THREE.Color(0.04, 0.03, 0.02);
+  const bright = new THREE.Color(0.62, 0.46, 0.22);
+  const c = new THREE.Color();
   for (let i = 0; i < p.count; i++) {
     const x = p.getX(i);
     const y = p.getY(i);
     const z = p.getZ(i);
     const r = Math.hypot(x, z);
-    const n1 = vnoise(x * 16 + 3, y * 16, z * 16);
-    const n2 = vnoise(x * 46, y * 46 + 9, z * 46);
-    const c = new THREE.Color(0.25, 0.19, 0.12);
-    c.lerp(new THREE.Color(0.22, 0.28, 0.22), smooth((n1 - 0.52) / 0.2) * 0.85);
-    // grime gathered in the corner between floor and wall
-    const corner = smooth(1 - Math.abs(r - 0.34) / 0.03) * (y < -0.585 ? 1 : 0);
-    c.lerp(new THREE.Color(0.07, 0.06, 0.05), Math.max(corner * 0.6, smooth((n2 - 0.62) / 0.15) * 0.5));
-    // the rim worn back to brass where hands held it
-    if (y > -0.545 && r > 0.41) c.lerp(new THREE.Color(0.48, 0.36, 0.19), 0.55 + 0.3 * n2);
+    const n1 = vnoise(x * 18 + 3, y * 18, z * 18);
+    const n2 = vnoise(x * 64, y * 64 + 9, z * 64);
+    c.copy(brass).lerp(brown, smooth((n1 - 0.42) / 0.3) * 0.65);
+    let rec = 0;
+    if (y < -0.524 && r < 0.29) rec = Math.max(smooth(1 - (r - 0.119) / 0.035), smooth((r - 0.235) / 0.04) * 0.8);
+    if (y > -0.53 && r < 0.1132) rec = Math.max(rec, 0.85);
+    if (y < -0.545 && y > -0.605 && r < 0.14) rec = Math.max(rec, smooth(1 - (r - 0.072) / 0.05) * 0.75);
+    if (y < -0.598 && r > 0.13 && r < 0.142) rec = Math.max(rec, 0.6);
+    rec = Math.max(rec, smooth((-n.getY(i) - 0.2) / 0.6) * 0.55);
+    c.lerp(dark, rec * (0.65 + 0.35 * n2));
+    const rimWorn = r > 0.275 && r < 0.3 && y > -0.512;
+    const lipWorn = r > 0.112 && r < 0.126 && y > -0.458;
+    const ringWorn = r > 0.3 && y > HANDLE.y + 0.01;
+    if (rimWorn || lipWorn || ringWorn) c.lerp(bright, 0.45 + 0.35 * n2);
     col.set([c.r, c.g, c.b], i * 3);
   }
   g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+}
+
+function buildHolder(): THREE.BufferGeometry {
+  const pan = revolve(() => HOLDER, 128);
+  const loop = new THREE.TorusGeometry(HANDLE.R, HANDLE.tube, 14, 64);
+  loop.translate(HANDLE.x, HANDLE.y, 0);
+  // the knuckle where the ring is soldered to the rim
+  const joint = new THREE.SphereGeometry(0.0095, 14, 10);
+  joint.scale(1.1, 0.85, 1.35);
+  joint.translate(0.2915, -0.5065, 0);
+  const g = merge([pan, loop, joint]);
+  tarnish(g);
+  return g;
 }
 
 /* ------------------------------------------------------------------------------------------ */
 /* The candles                                                                                */
 /* ------------------------------------------------------------------------------------------ */
 
-const Y0 = -0.6;
-/** The new candle: its radius and the height of its rim. */
-const NEW_R = 0.26;
-const NEW_TOP = 0.245;
+/** The new candle: its radius and the height of its rim (about 2.6 times as tall as wide above the socket). */
+const NEW_R = 0.1;
+const NEW_TOP = 0.075;
 /** The old candle: radius, the mean height of its rim, the floor of the crater round the wick. */
-const OLD_R = 0.255;
-const OLD_TOP = 0.12;
-const FLOOR = -0.01;
-/** Where the rim slumped and the wax ran over: front left. */
-const SLUMP = -0.55;
-const slump = (th: number) => Math.exp(-(angDiff(th, SLUMP) ** 2) / (2 * 0.5 * 0.5));
+const OLD_R = 0.1;
+const OLD_TOP = 0.045;
+const FLOOR = 0.004;
+/** Where the fat drip runs down over the socket's lip: the front, a little to the right. */
+const FAT = 0.16;
+/** Where the rim slumped lowest: front left. */
+const SLUMP = -0.7;
+const slump = (th: number) => Math.exp(-(angDiff(th, SLUMP) ** 2) / (2 * 0.55 * 0.55));
 const ringA = ring(11);
 const ringB = ring(23, 5);
 const ringC = ring(37, 7);
 
 /** The old candle's lip: how thick it is, and the height its round top reaches. */
-const lipL = (th: number) => 0.026 + 0.012 * slump(th) + 0.004 * ringB(th);
-const rimTop = (th: number) => OLD_TOP + 0.022 * ringA(th) - 0.045 * slump(th);
+const lipL = (th: number) => 0.0118 + 0.0035 * slump(th) + 0.0025 * ringB(th) + 0.001 * Math.sin(th * 9 + 1.3);
+const rimTop = (th: number) => OLD_TOP + 0.01 * ringA(th) - 0.024 * slump(th) + 0.0025 * Math.sin(th * 7 + 0.4);
 /** The height where the side turns over into the lip. */
 const lipY = (th: number) => rimTop(th) - 1.15 * lipL(th);
-/** The old candle's side: uneven, built up thick at the foot, bulging where the wax overflowed. */
+/** The old candle's side: slightly uneven, bulging a little where the wax ran over the rim. */
 function oldR(th: number, y: number): number {
   const hs = lipY(th);
-  return (
-    OLD_R +
-    0.005 * ringC(th) +
-    0.003 * Math.sin(y * 31 + th * 2) +
-    0.014 * (1 - smooth((y - Y0) / 0.14)) +
-    0.012 * slump(th) * smooth((y - (hs - 0.2)) / 0.2)
-  );
+  return OLD_R + 0.0022 * ringC(th) + 0.0012 * Math.sin(y * 47 + th * 2) + 0.004 * slump(th) * smooth((y - (hs - 0.12)) / 0.12);
 }
 
 /** The new candle: a crisp, slightly rounded rim and a shallow dish of wax round the wick. */
 const NEW_PROFILE: Prof = [
-  [0, Y0],
-  [0.13, Y0],
-  [0.245, Y0],
-  [0.256, Y0 + 0.003],
-  [NEW_R, Y0 + 0.012],
-  ...Array.from({ length: 10 }, (_, k): [number, number] => [NEW_R, Y0 + 0.03 + (k / 9) * (NEW_TOP - 0.018 - Y0 - 0.03)]),
-  [0.2595, NEW_TOP - 0.008],
-  [0.257, NEW_TOP - 0.002],
-  [0.25, NEW_TOP],
-  [0.235, NEW_TOP - 0.002],
-  [0.18, NEW_TOP - 0.006],
-  [0.1, NEW_TOP - 0.012],
-  [0.04, NEW_TOP - 0.018],
-  [0.015, NEW_TOP - 0.021],
-  [0, NEW_TOP - 0.022],
+  [0, CUP_FLOOR],
+  [0.08, CUP_FLOOR],
+  [0.097, CUP_FLOOR + 0.002],
+  [NEW_R, CUP_FLOOR + 0.008],
+  ...Array.from({ length: 12 }, (_, k): [number, number] => [NEW_R, CUP_FLOOR + 0.02 + (k / 11) * (NEW_TOP - 0.008 - CUP_FLOOR - 0.02)]),
+  [0.0998, NEW_TOP - 0.004],
+  [0.0986, NEW_TOP - 0.001],
+  [0.0962, NEW_TOP],
+  [0.091, NEW_TOP - 0.0015],
+  [0.062, NEW_TOP - 0.006],
+  [0.032, NEW_TOP - 0.0092],
+  [0.011, NEW_TOP - 0.0106],
+  [0, NEW_TOP - 0.011],
 ];
 
-/** The old candle's profile at an angle: foot, side, the round overflowed lip, the crater. */
+/** The old candle's profile at an angle: foot, side, the thick round lip, the crater. */
 function oldProfile(th: number): Prof {
   const out: Prof = [
-    [0, Y0],
-    [0.13, Y0],
-    [OLD_R - 0.004, Y0],
-    [OLD_R + 0.006, Y0 + 0.004],
-    [oldR(th, Y0 + 0.014), Y0 + 0.014],
+    [0, CUP_FLOOR],
+    [0.06, CUP_FLOOR],
+    [OLD_R - 0.003, CUP_FLOOR],
+    [OLD_R, CUP_FLOOR + 0.004],
   ];
   const hs = lipY(th);
   const L = lipL(th);
-  for (let k = 0; k < 18; k++) {
-    const y = Y0 + 0.03 + (k / 17) * (hs - 0.008 - Y0 - 0.03);
+  for (let k = 0; k < 26; k++) {
+    const y = CUP_FLOOR + 0.012 + (k / 25) * (hs - 0.006 - CUP_FLOOR - 0.012);
     out.push([oldR(th, y), y]);
   }
-  // the lip: thick and round, a little proud of the side
-  const cx = oldR(th, hs) + 0.006 - L;
-  for (let k = 0; k <= 8; k++) {
-    const a = (k / 8) * Math.PI;
-    out.push([cx + L * Math.cos(a), hs + 1.15 * L * Math.sin(a)]);
+  // the lip: thick and round, a little proud of the side; where it slumped low its inside still
+  // stands above the floor of the crater
+  const cx = oldR(th, hs) + 0.005 - L;
+  const top = hs + 1.15 * L;
+  const hsIn = Math.max(hs, Math.min(top - 0.004, FLOOR + 0.006));
+  for (let k = 0; k <= 10; k++) {
+    const a = (k / 10) * Math.PI;
+    const base = a <= Math.PI / 2 ? hs : hsIn;
+    out.push([cx + L * Math.cos(a), base + (top - base) * Math.sin(a)]);
   }
   // the crater: down from the inside of the lip to the floor round the wick
   const rIn = cx - L;
   for (let k = 1; k <= 10; k++) {
     const f = 1 - k / 10;
-    out.push([rIn * f, FLOOR + Math.max(0.008, hs - FLOOR) * f ** 2.4]);
+    out.push([rIn * f, FLOOR + Math.max(0.002, hsIn - FLOOR) * f ** 2.2]);
   }
   return out;
 }
 
-/** The pool of wax round the old candle's foot, out over the dish floor to a rounded edge. */
-const ringP = ring(53, 6);
-function poolProfile(th: number): Prof {
-  const rb = oldR(th, Y0 + 0.04);
-  const P = Math.min(0.356, 0.315 + 0.025 * ringP(th) + 0.05 * slump(th) + 0.03 * slump(th - 1.5));
-  const top = -0.5875;
-  return [
-    [rb - 0.004, -0.562],
-    [rb + 0.006, -0.576],
-    [rb + 0.02, -0.584],
-    [rb + 0.045, -0.5868],
-    [(rb + P) / 2, top],
-    [P - 0.016, top - 0.0004],
-    [P - 0.006, top - 0.0018],
-    [P - 0.001, -0.5935],
-    [P - 0.002, -0.5985],
-    [P - 0.012, -0.6008],
-  ];
-}
+/** Wax that ran down into the socket, filling the gap round the candle to just under its lip. */
+const CUP_POOL: Prof = [
+  [OLD_R - 0.002, -0.43],
+  [OLD_R + 0.0015, -0.4415],
+  [OLD_R + 0.005, -0.4492],
+  [0.107, -0.4512],
+  [0.1112, -0.4518],
+  [0.1124, -0.4545],
+  [0.1108, -0.4615],
+];
 
 interface Drip {
   th: number;
@@ -388,11 +450,11 @@ interface Drip {
 /** A drip down the side, a little proud of it, from the rim down to a bulb at its end. */
 function dripGeo(d: Drip, radius: (th: number, y: number) => number, capY: number): THREE.BufferGeometry[] {
   const pts: THREE.Vector3[] = [];
-  const n = 10;
+  const n = 12;
   for (let i = 0; i <= n; i++) {
     const f = i / n;
-    const y = d.y0 + 0.006 - (d.y0 + 0.006 - d.y1) * f;
-    const th = d.th + 0.022 * Math.sin(f * 4.5 + d.th * 3) * f;
+    const y = d.y0 + 0.004 - (d.y0 + 0.004 - d.y1) * f;
+    const th = d.th + 0.05 * Math.sin(f * 4.5 + d.th * 3) * f;
     const rr = radius(th, Math.min(y, capY)) + d.r * (i === 0 ? -0.3 : 0.32);
     pts.push(new THREE.Vector3(rr * Math.sin(th), y, rr * Math.cos(th)));
   }
@@ -401,134 +463,235 @@ function dripGeo(d: Drip, radius: (th: number, y: number) => number, capY: numbe
   return [
     tube(
       pts,
-      28,
+      32,
       12,
       (t) => {
-        const w = d.r * (0.62 + 0.6 * (1 - t) ** 3 + 0.1 * Math.sin(t * 9 + d.th));
-        return [w * 0.75, w];
+        const w = d.r * (0.66 + 0.55 * (1 - t) ** 3 + 0.1 * Math.sin(t * 9 + d.th));
+        return [w * 0.72, w];
       },
       undefined,
       0.3,
     ),
-    bulb(end.addScaledVector(out, d.r * 0.15).setY(end.y - d.r * 0.2), d.r * 1.3),
+    bulb(end.addScaledVector(out, d.r * 0.12).setY(end.y - d.r * 0.25), d.r * 1.28),
   ];
 }
 
-/** The old candle's drips: many round the slumped side, a few long ones down to the pool. */
+/**
+ * The old candle's drips: its whole upper half thickly covered in them, long and short side by
+ * side and overlapping, short fat runs right under the lip, and a few that ran all the way down
+ * to the socket.
+ */
 function oldDrips(): Drip[] {
   const r = seeded(808);
   const out: Drip[] = [];
-  for (const th of [-1.05, -0.38, 0.32, 1.0, 2.7]) {
+  for (const th of [-1.4, 0.98, 2.2, -2.5, -0.42]) out.push({ th, y0: lipY(th), y1: CUP_TOP + 0.026 + r() * 0.012, r: 0.0105 + r() * 0.003 });
+  const n = 34;
+  for (let k = 0; k < n; k++) {
+    const th = (k / n) * TAU + (r() - 0.5) * 0.16;
+    if (Math.abs(angDiff(th, FAT)) < 0.14) continue;
     const y0 = lipY(th);
-    out.push({ th, y0, y1: Y0 + 0.045 + r() * 0.02, r: 0.013 + r() * 0.004 });
+    const len = k % 3 === 0 ? 0.2 + r() * 0.12 : k % 3 === 1 ? 0.11 + r() * 0.09 : 0.05 + r() * 0.06;
+    out.push({ th, y0, y1: y0 - len, r: 0.0072 + r() * 0.005 });
   }
-  for (let k = 0; k < 17; k++) {
-    const near = k < 9;
-    const th = near ? SLUMP + (r() - 0.5) * 2.0 : r() * TAU;
+  // short fat runs under the lip, so the top of the candle is lumpy all round
+  for (let k = 0; k < 16; k++) {
+    const th = ((k + 0.5) / 16) * TAU + (r() - 0.5) * 0.2;
     const y0 = lipY(th);
-    const len = k % 3 === 0 ? 0.2 + r() * 0.3 : 0.04 + r() * 0.14;
-    out.push({ th, y0, y1: Math.max(Y0 + 0.06, y0 - len), r: 0.007 + r() * 0.006 });
+    out.push({ th, y0, y1: y0 - 0.022 - r() * 0.03, r: 0.011 + r() * 0.005 });
   }
   return out;
 }
 
-/** Wax that has run over the dish's rim: a flat tongue over the lip, hanging in a drop. */
-function spill(th: number, long: boolean): THREE.BufferGeometry[] {
-  const path: [number, number][] = long
-    ? [
-        [0.33, -0.589],
-        [0.352, -0.5865],
-        [0.372, -0.573],
-        [0.392, -0.555],
-        [0.41, -0.5415],
-        [0.428, -0.5365],
-        [0.441, -0.543],
-        [0.4455, -0.556],
-        [0.4448, -0.572],
-        [0.4432, -0.585],
-      ]
-    : [
-        [0.41, -0.5415],
-        [0.428, -0.5365],
-        [0.4415, -0.5435],
-        [0.4455, -0.5555],
-        [0.4445, -0.5655],
-      ];
+/** Where a drip is round the candle a share `f` of the way down it (it wanders a little). */
+const dripTh = (d: Drip, f: number) => d.th + 0.05 * Math.sin(f * 4.5 + d.th * 3) * f;
+/** Half a drip's width a share `t` of the way down: wide where it leaves the lip, thin, then the bulb. */
+const dripW = (d: Drip, t: number) => d.r * (0.6 + 0.75 * (1 - t) ** 3 + 0.1 * Math.sin(t * 9 + d.th * 5));
+/** The bulb at a drip's end: its middle and its radii (round, down, out). */
+function dripBulb(d: Drip): { th: number; y: number; r: number; rx: number; ry: number; rz: number } {
+  const th = dripTh(d, 1);
+  return { th, y: d.y1 - d.r * 0.35, r: oldR(th, d.y1) + d.r * 0.42, rx: d.r * 1.28, ry: d.r * 1.55, rz: d.r * 0.95 };
+}
+
+/**
+ * An old drip: a tongue of wax down the side, flat against it and standing well proud of it,
+ * ending in a heavy bulb.
+ */
+function oldDripGeo(d: Drip): THREE.BufferGeometry[] {
+  const pts: THREE.Vector3[] = [];
+  const n = 14;
+  for (let i = 0; i <= n; i++) {
+    const f = i / n;
+    const y = d.y0 + 0.004 - (d.y0 + 0.004 - d.y1) * f;
+    const th = dripTh(d, f);
+    const w = dripW(d, f);
+    const rr = oldR(th, y) + (i === 0 ? -0.35 * w : 0.24 * w);
+    pts.push(new THREE.Vector3(rr * Math.sin(th), y, rr * Math.cos(th)));
+  }
+  const side = new THREE.Vector3(Math.cos(d.th), 0, -Math.sin(d.th));
+  const b = dripBulb(d);
+  const ball = new THREE.SphereGeometry(1, 16, 12);
+  ball.scale(b.rx, b.ry, b.rz);
+  ball.translate(0, 0, b.r);
+  ball.rotateY(b.th);
+  ball.translate(0, b.y, 0);
+  return [
+    tube(
+      pts,
+      36,
+      14,
+      (t) => {
+        const w = dripW(d, t);
+        return [w * 0.66, w];
+      },
+      side,
+      0.3,
+    ),
+    ball,
+  ];
+}
+
+/**
+ * Shadow in the creases of the old wax, in its vertex colours: along the edges of every drip
+ * where it lies on the side, under the bulbs and under the overhanging lip. This is what lets
+ * the drips read from the front, where their relief is not in the outline.
+ */
+function shadeBody(g: THREE.BufferGeometry, drips: Drip[]) {
+  const p = g.attributes.position as THREE.BufferAttribute;
+  const col = new Float32Array(p.count * 3);
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i);
+    const y = p.getY(i);
+    const z = p.getZ(i);
+    const r = Math.hypot(x, z);
+    const th = Math.atan2(x, z);
+    let k = 0;
+    const ly = lipY(th);
+    if (r > OLD_R * 0.8 && y < ly + 0.002) {
+      k = 0.3 * smooth(1 - (ly - y) / 0.016);
+      for (const d of drips) {
+        if (y > d.y0 + 0.004 || y < d.y1 - d.r * 2.6) continue;
+        const f = clamp01((d.y0 + 0.004 - y) / (d.y0 + 0.004 - d.y1));
+        let e: number;
+        if (y >= d.y1) e = Math.abs(angDiff(th, dripTh(d, f))) * r - dripW(d, f);
+        else {
+          const b = dripBulb(d);
+          e = Math.hypot((angDiff(th, b.th) * r) / b.rx, (y - b.y) / b.ry) * b.rx - b.rx;
+        }
+        k = Math.max(k, 0.42 * smooth(1 - Math.abs(e) / 0.008));
+      }
+    }
+    const c = 1 - k;
+    col.set([c, c * 0.97, c * 0.92], i * 3);
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+}
+
+/** A drip or bulb darkens where it meets the side, and is palest where it stands out furthest. */
+function shadeDrip(g: THREE.BufferGeometry) {
+  const p = g.attributes.position as THREE.BufferAttribute;
+  const col = new Float32Array(p.count * 3);
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i);
+    const y = p.getY(i);
+    const z = p.getZ(i);
+    const out = Math.hypot(x, z) - oldR(Math.atan2(x, z), y);
+    const c = 1.04 - 0.3 * smooth(1 - out / 0.007);
+    col.set([c, c * 0.975, c * 0.935], i * 3);
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+}
+
+/** A plain vertex colour (for the wax in the socket). */
+function shadeFlat(g: THREE.BufferGeometry, c: number) {
+  const n = (g.attributes.position as THREE.BufferAttribute).count;
+  const col = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) col.set([c, c * 0.97, c * 0.92], i * 3);
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+}
+
+/**
+ * The fat drip at the front: a thick run of wax from the lip all the way down the side, out over
+ * the socket's beaded lip and hanging off it in a heavy drop.
+ */
+function fatDrip(): THREE.BufferGeometry[] {
+  const th = FAT;
+  const y0 = lipY(th);
+  const path: [number, number][] = [];
+  for (let k = 0; k <= 9; k++) {
+    const y = y0 + 0.004 - (k / 9) * (y0 + 0.004 + 0.418);
+    path.push([oldR(th, y) + (k === 0 ? -0.004 : 0.0045), y]);
+  }
+  path.push([0.1085, -0.4345], [0.1165, -0.4395], [0.1235, -0.441], [0.1305, -0.4445], [0.1342, -0.4525], [0.1352, -0.4635], [0.1348, -0.4765]);
   const s = Math.sin(th);
   const c = Math.cos(th);
-  const pts = path.map(([r, y]) => new THREE.Vector3(r * s, y, r * c));
+  const pts = path.map(([pr, y]) => new THREE.Vector3(pr * s, y, pr * c));
   const side = new THREE.Vector3(c, 0, -s);
-  const w0 = long ? 0.026 : 0.013;
   const end = pts[pts.length - 1]!;
+  const drop = new THREE.SphereGeometry(1, 16, 12);
+  drop.scale(0.0125, 0.0155, 0.0105);
+  drop.translate(end.x + s * 0.0012, end.y - 0.0105, end.z + c * 0.0012);
   return [
-    tube(pts, 30, 12, (t) => [0.0055 + 0.003 * t, w0 * (1 - t) + 0.0075], side, 0.35),
-    bulb(new THREE.Vector3(end.x, end.y - 0.004, end.z), long ? 0.0095 : 0.0075),
+    tube(pts, 72, 16, (t) => [0.0078 + 0.0014 * t, 0.017 * (1 - t) ** 1.4 + 0.0118 + 0.0016 * Math.sin(t * 11)], side, 0.35),
+    drop,
   ];
 }
 
 function buildNew() {
   const drips: Drip[] = [
-    { th: -0.45, y0: NEW_TOP - 0.008, y1: NEW_TOP - 0.075, r: 0.0075 },
-    { th: 0.62, y0: NEW_TOP - 0.008, y1: NEW_TOP - 0.045, r: 0.0065 },
-    { th: 2.5, y0: NEW_TOP - 0.008, y1: NEW_TOP - 0.1, r: 0.007 },
+    { th: -0.5, y0: NEW_TOP - 0.006, y1: NEW_TOP - 0.05, r: 0.0045 },
+    { th: 0.72, y0: NEW_TOP - 0.006, y1: NEW_TOP - 0.03, r: 0.004 },
+    { th: 2.5, y0: NEW_TOP - 0.006, y1: NEW_TOP - 0.07, r: 0.0045 },
   ];
-  const wax = merge([
-    revolve(() => NEW_PROFILE, 128),
-    ...drips.flatMap((d) => dripGeo(d, () => NEW_R, NEW_TOP)),
-  ]);
+  const wax = merge([revolve(() => NEW_PROFILE, 128), ...drips.flatMap((d) => dripGeo(d, () => NEW_R, NEW_TOP))]);
   const wickPts = [
-    [0, NEW_TOP - 0.03, 0],
-    [0, NEW_TOP + 0.005, 0],
-    [0.001, NEW_TOP + 0.028, 0],
-    [0.006, NEW_TOP + 0.043, 0.002],
+    [0, NEW_TOP - 0.014, 0],
+    [0, NEW_TOP + 0.004, 0],
+    [0.0006, NEW_TOP + 0.019, 0],
+    [0.0035, NEW_TOP + 0.031, 0.001],
   ].map(([x, y, z]) => new THREE.Vector3(x, y, z));
   return {
     wax,
     // white cotton below, burnt black at the tip
-    wick: tube(wickPts.slice(0, 3), 8, 8, () => [0.0055, 0.0055]),
-    wickTip: tube(wickPts.slice(1), 8, 8, (t) => [0.0056 - 0.0014 * t, 0.0056 - 0.0014 * t]),
+    wick: tube(wickPts.slice(0, 3), 8, 8, () => [0.0032, 0.0032]),
+    wickTip: tube(wickPts.slice(1), 8, 8, (t) => [0.0033 - 0.0008 * t, 0.0033 - 0.0008 * t]),
   };
 }
 
 function buildOld() {
-  const wax = merge([
-    revolve(oldProfile, 128),
-    revolve(poolProfile, 128),
-    ...oldDrips().flatMap((d) => dripGeo(d, oldR, Infinity)),
-    ...spill(SLUMP + 0.05, true),
-    ...spill(0.95, true),
-    ...spill(-1.3, false),
-    ...spill(0.3, false),
-    ...spill(2.4, true),
-  ]);
+  const drips = oldDrips();
+  const body = revolve(oldProfile, 200);
+  shadeBody(body, drips);
+  const pool = revolve(() => CUP_POOL, 128);
+  shadeFlat(pool, 0.9);
+  const runs = [...drips.flatMap((d) => oldDripGeo(d)), ...fatDrip()];
+  runs.forEach(shadeDrip);
+  const wax = merge([body, pool, ...runs]);
   const wick = tube(
     [
-      [0, FLOOR - 0.006, 0],
+      [0, FLOOR - 0.004, 0],
       [0.001, FLOOR + 0.025, 0],
-      [0.006, FLOOR + 0.05, 0.002],
-      [0.016, FLOOR + 0.067, 0.006],
+      [0.003, FLOOR + 0.048, 0.001],
+      [0.008, FLOOR + 0.063, 0.003],
       [OLD_TIP[0], OLD_TIP[1], OLD_TIP[2]],
     ].map(([x, y, z]) => new THREE.Vector3(x, y, z)),
     16,
     8,
-    (t) => [0.0062 - 0.0018 * t, 0.0062 - 0.0018 * t],
+    (t) => [0.0036 - 0.0011 * t, 0.0036 - 0.0011 * t],
   );
-  const dish = revolve(() => DISH, 128);
-  patina(dish);
-  return { wax, wick, dish };
+  return { wax, wick };
 }
 
-/** The tip of the old wick (the ember, where the smoke comes from) and of the new one. */
-const OLD_TIP: V3 = [0.026, FLOOR + 0.074, 0.01];
-const NEW_FLAME: V3 = [0.002, NEW_TOP + 0.024, 0];
-const OLD_FLAME: V3 = [0.013, FLOOR + 0.06, 0.004];
+/** The tip of the old wick (the ember, where the smoke comes from), and the roots of the flames. */
+const OLD_TIP: V3 = [0.014, FLOOR + 0.072, 0.005];
+const NEW_FLAME: V3 = [0.001, NEW_TOP + 0.008, 0];
+const OLD_FLAME: V3 = [0.004, FLOOR + 0.036, 0.001];
 
 let newGeo: ReturnType<typeof buildNew> | null = null;
 let oldGeo: ReturnType<typeof buildOld> | null = null;
-let dishGeo: THREE.BufferGeometry | null = null;
+let holderGeo: THREE.BufferGeometry | null = null;
 const newParts = () => (newGeo ??= buildNew());
 const oldParts = () => (oldGeo ??= buildOld());
-const dishNew = () => (dishGeo ??= revolve(() => DISH, 128));
+const holder = () => (holderGeo ??= buildHolder());
 
 /* ------------------------------------------------------------------------------------------ */
 /* Materials                                                                                  */
@@ -551,10 +714,10 @@ const newWax = () =>
 /** How brightly the flame lights the old wax from within (set every frame). */
 const waxGlow = { value: 0.3 };
 
-/** Old ivory wax, mottled and yellowed, specked with grime, soot in the crater. */
+/** Old ivory wax, mottled and a little yellowed, a few specks of grime, soot in the crater. */
 function paintWax(g: CanvasRenderingContext2D, w: number, h: number) {
   const r = seeded(31);
-  g.fillStyle = '#efe2c7';
+  g.fillStyle = '#ebdcbd';
   g.fillRect(0, 0, w, h);
   const dot = (x: number, y: number, rad: number, c: string) => {
     const gr = g.createRadialGradient(x, y, 0, x, y, rad);
@@ -564,36 +727,35 @@ function paintWax(g: CanvasRenderingContext2D, w: number, h: number) {
     g.fillRect(x - rad, y - rad, rad * 2, rad * 2);
   };
   // older, yellower wax in blotches, and paler fresh runs
-  for (let i = 0; i < 170; i++) dot(r() * w, r() * h, 8 + r() * 40, `rgba(190,162,110,${0.05 + r() * 0.1})`);
-  for (let i = 0; i < 90; i++) dot(r() * w, r() * h, 6 + r() * 26, `rgba(255,250,236,${0.08 + r() * 0.12})`);
-  // runs down the side (the side is the middle of the texture, v 0.12..0.55)
+  for (let i = 0; i < 150; i++) dot(r() * w, r() * h, 8 + r() * 40, `rgba(196,168,116,${0.04 + r() * 0.08})`);
+  for (let i = 0; i < 90; i++) dot(r() * w, r() * h, 6 + r() * 26, `rgba(255,250,238,${0.08 + r() * 0.12})`);
+  // runs down the side
   g.lineCap = 'round';
   for (let i = 0; i < 70; i++) {
     const x = r() * w;
-    const y = h * (0.45 + r() * 0.35);
-    g.strokeStyle = `rgba(176,150,104,${0.05 + r() * 0.07})`;
+    const y = h * (0.3 + r() * 0.45);
+    g.strokeStyle = `rgba(180,154,108,${0.04 + r() * 0.06})`;
     g.lineWidth = 1 + r() * 3;
     g.beginPath();
     g.moveTo(x, y);
     g.lineTo(x + (r() - 0.5) * 6, y + 20 + r() * 70);
     g.stroke();
   }
-  // soot and old dark wax in the crater, the top of the texture (v 0.78..1)
-  const soot = g.createLinearGradient(0, 0, 0, h * 0.24);
-  soot.addColorStop(0, 'rgba(92,74,52,0.55)');
-  soot.addColorStop(0.7, 'rgba(120,98,66,0.25)');
+  // soot and old dark wax in the crater, the top of the texture
+  const soot = g.createLinearGradient(0, 0, 0, h * 0.2);
+  soot.addColorStop(0, 'rgba(92,74,52,0.5)');
+  soot.addColorStop(0.7, 'rgba(120,98,66,0.2)');
   soot.addColorStop(1, 'rgba(120,98,66,0)');
   g.fillStyle = soot;
-  g.fillRect(0, 0, w, h * 0.24);
-  // grime: fine dark specks, more of them low down, and a few grey smudges
-  for (let i = 0; i < 260; i++) {
+  g.fillRect(0, 0, w, h * 0.2);
+  // a little grime: fine dark specks, more of them low down
+  for (let i = 0; i < 110; i++) {
     const y = h * (0.2 + Math.sqrt(r()) * 0.8);
-    g.fillStyle = `rgba(48,36,26,${0.35 + r() * 0.55})`;
+    g.fillStyle = `rgba(60,46,32,${0.25 + r() * 0.4})`;
     g.beginPath();
-    g.arc(r() * w, y, 0.5 + r() * 1.6, 0, TAU);
+    g.arc(r() * w, y, 0.5 + r() * 1.2, 0, TAU);
     g.fill();
   }
-  for (let i = 0; i < 24; i++) dot(r() * w, h * (0.3 + r() * 0.65), 4 + r() * 9, `rgba(110,96,78,${0.12 + r() * 0.12})`);
 }
 
 let oldWaxMat: THREE.MeshPhysicalMaterial | null = null;
@@ -615,12 +777,13 @@ function oldWax(): THREE.MeshPhysicalMaterial {
   const m = new THREE.MeshPhysicalMaterial({
     color: '#ffffff',
     map,
-    roughness: 0.5,
-    sheen: 0.6,
+    vertexColors: true,
+    roughness: 0.4,
+    sheen: 0.25,
     sheenColor: new THREE.Color('#fff0d4'),
     sheenRoughness: 0.5,
-    clearcoat: 0.28,
-    clearcoatRoughness: 0.45,
+    clearcoat: 0.45,
+    clearcoatRoughness: 0.3,
   });
   m.onBeforeCompile = (sh) => {
     sh.uniforms.uGlow = waxGlow;
@@ -633,9 +796,9 @@ function oldWax(): THREE.MeshPhysicalMaterial {
       .replace(
         '#include <emissivemap_fragment>',
         `#include <emissivemap_fragment>
-        float wTop = smoothstep(uTop - 0.36, uTop + 0.01, vWaxP.y);
+        float wTop = smoothstep(uTop - 0.26, uTop + 0.01, vWaxP.y);
         float wEdge = 1.0 - abs(dot(normal, normalize(vViewPosition)));
-        totalEmissiveRadiance += diffuseColor.rgb * vec3(1.0, 0.66, 0.36) * (0.06 + 0.05 * wTop + uGlow * wTop * (0.5 + 0.8 * wEdge));`,
+        totalEmissiveRadiance += diffuseColor.rgb * vec3(1.0, 0.66, 0.36) * (0.025 + 0.03 * wTop + uGlow * wTop * wTop * (0.25 + 0.55 * wEdge));`,
       );
   };
   m.customProgramCacheKey = () => 'candle-old-wax';
@@ -643,20 +806,22 @@ function oldWax(): THREE.MeshPhysicalMaterial {
   return m;
 }
 
-let dishOldMat: THREE.MeshStandardMaterial | null = null;
-const dishOld = () =>
-  (dishOldMat ??= new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true, metalness: 0.7, roughness: 0.52 }));
+let brassOldMat: THREE.MeshStandardMaterial | null = null;
+/** The old brass: its colours (worn bright, browned, tarnished dark) are in the vertices. */
+const brassOld = () =>
+  (brassOldMat ??= new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true, metalness: 0.9, roughness: 0.5 }));
 
-const cinnamon = () =>
-  mat('cinnamon', {
-    surface: 'wood',
-    color: '#8b4a24',
-    roughness: 0.78,
-    hauntedColor: '#3b2619',
-    side: THREE.DoubleSide,
-    decay: { age: 0.5, dust: 0.5 },
+/** The day brass: the shop's brass, warmer and more polished, as a chamberstick kept for best. */
+const brassDay = () =>
+  mat('candleBrassDay', {
+    surface: 'metal',
+    color: '#e0ad4c',
+    metalness: 1,
+    roughness: 0.19,
+    clearcoat: 0.35,
+    hauntedColor: '#6e5a33',
+    decay: { age: 0.7, dust: 0.4 },
   });
-const twine = () => mat('twine', { surface: 'fabric', color: '#c9a877', roughness: 1, hauntedColor: '#54473a', decay: { dust: 0.4, tear: 0.1 } });
 
 /* ------------------------------------------------------------------------------------------ */
 /* Flame and ember                                                                            */
@@ -670,28 +835,39 @@ void main() {
 }
 `;
 
+/** The flame's picture, and where its root (at the wick) sits in it. */
+const FLAME_W = 0.1;
+const FLAME_H = 0.3;
+const FLAME_ROOT = 0.08;
+
 /**
- * A candle flame: a teardrop, blue at its root, a white-gold core, orange at the edges, swaying
- * more toward its tip. Drawn additively.
+ * A tall candle flame, a long teardrop about 0.45 of the candle's height: blue at its root, a
+ * dark heart round the wick (so the black wick shows in its foot), a white-gold core, orange at
+ * the edges, swaying more toward its tip. Drawn additively.
  */
 const FLAME_FRAG = /* glsl */ `
 uniform float uSway;
 uniform float uBright;
 varying vec2 vUv;
 void main() {
-  vec2 p = vUv - vec2(0.5, 0.2);
-  float h = p.y / 0.75;
-  p.x -= uSway * max(h, 0.0) * max(h, 0.0) * 0.07;
-  float w = 0.19 * sqrt(clamp((h + 0.2) / 0.32, 0.0, 1.0)) * pow(clamp(1.0 - h, 0.0, 1.0), 0.75);
+  vec2 p = vUv - vec2(0.5, ${FLAME_ROOT.toFixed(3)});
+  float h = p.y / ${(1 - FLAME_ROOT - 0.06).toFixed(3)};
+  p.x -= uSway * max(h, 0.0) * max(h, 0.0) * 0.06;
+  // a round foot, widest a fifth of the way up, drawn out into a long point
+  float fy = (0.2 - h) / 0.26;
+  float foot = sqrt(clamp(1.0 - fy * fy, 0.0, 1.0));
+  float top = pow(clamp((1.0 - h) / 0.8, 0.0, 1.0), 1.2);
+  float w = 0.27 * (h < 0.2 ? foot : top);
   float d = abs(p.x) / max(w, 1e-3);
-  float body = smoothstep(1.0, 0.4, d) * step(-0.2, h) * smoothstep(1.0, 0.78, h);
-  float core = smoothstep(0.8, 0.0, d) * smoothstep(-0.1, 0.1, h) * smoothstep(0.72, 0.2, h);
-  float blue = smoothstep(0.1, -0.14, h);
-  vec3 col = mix(vec3(1.0, 0.42, 0.08), vec3(1.0, 0.76, 0.36), smoothstep(0.95, 0.3, d));
-  col = mix(col, vec3(1.0, 0.97, 0.86), core * 0.85);
-  col = mix(col, vec3(0.3, 0.42, 1.0), blue * 0.75);
-  float a = body * (1.0 - 0.55 * blue) * uBright;
-  gl_FragColor = vec4(col, a);
+  float body = smoothstep(1.0, 0.45, d) * step(-0.06, h) * smoothstep(1.0, 0.86, h);
+  float hollow = smoothstep(0.6, 0.0, d) * smoothstep(0.17, 0.03, h);
+  float core = smoothstep(0.78, 0.0, d) * smoothstep(0.1, 0.24, h) * smoothstep(0.88, 0.38, h);
+  float blue = smoothstep(0.16, -0.04, h);
+  vec3 col = mix(vec3(1.0, 0.44, 0.1), vec3(1.0, 0.78, 0.38), smoothstep(1.0, 0.35, d));
+  col = mix(col, vec3(1.0, 0.97, 0.88), core);
+  col = mix(col, vec3(0.28, 0.42, 1.0), blue * 0.8);
+  float a = body * (1.0 - 0.6 * blue) * (1.0 - 0.85 * hollow) * uBright;
+  gl_FragColor = vec4(col, min(1.0, a * (0.85 + 0.45 * core)));
 }
 `;
 
@@ -720,13 +896,13 @@ function additive(frag: string, uniforms: Record<string, THREE.IUniform>): THREE
 }
 
 function buildLights() {
-  const flameGeo = new THREE.PlaneGeometry(0.085, 0.21);
-  flameGeo.translate(0, 0.063, 0);
+  const flameGeo = new THREE.PlaneGeometry(FLAME_W, FLAME_H);
+  flameGeo.translate(0, FLAME_H / 2 - FLAME_ROOT * FLAME_H, 0);
   const flameU = { uSway: { value: 0 }, uBright: { value: 1 } };
   const haloU = { uColor: { value: new THREE.Color('#ffae55') }, uBright: { value: 1 } };
   const emberU = { uColor: { value: new THREE.Color('#ff6420') }, uBright: { value: 0 } };
-  const halo = new THREE.PlaneGeometry(0.6, 0.6);
-  halo.translate(0, 0.05, 0);
+  const halo = new THREE.PlaneGeometry(0.42, 0.56);
+  halo.translate(0, 0.11, 0);
   return {
     flameGeo,
     flameU,
@@ -734,7 +910,7 @@ function buildLights() {
     haloGeo: halo,
     haloU,
     haloMat: additive(GLOW_FRAG, haloU),
-    emberHaloGeo: new THREE.PlaneGeometry(0.11, 0.11),
+    emberHaloGeo: new THREE.PlaneGeometry(0.07, 0.07),
     emberU,
     emberHaloMat: additive(GLOW_FRAG, emberU),
     emberMat: new THREE.MeshBasicMaterial({ color: '#ff6a24', transparent: true, opacity: 0, toneMapped: false }),
@@ -743,163 +919,99 @@ function buildLights() {
 let lightParts: ReturnType<typeof buildLights> | null = null;
 const lights = () => (lightParts ??= buildLights());
 
-/** How bright the ember on the wick is, s after the Take: it glows, dims slowly, goes dark. */
+/** How bright the ember on the wick is, s after the Take: it glows at once, dims, goes dark by 5.8 s. */
 function emberAt(s: number): number {
   if (s < 0 || s === Infinity) return 0;
-  const on = smooth((s - 0.08) / 0.25);
-  const dim = 1 - 0.4 * smooth((s - 0.8) / 4.0);
-  const off = 1 - smooth((s - 5.0) / 2.0);
-  return on * dim * off * (0.88 + 0.12 * Math.sin(s * 2.3));
+  const on = smooth((s - 0.05) / 0.22);
+  const dim = 1 - 0.35 * smooth((s - 0.8) / 3.5);
+  const off = 1 - smooth((s - 4.6) / 1.2);
+  return on * dim * off * (0.9 + 0.1 * Math.sin(s * 2.3));
 }
+
+/* ------------------------------------------------------------------------------------------ */
+/* The darkness                                                                               */
+/* ------------------------------------------------------------------------------------------ */
+
+/**
+ * The dark after the candle goes out: one quad over the whole picture (drawn in screen space,
+ * so it covers the card or the product view whatever the camera does), over the candle and the
+ * room but under the ember and the smoke, which are drawn after it.
+ */
+const VEIL_VERT = /* glsl */ `
+void main() {
+  gl_Position = vec4(position.xy, 0.0, 1.0);
+}
+`;
+const VEIL_FRAG = /* glsl */ `
+uniform float uAlpha;
+void main() {
+  gl_FragColor = vec4(0.008, 0.012, 0.024, uAlpha);
+}
+`;
+/** How dark the room goes. */
+const VEIL_DARK = 0.62;
+
+function buildVeil() {
+  const u = { uAlpha: { value: 0 } };
+  const m = new THREE.ShaderMaterial({
+    uniforms: u,
+    vertexShader: VEIL_VERT,
+    fragmentShader: VEIL_FRAG,
+    transparent: true,
+    depthWrite: false,
+    depthTest: false,
+  });
+  return { geo: new THREE.PlaneGeometry(2, 2), u, mat: m };
+}
+let veilParts: ReturnType<typeof buildVeil> | null = null;
+const veil = () => (veilParts ??= buildVeil());
 
 /* ------------------------------------------------------------------------------------------ */
 /* The smoke ghost                                                                            */
 /* ------------------------------------------------------------------------------------------ */
 
 /*
- * The smoke is painted once into a 704x1536 texture (the shape of its picture), one channel per
- * part: red is the smoke (one column of fine twisting filaments), green the pale oval of the
- * face in it, blue the dark of its eyes and mouth and the shadow under its jaw. The shader
- * warps, reveals and composites them.
+ * The smoke is painted once into a 448x916 texture (the shape of its picture), one channel per
+ * part: red is the thread and the column it widens into (it stays on the wick), green the smoke
+ * that is the head, with the wisps flowing round and above it (it rises), blue the dark of its
+ * eyes, nose and mouth. The shader reveals, moves, sways and breaks them up.
  */
-const GW = 704;
-const GH = 1536;
-/** The smoke's picture in the candle's space: width and height, its foot on the ember. */
-const SMOKE_W = 0.46;
-const SMOKE_H = 1.0;
-/** How far up the column the face is (0 at the wick, 1 at the top), and its size in pixels. */
-const FACE_V = 0.53;
-const FACE_RX = GW / 24;
-const FACE_TOP = 32;
-const FACE_BOT = 42;
+const GW = 396;
+const GH = 540;
+/** Texture pixels per unit of the candle's space (about twice the screen's, so it stays crisp). */
+const PX = 635;
+const SMOKE_W = GW / PX;
+const SMOKE_H = GH / PX;
+/**
+ * The head: its middle above the wick, its half-width and half-height (all in the candle's
+ * units). The face is about two thirds as wide as the candle is tall, and long.
+ */
+const HEAD_AT = 0.36;
+const HEAD_RX = 0.17;
+const HEAD_RY = 0.22;
+/** The chin, as a share of the picture's height. */
+const CHIN_V = (HEAD_AT - HEAD_RY) / SMOKE_H;
 
 type Ch = 'r' | 'g' | 'b';
 const ink = (ch: Ch, a: number) =>
   `rgba(${ch === 'r' ? 255 : 0},${ch === 'g' ? 255 : 0},${ch === 'b' ? 255 : 0},${clamp01(a).toFixed(4)})`;
 
-/**
- * The middle of the column, x in pixels, at height v (0 at the wick, 1 at the top): straight up
- * off the wick, then a slight, slow S.
- */
+/** The middle of the column at height v (0 at the wick, 1 at the top), in pixels: a gentle S up to the chin. */
 function colX(v: number): number {
-  return GW / 2 + GW * smooth(v / 0.35) * (0.022 * Math.sin(v * 4.4 - 0.5) + 0.009) + GW * 0.006 * v * Math.sin(v * 11 + 1.1);
+  return GW / 2 + GW * 0.055 * Math.min(1.2, v / CHIN_V) * Math.sin((v / CHIN_V) * TAU);
 }
 
-/** Half the column's width at height v: a few px at the wick, about a fifth of the picture at the top, thicker round the face. */
+/** Half the column's width at height v: a hair at the wick, widening into soft smoke under the chin. */
 function colHW(v: number): number {
-  return 1.2 + GW * 0.1 * v ** 1.3 + 15 * Math.exp(-(((v - FACE_V) / 0.075) ** 2));
+  return 2.2 + GW * 0.1 * Math.min(1.3, v / CHIN_V) ** 1.5;
 }
 
-/** Where the face is, in texture pixels. */
-const FX = colX(FACE_V);
-const FY = GH * (1 - FACE_V);
-
-interface Strand {
-  /** Its angle round the column at the wick, and how many times it winds round as it rises. */
-  ph: number;
-  turns: number;
-  /** How far out from the middle it winds (share of the column's half-width). */
-  amp: number;
-  /** Where it starts and stops (0..1 up the column), and how quickly it fades in. */
-  v0: number;
-  v1: number;
-  fin: number;
-  alpha: number;
-  width: number;
-  /** A slow wobble in its winding. */
-  wob: number;
-  wph: number;
-  /** Which side of the face it passes; 0 for the few that run straight over it. */
-  side: number;
-}
-
-const strandAngle = (s: Strand, v: number) => s.ph + TAU * s.turns * v + s.wob * Math.sin(v * 7 + s.wph);
-
-/** The filaments: most rise from the wick itself, others come into sight a little way up. */
-function makeStrands(): Strand[] {
-  const r = seeded(1225);
-  const out: Strand[] = [];
-  const n = 11;
-  for (let k = 0; k < n; k++) {
-    const s: Strand = {
-      ph: (k / n) * TAU + (r() - 0.5) * 0.4,
-      turns: 2.0 + r() * 0.8,
-      amp: 0.55 + r() * 0.45,
-      v0: k < 5 ? 0 : 0.04 + r() * 0.22,
-      v1: 0.84 + r() * 0.16,
-      fin: k < 5 ? 0.02 : 0.12,
-      alpha: 0.55 + r() * 0.45,
-      width: 0.8 + r() * 0.6,
-      wob: 0.15 + r() * 0.25,
-      wph: r() * TAU,
-      side: 1,
-    };
-    s.side = Math.sin(strandAngle(s, FACE_V)) >= 0 ? 1 : -1;
-    out.push(s);
-  }
-  // two faint ones that run on over the face: it is made of the same smoke
-  for (let k = 0; k < 2; k++)
-    out.push({
-      ph: r() * TAU,
-      turns: 1.6 + r() * 0.5,
-      amp: 0.45,
-      v0: 0.3 + r() * 0.08,
-      v1: 0.78 + r() * 0.1,
-      fin: 0.2,
-      alpha: 0.3,
-      width: 0.8,
-      wob: 0.2,
-      wph: r() * TAU,
-      side: 0,
-    });
-  return out;
-}
-
-/** A point on a filament at height v, and whether it is in front of the column (depth 1) or behind (-1). */
-function strandAt(s: Strand, v: number): { x: number; y: number; depth: number } {
-  const a = strandAngle(s, v);
-  let d = colHW(v) * s.amp * Math.sin(a);
-  if (s.side !== 0) {
-    // the filaments part round the face, hug its sides and close in again above it
-    const w = Math.exp(-((((v - FACE_V) * GH) / (FACE_BOT * 1.5)) ** 2));
-    d = d * (1 - 0.55 * w) + s.side * FACE_RX * 1.1 * w;
-  }
-  return { x: colX(v) + d, y: GH * (1 - v), depth: Math.cos(a) };
-}
-
-/**
- * Strokes one filament, a short segment at a time so it can thicken and fade as it rises: fine
- * at the wick, softer higher up, brighter where it winds round the front, gone at the top.
- */
-function drawStrand(g: CanvasRenderingContext2D, s: Strand, widthMul: number, alphaMul: number, ch: Ch) {
-  const n = 260;
-  g.save();
-  // butt ends, so the added segments do not pile up into beads where they meet
-  g.lineCap = 'butt';
-  let prev = strandAt(s, s.v0);
-  for (let i = 1; i <= n; i++) {
-    const t = i / n;
-    const v = s.v0 + (s.v1 - s.v0) * t;
-    const p = strandAt(s, v);
-    const a =
-      s.alpha *
-      alphaMul *
-      smooth(t / s.fin) *
-      (1 - smooth((t - 0.75) / 0.25)) *
-      (1 - smooth((v - 0.62) / 0.38)) *
-      (0.45 + 0.55 * (0.5 + 0.5 * p.depth));
-    if (a > 0.002) {
-      g.strokeStyle = ink(ch, a);
-      g.lineWidth = s.width * widthMul * (0.7 + 2.3 * v);
-      g.beginPath();
-      g.moveTo(prev.x, prev.y);
-      g.lineTo(p.x, p.y);
-      g.stroke();
-    }
-    prev = p;
-  }
-  g.restore();
-}
+/** The head's middle and size in pixels; `hp` turns head units (x across, y down) into pixels. */
+const HX = colX(CHIN_V) + 3;
+const HY = GH * (1 - HEAD_AT / SMOKE_H);
+const HRX = HEAD_RX * PX;
+const HRY = HEAD_RY * PX;
+const hp = (u: number, w: number): [number, number] => [HX + u * HRX, HY + w * HRY];
 
 /** A soft round blob (an ellipse fading out from its middle). `hard` keeps it dense further out. */
 function blob(g: CanvasRenderingContext2D, x: number, y: number, rx: number, ry: number, a: number, ch: Ch, rot = 0, hard = 0.55) {
@@ -918,78 +1030,249 @@ function blob(g: CanvasRenderingContext2D, x: number, y: number, rx: number, ry:
   g.restore();
 }
 
-/** The face's outline: an oval, a little narrower and longer to the chin. `k` scales it. */
+/** An outline of an ellipse (smoke gathered round a hole). */
+function ellipseLine(g: CanvasRenderingContext2D, x: number, y: number, rx: number, ry: number, rot: number, width: number, a: number, ch: Ch) {
+  g.save();
+  g.strokeStyle = ink(ch, a);
+  g.lineWidth = width;
+  g.beginPath();
+  g.ellipse(x, y, rx, ry, rot, 0, TAU);
+  g.stroke();
+  g.restore();
+}
+
+/**
+ * Strokes a smooth curve through `pts`, a short segment at a time so it can thicken, thin and
+ * fade along its length (width and alpha as functions of 0..1 along it).
+ */
+function band(g: CanvasRenderingContext2D, pts: [number, number][], width: (t: number) => number, alpha: (t: number) => number, ch: Ch, n = 140) {
+  const curve = new THREE.SplineCurve(pts.map(([x, y]) => new THREE.Vector2(x, y)));
+  g.save();
+  // butt ends, so the added segments do not pile up into beads where they meet
+  g.lineCap = 'butt';
+  let prev = curve.getPoint(0);
+  for (let i = 1; i <= n; i++) {
+    const t = i / n;
+    const p = curve.getPoint(t);
+    const a = alpha(t);
+    if (a > 0.002) {
+      g.strokeStyle = ink(ch, a);
+      g.lineWidth = width(t);
+      g.beginPath();
+      g.moveTo(prev.x, prev.y);
+      g.lineTo(p.x, p.y);
+      g.stroke();
+    }
+    prev = p;
+  }
+  g.restore();
+}
+
+/** The face's outline: long, the cranium wider, narrowing to a long jaw. `k` scales it. */
 function eggPath(g: CanvasRenderingContext2D, k = 1) {
   g.beginPath();
-  for (let i = 0; i <= 64; i++) {
-    const p = (i / 64) * TAU;
+  for (let i = 0; i <= 72; i++) {
+    const p = (i / 72) * TAU;
     const c = Math.cos(p);
-    const narrow = 1 - 0.28 * Math.max(0, -c) ** 1.4;
-    const x = FX + k * FACE_RX * Math.sin(p) * narrow;
-    const y = FY - k * (c > 0 ? FACE_TOP : FACE_BOT) * c;
+    const narrow = 1 - 0.34 * Math.max(0, -c) ** 1.3;
+    const x = HX + k * HRX * Math.sin(p) * narrow;
+    const y = HY - k * HRY * c;
     if (i === 0) g.moveTo(x, y);
     else g.lineTo(x, y);
   }
   g.closePath();
 }
 
-/** Haze: the volume of the smoke round the filaments, very soft (blurred most). */
-function paintHaze(g: CanvasRenderingContext2D) {
-  for (let v = 0.02; v < 1; v += 0.02) {
-    const hw = colHW(v);
-    blob(g, colX(v), GH * (1 - v), hw * 1.15, hw * 0.9 + 14, 0.035 * smooth(v / 0.12) * (1 - smooth((v - 0.6) / 0.4)), 'r');
+/** The hollows of the face, in head units: two eye sockets, the nose, the long screaming mouth. */
+interface Hole {
+  u: number;
+  w: number;
+  rx: number;
+  ry: number;
+  rot: number;
+  a: number;
+  /** Smoke gathers round it in a rim. */
+  rim: boolean;
+}
+const HOLES: Hole[] = [
+  // the sockets, big and tall, their tops leaning in (a look of anguish)
+  { u: -0.37, w: -0.2, rx: 0.25, ry: 0.21, rot: 0.38, a: 0.95, rim: true },
+  { u: 0.37, w: -0.2, rx: 0.25, ry: 0.21, rot: -0.38, a: 0.95, rim: true },
+  // the nose: a dark hollow, two nostrils
+  { u: 0, w: 0.12, rx: 0.06, ry: 0.07, rot: 0, a: 0.7, rim: false },
+  { u: -0.06, w: 0.16, rx: 0.05, ry: 0.055, rot: 0.4, a: 0.65, rim: false },
+  { u: 0.06, w: 0.16, rx: 0.05, ry: 0.055, rot: -0.4, a: 0.65, rim: false },
+  // the mouth, hanging open in a long scream
+  { u: 0, w: 0.5, rx: 0.17, ry: 0.27, rot: 0, a: 0.95, rim: true },
+  { u: 0, w: 0.66, rx: 0.18, ry: 0.17, rot: 0, a: 0.95, rim: false },
+];
+
+function drawHoles(g: CanvasRenderingContext2D, k: number, ch: Ch) {
+  for (const h of HOLES) {
+    const [x, y] = hp(h.u, h.w);
+    blob(g, x, y, h.rx * HRX * k, h.ry * HRY * k, h.a, ch, h.rot, 0.7);
   }
-  // the column is a little denser where it thickens round the face
-  blob(g, FX, FY, FACE_RX * 1.9, FACE_BOT * 1.6, 0.07, 'r');
-  blob(g, FX, FY + 2, FACE_RX * 1.25, FACE_BOT * 1.15, 0.12, 'g');
-  for (const sd of [-1, 1]) blob(g, FX + sd * 10, FY - 4, 12, 11, 0.2, 'b');
-  blob(g, FX, FY + 21, 10, 15, 0.18, 'b');
 }
 
-/** Soft: the filaments' glow, the pale oval of the face, its eyes and mouth. */
-function paintSoft(g: CanvasRenderingContext2D, strands: Strand[]) {
-  for (const s of strands) drawStrand(g, s, 3.6, 0.16, 'r');
-  // the face: palest on the brow and the cheekbones, thinning out to its edge
-  eggPath(g);
-  const face = g.createRadialGradient(FX, FY - 8, 3, FX, FY + 2, FACE_BOT * 1.1);
-  face.addColorStop(0, ink('g', 0.42));
-  face.addColorStop(0.5, ink('g', 0.32));
-  face.addColorStop(0.85, ink('g', 0.14));
-  face.addColorStop(1, ink('g', 0.02));
+/**
+ * The wisps of smoke flowing round the head and up over it, trailing off to the right at the
+ * top (head units). They rise from the smoke under the chin: smoke, not hair.
+ */
+const WISPS: [number, number][][] = [
+  [
+    [-0.45, 0.95],
+    [-0.98, 0.45],
+    [-1.12, -0.25],
+    [-0.95, -0.82],
+    [-0.5, -1.1],
+    [0.15, -1.18],
+    [0.75, -1.2],
+    [1.2, -1.27],
+    [1.45, -1.22],
+  ],
+  [
+    [0.5, 0.92],
+    [0.98, 0.38],
+    [1.08, -0.3],
+    [0.98, -0.78],
+    [1.12, -1.02],
+    [1.4, -1.1],
+  ],
+  [
+    [0.0, -0.95],
+    [-0.18, -1.1],
+    [0.0, -1.24],
+    [0.45, -1.28],
+    [0.92, -1.2],
+  ],
+  [
+    [-0.62, -1.0],
+    [-0.95, -1.14],
+    [-0.98, -1.28],
+    [-0.76, -1.32],
+    [-0.62, -1.22],
+  ],
+];
+const wispPx = (w: [number, number][], du = 0, dw = 0) => w.map(([u, v]) => hp(u + du, v + dw));
+
+/** The thread's filaments: they leave the wick as one and wind loosely round each other as they widen. */
+interface Strand {
+  ph: number;
+  turns: number;
+  amp: number;
+  v1: number;
+  alpha: number;
+  width: number;
+}
+function makeStrands(): Strand[] {
+  const r = seeded(1225);
+  return Array.from({ length: 5 }, (_, k) => ({
+    ph: (k / 5) * TAU + (r() - 0.5) * 0.5,
+    turns: 1.3 + r() * 0.8,
+    amp: 0.5 + r() * 0.45,
+    v1: CHIN_V + 0.05 + r() * 0.05,
+    alpha: 0.65 + r() * 0.35,
+    width: 2.2 + r() * 0.8,
+  }));
+}
+function strandAt(s: Strand, v: number): { x: number; y: number; depth: number } {
+  const a = s.ph + TAU * s.turns * v;
+  return { x: colX(v) + colHW(v) * s.amp * Math.sin(a), y: GH * (1 - v), depth: Math.cos(a) };
+}
+function drawStrand(g: CanvasRenderingContext2D, s: Strand, widthMul: number, alphaMul: number) {
+  const n = 220;
+  g.save();
+  g.lineCap = 'butt';
+  let prev = strandAt(s, 0);
+  for (let i = 1; i <= n; i++) {
+    const v = (i / n) * s.v1;
+    const p = strandAt(s, v);
+    const a = s.alpha * alphaMul * (1 - smooth((v - (s.v1 - 0.09)) / 0.09)) * (0.5 + 0.25 * (1 + p.depth));
+    if (a > 0.002) {
+      g.strokeStyle = ink('r', a);
+      g.lineWidth = s.width * widthMul * (1 + 4 * v);
+      g.beginPath();
+      g.moveTo(prev.x, prev.y);
+      g.lineTo(p.x, p.y);
+      g.stroke();
+    }
+    prev = p;
+  }
+  g.restore();
+}
+
+/** The column's haze: the soft volume round the filaments, widening as it rises to the chin. */
+function paintColumnHaze(g: CanvasRenderingContext2D) {
+  for (let v = 0.04; v < CHIN_V + 0.08; v += 0.012) {
+    const hw = colHW(v);
+    blob(g, colX(v), GH * (1 - v), hw * 1.3 + 3, hw * 0.8 + 8, 0.1 * smooth(v / 0.1) * (1 - smooth((v - CHIN_V) / 0.08)), 'r');
+  }
+}
+
+/** The thread and its filaments; `soft` draws their wider glow. */
+function paintColumn(g: CanvasRenderingContext2D, strands: Strand[], soft: boolean) {
+  for (const s of strands) drawStrand(g, s, soft ? 2.6 : 1, soft ? 0.3 : 0.9);
+  if (soft) return;
+  // the bright single thread right off the wick, before it opens out
+  const pts: [number, number][] = Array.from({ length: 8 }, (_, k) => {
+    const v = (k / 7) * CHIN_V * 0.7;
+    return [colX(v), GH * (1 - v)];
+  });
+  band(g, pts, (t) => 4.2 + 2 * t, (t) => 0.95 * (1 - smooth((t - 0.5) / 0.5)), 'r', 60);
+}
+
+/** The head's smoke: the long face, brow and cheekbones, the neck it rises from, the wisps; the hollows cut out. */
+function paintHeadSoft(g: CanvasRenderingContext2D) {
+  eggPath(g, 1.05);
+  const face = g.createRadialGradient(HX, HY - 0.25 * HRY, 4, HX, HY, HRY * 1.1);
+  face.addColorStop(0, ink('g', 0.8));
+  face.addColorStop(0.55, ink('g', 0.66));
+  face.addColorStop(0.85, ink('g', 0.36));
+  face.addColorStop(1, ink('g', 0.05));
   g.fillStyle = face;
   g.fill();
-  blob(g, FX, FY - 19, 15, 8, 0.12, 'g');
-  blob(g, FX, FY + 36, 9, 5, 0.1, 'g');
-  for (const sd of [-1, 1]) {
-    blob(g, FX + sd * 14, FY + 6, 8, 6, 0.1, 'g');
-    // the hollow eyes, drooping a little at the outer corners
-    blob(g, FX + sd * 10, FY - 4, 6.5, 8.5, 0.85, 'b', -sd * 0.22, 0.7);
-    // hollow cheeks above the jaw, which give the chin its shape
-    blob(g, FX + sd * 19, FY + 22, 4.5, 12, 0.16, 'b', sd * 0.3);
-  }
-  blob(g, FX, FY + 9, 2.2, 3.5, 0.3, 'b');
-  // the mouth: a dark oval hanging open
-  blob(g, FX, FY + 21, 5.5, 9, 0.85, 'b', 0, 0.7);
-  // the shadow under the jaw, where the smoke below shows darker
-  blob(g, FX, FY + FACE_BOT + 6, 15, 5, 0.14, 'b');
+  blob(g, ...hp(0, -0.38), 0.8 * HRX, 0.14 * HRY, 0.25, 'g');
+  for (const sd of [-1, 1]) blob(g, ...hp(sd * 0.56, 0.02), 0.3 * HRX, 0.13 * HRY, 0.22, 'g', sd * 0.2);
+  blob(g, ...hp(0, 0.92), 0.36 * HRX, 0.12 * HRY, 0.18, 'g');
+  // the neck: the smoke under the chin that the head rises out of
+  band(g, [hp(0.03, 1.5), hp(0.02, 1.2), hp(0, 0.9)], (t) => HRX * (0.3 + 0.4 * t), (t) => 0.3 * smooth(t / 0.5), 'g', 60);
+  for (const w of WISPS)
+    band(g, wispPx(w), (t) => HRX * (0.3 - 0.15 * t), (t) => 0.26 * smooth(t / 0.12) * (1 - smooth((t - 0.5) / 0.5)), 'g');
+  g.globalCompositeOperation = 'destination-out';
+  drawHoles(g, 1.15, 'g');
+  g.globalCompositeOperation = 'lighter';
+  // the smoke is densest round the sockets and the mouth
+  for (const h of HOLES)
+    if (h.rim) ellipseLine(g, ...hp(h.u, h.w), h.rx * HRX * 1.4, h.ry * HRY * 1.35, h.rot, 0.14 * HRX, 0.34, 'g');
 }
 
-/** Fine: the filaments themselves, smoke strands round the face's edge, the cores of the holes. */
-function paintFine(g: CanvasRenderingContext2D, strands: Strand[]) {
-  for (const s of strands) drawStrand(g, s, 1, 0.55, 'r');
-  // the face is smoke too: faint strands follow its outline
+/** The head's fine detail: strands along its outline and brow, the rims of its hollows, curls in the wisps. */
+function paintHeadFine(g: CanvasRenderingContext2D) {
   g.save();
-  g.lineWidth = 1;
-  for (const k of [0.82, 0.92, 1.0]) {
+  g.lineWidth = 2;
+  for (const k of [0.97, 1.05]) {
     eggPath(g, k);
-    g.strokeStyle = ink('g', 0.08);
-    g.stroke();
-    g.strokeStyle = ink('r', 0.05);
+    g.strokeStyle = ink('g', 0.1);
     g.stroke();
   }
   g.restore();
-  for (const sd of [-1, 1]) blob(g, FX + sd * 10, FY - 3, 3.5, 4.5, 0.6, 'b');
-  blob(g, FX, FY + 21, 3, 6, 0.6, 'b');
+  for (const h of HOLES) if (h.rim) ellipseLine(g, ...hp(h.u, h.w), h.rx * HRX * 1.22, h.ry * HRY * 1.2, h.rot, 3, 0.36, 'g');
+  band(g, [hp(-0.72, -0.3), hp(0, -0.43), hp(0.72, -0.3)], () => 3, (t) => 0.22 * Math.sin(Math.PI * t), 'g', 60);
+  for (const w of WISPS)
+    for (const off of [-0.06, 0.05])
+      band(g, wispPx(w, off, off * 0.5), (t) => 3 * (1 - 0.6 * t), (t) => 0.36 * smooth(t / 0.1) * (1 - t), 'g');
+  g.globalCompositeOperation = 'destination-out';
+  drawHoles(g, 1.05, 'g');
+  g.globalCompositeOperation = 'lighter';
+}
+
+/** The dark of the hollows, and the faint hollows of the cheeks and temples that make it a skull. */
+function paintHoles(g: CanvasRenderingContext2D) {
+  drawHoles(g, 1, 'b');
+  for (const sd of [-1, 1]) {
+    blob(g, ...hp(sd * 0.5, 0.42), 0.12 * HRX, 0.25 * HRY, 0.16, 'b', sd * 0.2);
+    blob(g, ...hp(sd * 0.74, -0.38), 0.1 * HRX, 0.14 * HRY, 0.1, 'b');
+  }
 }
 
 /** Draws a layer onto the picture, added, blurred by about `px` (by filter, or by scaling). */
@@ -1034,33 +1317,36 @@ function paintGhost(): HTMLCanvasElement {
     const lg = c.getContext('2d');
     if (!lg) return;
     lg.globalCompositeOperation = 'lighter';
-    lg.lineCap = 'round';
     lg.lineJoin = 'round';
     paint(lg);
     blurOnto(g, c, px);
   };
-  layer(paintHaze, 18);
-  layer((lg) => paintSoft(lg, strands), 4);
-  layer((lg) => paintFine(lg, strands), 0.6);
+  layer(paintColumnHaze, 9);
+  layer((lg) => paintColumn(lg, strands, true), 3);
+  layer((lg) => paintColumn(lg, strands, false), 0.6);
+  layer(paintHeadSoft, 6);
+  layer(paintHeadFine, 1.2);
+  layer(paintHoles, 2.5);
   return main;
 }
 
 const SMOKE_FRAG = /* glsl */ `
 uniform sampler2D uMap;
 uniform float uTime;
-uniform float uSpeed;
 uniform float uSeed;
 uniform float uFront;
-uniform float uFace;
-uniform float uRise;
-uniform float uBreak;
-uniform float uAlpha;
-uniform float uEmber;
+uniform float uTail;
+uniform float uCol;
 uniform float uThread;
-uniform float uFaceMul;
-uniform vec2 uOff;
+uniform float uHead;
+uniform float uLift;
+uniform float uDrift;
+uniform float uStretch;
+uniform float uBreak;
+uniform float uEmber;
 varying vec2 vUv;
 const float ASPECT = ${(SMOKE_W / SMOKE_H).toFixed(4)};
+const float CHIN = ${CHIN_V.toFixed(4)};
 float h3(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
 float n3(vec3 x) {
   vec3 i = floor(x); vec3 f = fract(x); f = f * f * (3.0 - 2.0 * f);
@@ -1071,74 +1357,80 @@ float fbm(vec3 p) { return 0.55 * n3(p) + 0.3 * n3(p * 2.1) + 0.15 * n3(p * 4.3)
 float inside(vec2 u) { return step(0.0, u.x) * step(u.x, 1.0) * step(0.0, u.y) * step(u.y, 1.0); }
 void main() {
   float h = vUv.y;
-  float t = uTime * uSpeed;
-  vec2 uv = vUv - uOff * smoothstep(0.15, 0.7, h);
-  // rising on, and spreading a little as it rises
-  uv.y -= uRise * 0.14 * (0.25 + h);
-  uv.x = 0.5 + (uv.x - 0.5) / (1.0 + uRise * 0.4 * h);
+  float t = uTime;
   // noise is taken in the picture's true shape, so its swirls are round
-  vec2 p = vec2(uv.x * ASPECT, uv.y);
-  // the sway: slow, broad noise travelling up the column, none at the wick, more higher up
-  vec3 q = vec3(p.x * 2.2, p.y * 2.2 - t * 0.2, t * 0.08 + uSeed);
+  vec2 p = vec2(vUv.x * ASPECT, h);
+  // the sway: slow, broad noise travelling up, none at the wick, more higher up
+  vec3 q = vec3(p.x * 2.6, p.y * 2.6 - t * 0.32, t * 0.1 + uSeed);
   vec2 w = vec2(fbm(q), fbm(q + vec3(5.2, 1.3, 2.8))) - 0.5;
   // and a finer curl along the filaments
-  vec3 q2 = vec3(p.x * 9.0 + w.x * 1.5, p.y * 7.0 - t * 0.45, t * 0.16 + uSeed * 1.7);
+  vec3 q2 = vec3(p.x * 10.0 + w.x * 1.5, p.y * 8.0 - t * 0.9, t * 0.2 + uSeed * 1.7);
   vec2 w2 = vec2(n3(q2), n3(q2 + vec3(3.1, 7.4, 1.9))) - 0.5;
-  float amp = 0.003 + 0.09 * smoothstep(0.02, 0.9, h);
-  vec2 sway = vec2(w.x * amp, w.y * amp * 0.25);
-  vec2 su = uv + sway + vec2(w2.x * amp * 0.25, w2.y * amp * 0.1);
-  // the face sways with the column but keeps its shape
-  vec2 fu = uv + sway + w2 * amp * 0.04;
-  vec4 s = texture2D(uMap, su) * inside(su);
-  vec4 f = texture2D(uMap, fu) * inside(fu);
-  float edge = smoothstep(1.0, 0.9, vUv.y) * smoothstep(0.0, 0.08, vUv.x) * smoothstep(1.0, 0.92, vUv.x);
+  float amp = 0.002 + 0.06 * smoothstep(0.03, 0.5, h);
   float nz = fbm(vec3(p * 6.0, uSeed + 9.0));
-  // revealed from the bottom up as the smoke climbs, its front ragged
-  float shown = smoothstep(uFront + 0.02, uFront - 0.12, h + (nz - 0.5) * 0.1);
-  shown *= mix(1.0, smoothstep(0.3, 0.16, h), uThread);
-  // denser and thinner patches travelling up the filaments, so the smoke flows
-  float flow = 0.7 + 0.6 * n3(vec3(p.x * 14.0, p.y * 10.0 - t * 0.9, t * 0.3 + uSeed));
-  // thinning out: holes open in it and spread
-  float b = fbm(vec3(p * vec2(9.0, 5.0), t * 0.25 + 3.0));
-  float keep = 1.0 - smoothstep(b - 0.12, b + 0.12, uBreak * 1.2 - 0.05);
-  float d = s.r * flow;
-  float sa = smoothstep(0.0, 0.85, d) * 0.9 * shown * keep * edge * uAlpha;
-  vec3 sc = mix(vec3(0.55, 0.57, 0.6), vec3(0.9, 0.9, 0.89), smoothstep(0.05, 0.7, d));
-  sc += uEmber * vec3(0.4, 0.16, 0.04) * pow(max(0.0, 1.0 - h * 5.0), 3.0);
-  // the face condenses in patches rather than fading in evenly
-  float fm = uFace * uFaceMul * keep * edge * uAlpha * shown;
-  float cond = smoothstep(nz - 0.25, nz + 0.25, uFace * 1.4 - 0.2);
-  float af = clamp(f.g * 1.2, 0.0, 1.0) * fm * cond * 0.72;
-  float ah = clamp(f.b * 1.1, 0.0, 1.0) * fm * cond * 0.75;
-  vec3 col = sc * sa;
-  float a = sa;
-  col = vec3(0.9, 0.89, 0.86) * af + col * (1.0 - af);
-  a = af + a * (1.0 - af);
-  col = vec3(0.01, 0.012, 0.016) * ah + col * (1.0 - ah);
-  a = ah + a * (1.0 - ah);
+  float rag = (nz - 0.5) * 0.08;
+  // the smoke has reached this high (its front ragged), and has let go of the wick below uTail
+  float front = smoothstep(uFront + 0.02, uFront - 0.1, h + rag);
+  float tail = smoothstep(uTail - 0.02, uTail + 0.12, h + rag);
+  float edge = smoothstep(1.0, 0.9, h) * smoothstep(0.0, 0.06, vUv.x) * smoothstep(1.0, 0.94, vUv.x);
+
+  // the thread and its column, which stay on the wick while the smoke flows up through them
+  vec2 cu = vUv + vec2(w.x * amp + w2.x * amp * 0.3, (w.y * 0.3 + w2.y * 0.1) * amp);
+  float cd = texture2D(uMap, cu).r * inside(cu);
+  float flow = 0.6 + 0.8 * n3(vec3(p.x * 12.0, p.y * 9.0 - t * 1.2, t * 0.3 + uSeed));
+  float thread = mix(1.0, smoothstep(0.3, 0.1, h), uThread);
+  float ca = clamp(cd * flow * 1.5, 0.0, 1.0) * front * tail * thread * uCol * edge;
+  vec3 cc = mix(vec3(0.72, 0.74, 0.78), vec3(0.97, 0.97, 0.98), smoothstep(0.05, 0.6, cd));
+  cc += uEmber * vec3(0.45, 0.18, 0.05) * pow(max(0.0, 1.0 - h * 7.0), 3.0);
+  vec3 col = cc * ca;
+  float a = ca;
+
+  if (uHead > 0.0) {
+    // the head rises with the smoke and drifts; it sways less than the thread, so it keeps its shape
+    vec2 hu = vUv;
+    hu.x -= uDrift * smoothstep(0.15, 0.5, h);
+    hu.y -= uLift;
+    // drawn out upward as it comes apart
+    hu.y = CHIN + (hu.y - CHIN) / (1.0 + uStretch);
+    hu += vec2(w.x, w.y * 0.3) * amp * 0.3 + w2 * amp * (0.05 + 0.4 * uBreak);
+    vec4 hd = texture2D(uMap, hu) * inside(hu);
+    // coming apart: holes open in it and spread
+    float b = fbm(vec3(p * vec2(8.0, 5.0) - vec2(0.0, t * 0.4), t * 0.25 + 3.0));
+    float keep = 1.0 - smoothstep(b - 0.15, b + 0.15, uBreak * 1.3 - 0.15);
+    float m = front * keep * uHead * edge;
+    float hf = 0.8 + 0.4 * n3(vec3(p.x * 14.0, p.y * 11.0 - t * 0.7, t * 0.2 + uSeed * 2.3));
+    float ha = clamp(hd.g * 1.45 * hf, 0.0, 0.95) * m;
+    float hk = clamp(hd.b * 1.15, 0.0, 1.0) * m * 0.85;
+    vec3 hc = mix(vec3(0.8, 0.81, 0.84), vec3(1.0, 1.0, 0.99), smoothstep(0.1, 0.65, hd.g));
+    col = hc * ha + col * (1.0 - ha);
+    a = ha + a * (1.0 - ha);
+    col = vec3(0.005, 0.006, 0.01) * hk + col * (1.0 - hk);
+    a = hk + a * (1.0 - hk);
+  }
   gl_FragColor = vec4(col, a);
 }
 `;
 
-function smokeUniforms(map: THREE.Texture, seed: number, speed: number, faceMul: number, thread: number) {
+function smokeUniforms(map: THREE.Texture, seed: number, thread: number) {
   return {
     uMap: { value: map },
     uTime: { value: 0 },
-    uSpeed: { value: speed },
     uSeed: { value: seed },
     uFront: { value: 0 },
-    uFace: { value: 0 },
-    uRise: { value: 0 },
-    uBreak: { value: 0 },
-    uAlpha: { value: 0 },
-    uEmber: { value: 0 },
+    uTail: { value: -0.2 },
+    uCol: { value: 0 },
     uThread: { value: thread },
-    uFaceMul: { value: faceMul },
-    uOff: { value: new THREE.Vector2() },
+    uHead: { value: 0 },
+    uLift: { value: 0 },
+    uDrift: { value: 0 },
+    uStretch: { value: 0 },
+    uBreak: { value: 0 },
+    uEmber: { value: 0 },
   };
 }
 type SmokeU = ReturnType<typeof smokeUniforms>;
 
+/** Drawn after the veil, on top of everything, never darkened: the smoke comes out toward you. */
 function smokeMat(u: SmokeU): THREE.ShaderMaterial {
   return new THREE.ShaderMaterial({
     uniforms: u,
@@ -1146,6 +1438,7 @@ function smokeMat(u: SmokeU): THREE.ShaderMaterial {
     fragmentShader: SMOKE_FRAG,
     transparent: true,
     depthWrite: false,
+    depthTest: false,
     premultipliedAlpha: true,
   });
 }
@@ -1155,9 +1448,9 @@ function buildGhost() {
   tex.anisotropy = 4;
   const geo = new THREE.PlaneGeometry(SMOKE_W, SMOKE_H);
   geo.translate(0, SMOKE_H / 2, 0);
-  const front = smokeUniforms(tex, 1.3, 1, 1, 0);
-  const back = smokeUniforms(tex, 7.9, 0.62, 0, 0);
-  const wisp = smokeUniforms(tex, 4.4, 1.2, 0, 1);
+  const front = smokeUniforms(tex, 1.3, 0);
+  const back = smokeUniforms(tex, 7.9, 0);
+  const wisp = smokeUniforms(tex, 4.4, 1);
   return { geo, front, back, wisp, mats: { front: smokeMat(front), back: smokeMat(back), wisp: smokeMat(wisp) } };
 }
 let ghostGeo: ReturnType<typeof buildGhost> | null = null;
@@ -1166,23 +1459,27 @@ const ghostParts = () => (ghostGeo ??= buildGhost());
 interface SmokeState {
   time: number;
   front: number;
-  face: number;
-  rise: number;
+  tail: number;
+  col: number;
+  head: number;
+  lift: number;
+  drift: number;
+  stretch: number;
   brk: number;
-  alpha: number;
   ember: number;
-  off: [number, number];
 }
 
 function setSmoke(u: SmokeU, st: SmokeState) {
   u.uTime.value = st.time;
   u.uFront.value = st.front;
-  u.uFace.value = st.face;
-  u.uRise.value = st.rise;
+  u.uTail.value = st.tail;
+  u.uCol.value = st.col;
+  u.uHead.value = st.head;
+  u.uLift.value = st.lift;
+  u.uDrift.value = st.drift;
+  u.uStretch.value = st.stretch;
   u.uBreak.value = st.brk;
-  u.uAlpha.value = st.alpha;
   u.uEmber.value = st.ember;
-  u.uOff.value.set(st.off[0], st.off[1]);
 }
 
 const qA = new THREE.Quaternion();
@@ -1205,7 +1502,13 @@ function faceCameraY(o: THREE.Object3D, cam: THREE.Camera) {
   o.rotation.set(0, Math.atan2(vA.x - o.position.x, vA.z - o.position.z), 0);
 }
 
-/** Every frame of the smoke, from the seconds since the Take (outside the component). */
+/**
+ * Every frame of the smoke, from the seconds since the Take (outside the component). One
+ * movement, no pauses: the front of the smoke climbs at an even pace from 0.12 s; the head is
+ * carried up from the start, so it is already rising when the front reaches it and it forms
+ * (0.85-1.5 s); it drifts on, holding its shape, until 3.3 s, then speeds up, draws out and
+ * breaks up (gone by 5.0 s). The thread lets go of the wick at 3.0 s and follows it.
+ */
 function driveSmoke(root: THREE.Group | null, s: number, cam: THREE.Camera) {
   if (!root) return;
   if (s < 0 || s === Infinity || s > TAKE.end) {
@@ -1216,38 +1519,38 @@ function driveSmoke(root: THREE.Group | null, s: number, cam: THREE.Camera) {
   faceCamera(root, cam);
   const p = ghostParts();
   const t = s;
-  // the thread climbs (0.3-1.5 s), then the column grows up out of it (1.3-3.0 s)
-  const front = Math.max(0.3 * smooth((t - 0.3) / 1.2), t > 1.3 ? 0.3 + 0.85 * smooth((t - 1.3) / 1.7) : 0);
-  // it hangs (3.8-5.0 s), then rises on and thins out (5.0-6.5 s)
-  const rise = progress(t, 1.4, 5.0);
-  const alpha = 1 - progress(t, 1.0, 5.5);
+  const front = 0.95 * clamp01((t - 0.12) / 2.3) ** 0.85;
+  const lift = 0.026 * t + 0.1 * Math.max(0, t - 3.0) ** 2;
+  const drift = 0.012 * Math.sin(t * 0.8) + 0.04 * smooth((t - 1.8) / 3.0);
+  const stretch = 0.7 * smooth((t - 3.3) / 1.7);
+  const brk = smooth((t - 3.4) / 1.5);
+  const head = 1 - smooth((t - 4.2) / 0.8);
+  const tail = t < 3.0 ? -0.2 : -0.12 + 0.42 * (t - 3.0);
+  const col = 1 - smooth((t - 4.2) / 0.7);
   const ember = emberAt(t);
-  const off: [number, number] = [Math.sin(t * 0.7) * 0.006, Math.sin(t * 0.53 + 1) * 0.004];
-  // the face condenses in it (2.4-3.8 s)
-  setSmoke(p.front, { time: t, front, face: progress(t, 1.4, 2.4), rise, brk: rise, alpha, ember, off });
+  setSmoke(p.front, { time: t, front, tail, col, head, lift, drift, stretch, brk, ember });
   // a fainter second layer, swaying on its own, gives the column depth
-  setSmoke(p.back, { time: t + 11, front: front - 0.05, face: 0, rise: rise * 1.1, brk: rise, alpha: alpha * 0.35, ember, off });
-  // a last thin wisp from the ember as it dies (6.0-7.0 s)
-  const wisp = t > 6.0 ? 1 - progress(t, 0.6, 6.4) : 0;
-  setSmoke(p.wisp, { time: t + 3, front: 0.3 * smooth((t - 6.0) / 0.5), face: 0, rise: 0, brk: 0, alpha: wisp * 0.8, ember, off: [0, 0] });
+  setSmoke(p.back, { time: t + 11, front: front - 0.04, tail, col: col * 0.35, head: 0, lift: 0, drift: 0, stretch: 0, brk: 0, ember });
+  // a last thin wisp from the ember as it dies (4.4-5.8 s)
+  const wisp = t > 4.4 ? 0.7 * (1 - smooth((t - 5.0) / 0.8)) : 0;
+  setSmoke(p.wisp, { time: t + 3, front: 0.3 * smooth((t - 4.4) / 0.6), tail: -0.2, col: wisp, head: 0, lift: 0, drift: 0, stretch: 0, brk: 0, ember });
 }
 
 /**
- * The smoke from the blown-out wick: one straight column of fine twisting filaments rising off
- * the ember, and partway up, small, a face in it: a pale oval, hollow eyes, an open mouth. It
- * hangs a moment, swaying, then rises on and thins out. A picture that always turns to face
- * you, its foot on the ember.
+ * The smoke from the blown-out wick: a thin thread curling up off the ember and widening, and
+ * at its top the smoke is a face. A picture that always turns to face you, its foot on the
+ * ember, drawn over everything (after the veil) so it stays bright in the dark.
  */
 function SmokeGhost({ since, scale }: { since: () => number; scale: number }) {
   const root = useRef<THREE.Group>(null);
   const camera = useThree((s) => s.camera);
   const p = ghostParts();
-  useFrame(() => driveSmoke(root.current, since(), camera));
+  useFrame(() => driveSmoke(root.current, since() * 0.3, camera));
   return (
     <group ref={root} position={OLD_TIP} scale={scale} visible={false} userData={{ extra: true }}>
-      <mesh geometry={p.geo} material={p.mats.back} position-z={-0.03} scale={1.04} renderOrder={6} />
-      <mesh geometry={p.geo} material={p.mats.front} renderOrder={7} />
-      <mesh geometry={p.geo} material={p.mats.wisp} renderOrder={7} />
+      <mesh geometry={p.geo} material={p.mats.back} position-z={-0.02} scale={1.06} renderOrder={9} />
+      <mesh geometry={p.geo} material={p.mats.front} renderOrder={10} />
+      <mesh geometry={p.geo} material={p.mats.wisp} renderOrder={10} />
     </group>
   );
 }
@@ -1262,18 +1565,17 @@ interface Rig {
   ember: THREE.Group | null;
 }
 
-/** Every frame of the flame, its light and the ember (outside the component). */
-function driveCandle(r: Rig, s: number, clock: number, base: number, cam: THREE.Camera, at: V3, haunted: boolean) {
+/** Every frame of the flame, its light, the ember and the dark (outside the component). */
+function driveCandle(r: Rig, s: number, clock: number, base: number, cam: THREE.Camera, at: V3, taken: boolean) {
   const lp = lights();
   // lit until it is taken; then it shrinks into the wick and dies in 0.3 s
   const lit = s < 0 ? 1 : 1 - progress(s, TAKE.out);
   const fl = 1 + Math.sin(clock * 13) * 0.05 + Math.sin(clock * 7.3 + 1) * 0.04 + Math.sin(clock * 23.1) * 0.02;
-  const size = haunted ? 0.85 : 1;
   const f = r.flame;
   if (f) {
     f.visible = lit > 0.002;
-    f.position.set(at[0], at[1] - 0.012 * (1 - lit), at[2]);
-    f.scale.set(size * (0.55 + 0.45 * lit) * (1 - (fl - 1) * 0.5), size * fl * lit ** 0.8, size);
+    f.position.set(at[0], at[1] - 0.008 * (1 - lit), at[2]);
+    f.scale.set((0.55 + 0.45 * lit) * (1 - (fl - 1) * 0.5), fl * lit ** 0.8, 1);
     faceCameraY(f, cam);
   }
   lp.flameU.uSway.value = Math.sin(clock * 3.1) * 0.6 + Math.sin(clock * 5.7) * 0.3;
@@ -1288,12 +1590,13 @@ function driveCandle(r: Rig, s: number, clock: number, base: number, cam: THREE.
     r.ember.visible = e > 0.002;
     faceCameraY(r.ember, cam);
   }
+  // the room goes dark as the flame dies, and stays dark
+  veil().u.uAlpha.value = taken ? VEIL_DARK * progress(Math.max(0, s), 0.4) : 0;
 }
 
-/** The dish: polished brass by day; old dark bronze with patina after the Reveal. */
-function Dish({ haunted }: { haunted: boolean }) {
-  if (haunted) return <mesh geometry={oldParts().dish} material={dishOld()} />;
-  return <mesh geometry={dishNew()} material={M.brass()} />;
+/** The chamberstick: polished brass by day; worn and tarnished after the Reveal. */
+function Holder({ haunted }: { haunted: boolean }) {
+  return <mesh geometry={holder()} material={haunted ? brassOld() : brassDay()} />;
 }
 
 function NewCandle() {
@@ -1319,8 +1622,8 @@ function OldCandle() {
 
 /** A holly leaf: a lens with spiky points along both edges. */
 function buildLeaf(): THREE.ExtrudeGeometry {
-  const L = 0.085;
-  const W = 0.026;
+  const L = 0.07;
+  const W = 0.021;
   const n = 8;
   const pts: THREE.Vector2[] = [];
   for (let k = 0; k <= n; k++) {
@@ -1331,65 +1634,54 @@ function buildLeaf(): THREE.ExtrudeGeometry {
     const t = k / n;
     pts.push(new THREE.Vector2(t * L, -(Math.sin(Math.PI * t) ** 0.8) * W * (k % 2 ? 0.6 : 1.05)));
   }
-  const g = new THREE.ExtrudeGeometry(new THREE.Shape(pts), { depth: 0.003, bevelEnabled: false });
-  g.translate(0, 0, -0.0015);
+  const g = new THREE.ExtrudeGeometry(new THREE.Shape(pts), { depth: 0.0025, bevelEnabled: false });
+  g.translate(0, 0, -0.00125);
   return g;
 }
 
-function buildTrim() {
-  // a rolled quill of bark, open along one side, with a tighter roll inside it
-  const outer = new THREE.CylinderGeometry(0.018, 0.018, 0.21, 20, 1, true, 0.4, TAU * 0.9);
-  const inner = new THREE.CylinderGeometry(0.011, 0.011, 0.21, 16, 1, true, 2.2, TAU * 0.8);
-  return { quill: merge([outer, inner]), leaf: buildLeaf(), berry: new THREE.SphereGeometry(0.011, 12, 9) };
-}
-let trimGeo: ReturnType<typeof buildTrim> | null = null;
-const trimParts = () => (trimGeo ??= buildTrim());
+let hollyGeo: { leaf: THREE.ExtrudeGeometry; berry: THREE.SphereGeometry } | null = null;
+const hollyParts = () => (hollyGeo ??= { leaf: buildLeaf(), berry: new THREE.SphereGeometry(0.009, 12, 9) });
 
-/**
- * The smoke's scale on a shelf card: the card fits the candle's body, which leaves about 0.6 of
- * its height above the wick; at this scale the column (0.54 tall) fades out inside it.
- */
-const SHELF_SMOKE = 0.45;
+/** Where the holly lies in the pan: front left, between the socket and the rim. */
+const HOLLY_AT = -0.8;
 
-/** Where the cinnamon lies on the dish: front right, along the gap between candle and wall. */
-const TRIM_AT = 0.85;
-
-/**
- * Two cinnamon sticks tied with twine and a sprig of holly, on the dish by the candle. After the
- * Reveal they are sunk in the pooled wax, the bark dark, the leaves dead and curled.
- */
-function Trimmings({ haunted }: { haunted: boolean }) {
-  const g = trimParts();
-  const r = 0.305;
-  const y = haunted ? -0.5865 : -0.581;
+/** A sprig of holly in the pan by day: two leaves along the rim and three red berries. */
+function Holly() {
+  const g = hollyParts();
+  const r = 0.2;
   return (
-    <group position={[Math.sin(TRIM_AT) * r, y, Math.cos(TRIM_AT) * r]} rotation-y={TRIM_AT}>
-      {[-0.013, 0.016].map((z, i) => (
-        <mesh key={z} geometry={g.quill} material={cinnamon()} position={[i * 0.012 - 0.006, 0, z]} rotation={[i * 0.6, 0, Math.PI / 2]} />
+    <group position={[Math.sin(HOLLY_AT) * r, PAN_FLOOR + 0.004, Math.cos(HOLLY_AT) * r]} rotation-y={HOLLY_AT}>
+      <mesh geometry={g.leaf} material={M.green()} position={[0.004, 0.002, 0]} rotation={[-Math.PI / 2 + 0.14, 0.12, 0.25]} />
+      <mesh geometry={g.leaf} material={M.green()} position={[-0.004, 0.003, 0.004]} rotation={[-Math.PI / 2 - 0.12, -0.1, Math.PI - 0.35]} />
+      {[
+        [0, 0.008, 0.006],
+        [0.012, 0.007, -0.004],
+        [-0.011, 0.007, -0.005],
+      ].map(([bx, by, bz], i) => (
+        <mesh key={i} geometry={g.berry} material={M.berry()} position={[bx!, by!, bz!]} />
       ))}
-      <mesh material={twine()} rotation-y={Math.PI / 2} scale={[1, 0.62, 1]}>
-        <torusGeometry args={[0.034, 0.003, 6, 32]} />
-      </mesh>
-      <group position={[0.02, 0.022, 0.004]} rotation-z={haunted ? -0.25 : 0}>
-        <mesh geometry={g.leaf} material={M.green()} rotation={haunted ? [-0.9, 0.5, 0.2] : [-1.35, 0.25, 0.25]} />
-        <mesh geometry={g.leaf} material={M.green()} rotation={haunted ? [-0.6, -0.4, Math.PI - 0.1] : [-1.3, -0.2, Math.PI - 0.35]} />
-        {[
-          [0, 0.006, 0.008],
-          [0.014, 0.004, -0.004],
-          [-0.012, 0.004, -0.006],
-        ].map(([bx, by, bz], i) => (
-          <mesh key={i} geometry={g.berry} material={M.berry()} position={[bx!, by!, bz!]} scale={haunted ? 0.7 : 1} />
-        ))}
-      </group>
     </group>
   );
 }
 
 /**
+ * The smoke's scale on a shelf card. The card fits the candlestick and its flame, which leaves
+ * a little over half a unit above the wick; at this scale the face and its wisps fit inside it.
+ */
+const SHELF_SMOKE = 0.7;
+
+/**
+ * How tall the room the Take rises into is, above the wick, in the product view. With the
+ * view's margin round it, the thread, the face and the wisps over it fit inside the picture
+ * while the face rises, and the candlestick keeps about 40% of the view's height.
+ */
+const FRAME_H = 0.52;
+
+/**
  * The candle for the window (see the top of this file). The flame flickers (with a periodic
  * redraw, so it lives on the on-demand shelf too) and lights the room; that light grows when
- * the mains fail. Taken, it goes out and a face shows in its smoke. On the shelf the light it
- * gave is gone afterwards: the card stands in a low light.
+ * the mains fail. Taken, it goes out and a face rises in its smoke; the room stays dark round
+ * it afterwards, on its card and in its product view.
  */
 export default function Candle() {
   const haunted = useHaunted();
@@ -1406,7 +1698,7 @@ export default function Candle() {
     const t = setInterval(() => invalidate(), 80);
     return () => clearInterval(t);
   }, [invalidate]);
-  // paint her in the smoke ahead of time, so the Take does not stall while it is drawn
+  // paint the smoke ahead of time, so the Take does not stall while it is drawn
   useEffect(() => {
     if (!haunted) return;
     const t = setTimeout(() => ghostParts(), 700);
@@ -1415,40 +1707,43 @@ export default function Candle() {
   const base = 1.2 + (1 - mains);
   const at = haunted ? OLD_FLAME : NEW_FLAME;
   const lp = lights();
-  useFrame((st) => driveCandle({ flame: flame.current, light: light.current, ember: ember.current }, since(), st.clock.elapsedTime, base, camera, at, haunted));
+  const vp = veil();
+  useFrame((st) =>
+    driveCandle({ flame: flame.current, light: light.current, ember: ember.current }, since(), st.clock.elapsedTime, base, camera, at, taken),
+  );
   return (
     <group>
-      <Dish haunted={haunted} />
+      <Holder haunted={haunted} />
       {haunted ? <OldCandle /> : <NewCandle />}
-      <Trimmings haunted={haunted} />
-      <group ref={flame} position={at} userData={{ extra: true }}>
+      {!haunted && <Holly />}
+      {/* the flame counts toward the object's size (it is tall), its glow does not */}
+      <group ref={flame} position={at}>
         <mesh geometry={lp.flameGeo} material={lp.flameMat} renderOrder={4} />
-        <mesh geometry={lp.haloGeo} material={lp.haloMat} renderOrder={4} />
+        <group userData={{ extra: true }}>
+          <mesh geometry={lp.haloGeo} material={lp.haloMat} renderOrder={4} />
+        </group>
       </group>
-      <pointLight ref={light} position={[at[0], at[1] + 0.12, 0.18]} intensity={base} distance={2.5} color="#ffb860" />
+      <pointLight ref={light} position={[at[0], at[1] + 0.1, 0.12]} intensity={base} distance={2.5} color="#ffb860" />
+      {taken && (
+        // the dark: over the candle and the room, under the ember and the smoke
+        <mesh geometry={vp.geo} material={vp.mat} renderOrder={5} frustumCulled={false} userData={{ extra: true }} />
+      )}
       {taken && (
         // the wick glowing after it is blown out, then going dark
         <group ref={ember} position={OLD_TIP} visible={false} userData={{ extra: true }}>
-          <mesh material={lp.emberMat} renderOrder={6}>
-            <sphereGeometry args={[0.0085, 12, 8]} />
+          <mesh material={lp.emberMat} renderOrder={8}>
+            <sphereGeometry args={[0.0045, 12, 8]} />
           </mesh>
-          <mesh geometry={lp.emberHaloGeo} material={lp.emberHaloMat} renderOrder={6} />
+          <mesh geometry={lp.emberHaloGeo} material={lp.emberHaloMat} renderOrder={8} />
         </group>
       )}
       {taken && <SmokeGhost since={since} scale={onShelf ? SHELF_SMOKE : 1} />}
-      {taken && onShelf && (
-        // a dark veil all round the card's camera (seen from inside), over everything in it but the smoke
-        <mesh renderOrder={5} userData={{ extra: true }}>
-          <sphereGeometry args={[6, 24, 16]} />
-          <meshBasicMaterial color="#020306" transparent opacity={0.6} depthWrite={false} depthTest={false} side={THREE.BackSide} />
-        </mesh>
-      )}
       {haunted && (
-        // not drawn: the lower part of the smoke column, up to just above her face; the product
-        // view frames it from the start (userData.frame), so the candle keeps nearly its usual
-        // size and the view does not move when the Take happens. The column rises on out of it.
-        <mesh position={[OLD_TIP[0], OLD_TIP[1] + (SMOKE_H * 0.66) / 2, OLD_TIP[2]]} userData={{ frame: true }}>
-          <boxGeometry args={[SMOKE_W * 0.6, SMOKE_H * 0.66, 0.3]} />
+        // not drawn: the room above the wick that the smoke and the face rise into; the product
+        // view frames it from the start (userData.frame), so the view does not move when the
+        // Take happens, and only as tall as the face so the candlestick keeps a good size
+        <mesh position={[OLD_TIP[0] + 0.03, OLD_TIP[1] + FRAME_H / 2, OLD_TIP[2]]} userData={{ frame: true }}>
+          <boxGeometry args={[0.5, FRAME_H, 0.1]} />
           <meshBasicMaterial visible={false} />
         </mesh>
       )}
