@@ -1,0 +1,258 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="880" viewBox="0 0 1280 880" role="img" aria-labelledby="t d">
+  <title id="t">Re:Claim system architecture</title>
+  <desc id="d">The visitor's browser runs the whole Shop: React UI, a pure story core, the Director, zustand stores and four rendering layers. It loads static files from nginx on an AWS EC2 instance and talks only to the same-origin Echo API (Fastify with SQLite). Pushes to main are tested by GitHub Actions and deployed through OIDC and AWS Systems Manager.</desc>
+  <defs>
+    <style>
+      .bg { fill: #0e1420; }
+      .zone { fill: #141924; stroke: #a8894e; stroke-width: 1.5; }
+      .card { fill: #1c2230; stroke: #3a4258; stroke-width: 1.2; }
+      .hot { fill: #241820; stroke: #9b1b24; stroke-width: 1.4; }
+      .h1 { font: 700 26px Georgia, 'Times New Roman', serif; fill: #e6dccb; }
+      .h2 { font: 700 16px Georgia, 'Times New Roman', serif; fill: #c8a24c; }
+      .h3 { font: 700 13.5px 'Segoe UI', Inter, Helvetica, Arial, sans-serif; fill: #e6dccb; }
+      .tx { font: 400 11.5px 'Segoe UI', Inter, Helvetica, Arial, sans-serif; fill: #b9b0a2; }
+      .lb { font: 600 11px 'Segoe UI', Inter, Helvetica, Arial, sans-serif; fill: #e0c27a; }
+      .ic { fill: none; stroke: #c8a24c; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+      .icf { fill: #c8a24c; }
+      .ln { fill: none; stroke: #c8a24c; stroke-width: 1.8; }
+      .lnr { fill: none; stroke: #c0392b; stroke-width: 1.8; }
+      .dash { stroke-dasharray: 6 5; }
+    </style>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#c8a24c" />
+    </marker>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#c0392b" />
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1280" height="880" />
+  <text class="h1" x="30" y="44">Re:Claim · system architecture</text>
+  <text class="tx" x="30" y="66">Everything visual runs in the visitor's browser. The server only serves files and keeps an anonymous "echo" of what the last player left behind.</text>
+
+  <!-- ===================== Browser ===================== -->
+  <rect class="zone" x="30" y="86" width="560" height="456" rx="14" />
+  <!-- browser icon -->
+  <g transform="translate(48 100)">
+    <rect class="ic" x="0" y="0" width="30" height="22" rx="3" />
+    <line class="ic" x1="0" y1="7" x2="30" y2="7" />
+    <circle class="icf" cx="4.5" cy="3.6" r="1.3" /><circle class="icf" cx="8.5" cy="3.6" r="1.3" /><circle class="icf" cx="12.5" cy="3.6" r="1.3" />
+  </g>
+  <text class="h2" x="88" y="117">Visitor's browser (the Shop, a single-page app)</text>
+
+  <!-- React UI -->
+  <rect class="card" x="50" y="138" width="250" height="100" rx="10" />
+  <g transform="translate(64 152)">
+    <rect class="ic" x="0" y="0" width="11" height="11" rx="2" /><rect class="ic" x="14" y="0" width="11" height="11" rx="2" /><rect class="ic" x="0" y="14" width="25" height="9" rx="2" />
+  </g>
+  <text class="h3" x="98" y="166">React 19 UI + React Router</text>
+  <text class="tx" x="64" y="190">Header, hero, filters, product grid,</text>
+  <text class="tx" x="64" y="206">product view (native &lt;dialog&gt;), cart</text>
+  <text class="tx" x="64" y="222">drawer, checkout, receipt.</text>
+
+  <!-- Story core -->
+  <rect class="card" x="320" y="138" width="250" height="100" rx="10" />
+  <g transform="translate(334 150)">
+    <circle class="ic" cx="5" cy="5" r="4.5" /><circle class="ic" cx="22" cy="5" r="4.5" /><circle class="ic" cx="13.5" cy="21" r="4.5" />
+    <line class="ic" x1="9.5" y1="5" x2="17.5" y2="5" /><line class="ic" x1="20" y1="9" x2="15.5" y2="17" />
+  </g>
+  <text class="h3" x="368" y="166">Story core (src/core)</text>
+  <text class="tx" x="334" y="190">Pure reducer: events → story state.</text>
+  <text class="tx" x="334" y="206">No DOM, timers or randomness.</text>
+  <text class="tx" x="334" y="222">Property-tested with fast-check.</text>
+
+  <!-- Director -->
+  <rect class="card" x="50" y="258" width="250" height="100" rx="10" />
+  <g transform="translate(64 270)">
+    <circle cx="12" cy="12" r="9" fill="none" stroke="#c8a24c" stroke-width="5" stroke-dasharray="3.6 3.47" />
+    <circle class="ic" cx="12" cy="12" r="4" />
+  </g>
+  <text class="h3" x="98" y="286">Director (src/director)</text>
+  <text class="tx" x="64" y="310">Sequences (Reveal, closing, Accept),</text>
+  <text class="tx" x="64" y="326">per-product consequences, the Stage</text>
+  <text class="tx" x="64" y="342">(one anomaly at a time), GSAP timing.</text>
+
+  <!-- Stores -->
+  <rect class="card" x="320" y="258" width="250" height="100" rx="10" />
+  <g transform="translate(334 270)">
+    <rect class="ic" x="0" y="0" width="26" height="9" rx="2" /><rect class="ic" x="0" y="12" width="26" height="9" rx="2" />
+    <line class="ic" x1="10" y1="4.5" x2="16" y2="4.5" /><line class="ic" x1="10" y1="16.5" x2="16" y2="16.5" />
+  </g>
+  <text class="h3" x="368" y="286">State (zustand)</text>
+  <text class="tx" x="334" y="310">Story store, effects store, shop query.</text>
+  <text class="tx" x="334" y="326">Saved in localStorage: story, ending,</text>
+  <text class="tx" x="334" y="342">own echo id, model sizes, watch clock.</text>
+
+  <!-- arrows inside browser -->
+  <path class="ln" d="M300 178 H318" marker-end="url(#a)" />
+  <text class="lb" x="292" y="132">events</text>
+  <path class="ln" d="M445 238 V256" marker-end="url(#a)" />
+  <text class="lb" x="452" y="251">state</text>
+  <path class="ln" d="M318 312 H302" marker-end="url(#a)" />
+  <path class="ln" d="M175 256 V240" marker-end="url(#a)" />
+  <text class="lb" x="182" y="251">re-render</text>
+  <path class="ln" d="M300 292 C 312 292, 312 210, 320 206" marker-end="url(#a)" />
+
+  <!-- Rendering layers -->
+  <rect class="hot" x="50" y="378" width="520" height="150" rx="10" />
+  <g transform="translate(64 390)">
+    <rect class="ic" x="0" y="0" width="22" height="22" rx="3" />
+    <path class="ic" d="M4 16 L9 10 L13 14 L16 11 L19 16 Z" />
+    <line x1="-2" y1="24" x2="24" y2="-2" stroke="#c0392b" stroke-width="2.4" />
+  </g>
+  <text class="h3" x="98" y="406">Rendering: all drawn in code, no image files</text>
+  <g>
+    <rect class="card" x="64" y="420" width="118" height="94" rx="8" />
+    <text class="h3" x="76" y="442">DOM + CSS</text>
+    <text class="tx" x="76" y="462">Layout, palettes,</text>
+    <text class="tx" x="76" y="477">gradients,</text>
+    <text class="tx" x="76" y="492">keyframes</text>
+    <rect class="card" x="190" y="420" width="118" height="94" rx="8" />
+    <text class="h3" x="202" y="442">Inline SVG</text>
+    <text class="tx" x="202" y="462">Bats, hands,</text>
+    <text class="tx" x="202" y="477">ghosts, scares,</text>
+    <text class="tx" x="202" y="492">icons, logo</text>
+    <rect class="card" x="316" y="420" width="118" height="94" rx="8" />
+    <text class="h3" x="328" y="442">Canvas 2D</text>
+    <text class="tx" x="328" y="462">Painted textures,</text>
+    <text class="tx" x="328" y="477">photos, labels,</text>
+    <text class="tx" x="328" y="492">ruined world</text>
+    <rect class="card" x="442" y="420" width="118" height="94" rx="8" />
+    <g transform="translate(530 426)">
+      <rect class="ic" x="3" y="3" width="14" height="14" rx="2" />
+      <path class="ic" d="M7 0 V3 M13 0 V3 M7 17 V20 M13 17 V20 M0 7 H3 M0 13 H3 M17 7 H20 M17 13 H20" />
+    </g>
+    <text class="h3" x="454" y="442">WebGL2</text>
+    <text class="tx" x="454" y="462">three.js + R3F:</text>
+    <text class="tx" x="454" y="477">shop canvas,</text>
+    <text class="tx" x="454" y="492">inspection canvas</text>
+    <path class="ln" d="M374 514 V524 H500 V516" marker-end="url(#a)" />
+  </g>
+  <path class="ln" d="M175 358 V376" marker-end="url(#a)" />
+  <text class="lb" x="182" y="372">effects</text>
+
+  <!-- ===================== Server ===================== -->
+  <rect class="zone" x="690" y="86" width="560" height="456" rx="14" />
+  <g transform="translate(708 99)">
+    <path class="ic" d="M8 22 H28 A7 7 0 0 0 27 8 A9 9 0 0 0 10 7 A7.5 7.5 0 0 0 8 22 Z" />
+  </g>
+  <text class="h2" x="748" y="117">AWS EC2 instance · Docker Compose</text>
+
+  <!-- nginx -->
+  <rect class="card" x="710" y="138" width="520" height="112" rx="10" />
+  <g transform="translate(726 152)">
+    <rect class="ic" x="0" y="0" width="26" height="9" rx="2" /><rect class="ic" x="0" y="13" width="26" height="9" rx="2" />
+    <circle class="icf" cx="21" cy="4.5" r="1.4" /><circle class="icf" cx="21" cy="17.5" r="1.4" />
+  </g>
+  <text class="h3" x="762" y="166">web container · nginx (stable-alpine), port 80 → 8080</text>
+  <text class="tx" x="726" y="190">Serves the built Shop: index.html, JS and CSS bundles, self-hosted .woff2 fonts.</text>
+  <text class="tx" x="726" y="206">Single-page fallback to index.html. Proxies /api/ to the api container.</text>
+  <text class="tx" x="726" y="222">Access logs off. Headers: nosniff, no-referrer, camera/mic/geolocation denied.</text>
+  <text class="tx" x="726" y="238">Long cache for /assets/ (hashed file names).</text>
+
+  <!-- api -->
+  <rect class="card" x="710" y="282" width="520" height="112" rx="10" />
+  <g transform="translate(726 294)">
+    <circle cx="12" cy="12" r="9" fill="none" stroke="#c8a24c" stroke-width="5" stroke-dasharray="3.6 3.47" />
+    <circle class="ic" cx="12" cy="12" r="4" />
+  </g>
+  <text class="h3" x="762" y="310">api container · Echo service (Fastify 5 on Node 26), :3000</text>
+  <text class="tx" x="726" y="334">GET /api/health · GET /api/echo (latest 5) · POST /api/echo { product, condition }</text>
+  <text class="tx" x="726" y="350">Body checked against fixed allowlists; unknown fields rejected; 1 KB body limit.</text>
+  <text class="tx" x="726" y="366">Rate limit 5 writes/min, keyed by a salted hash kept in memory only.</text>
+  <text class="tx" x="726" y="382">Request logging off: no IP addresses, user agents or identifiers are stored.</text>
+
+  <!-- sqlite -->
+  <rect class="card" x="710" y="426" width="520" height="100" rx="10" />
+  <g transform="translate(728 438)">
+    <ellipse class="ic" cx="11" cy="4" rx="11" ry="4" />
+    <path class="ic" d="M0 4 V20 A11 4 0 0 0 22 20 V4" /><path class="ic" d="M0 12 A11 4 0 0 0 22 12" />
+  </g>
+  <text class="h3" x="762" y="454">echo-data volume · SQLite via node:sqlite</text>
+  <text class="tx" x="726" y="478">One table: echoes (id, product, condition, created_at).</text>
+  <text class="tx" x="726" y="494">Keeps the newest 1000 rows. No native build, no ORM.</text>
+  <text class="tx" x="726" y="510">Survives redeploys (named Docker volume).</text>
+
+  <path class="ln" d="M970 250 V280" marker-end="url(#a)" />
+  <text class="lb" x="978" y="270">proxy /api/* → api:3000</text>
+  <path class="ln" d="M970 394 V424" marker-end="url(#a)" />
+  <text class="lb" x="978" y="414">SQL (prepared statements)</text>
+
+  <!-- browser <-> server -->
+  <path class="ln" d="M590 170 H708" marker-end="url(#a)" />
+  <text class="lb" x="598" y="160">GET static files</text>
+  <path class="ln" d="M590 214 H708" marker-start="url(#a)" marker-end="url(#a)" />
+  <text class="lb" x="598" y="204">/api/echo</text>
+  <text class="tx" x="598" y="232">GET at start,</text>
+  <text class="tx" x="598" y="247">POST at Accept</text>
+  <text class="tx" x="598" y="275">Same origin only.</text>
+  <text class="tx" x="598" y="290">No third-party</text>
+  <text class="tx" x="598" y="305">requests, no</text>
+  <text class="tx" x="598" y="320">analytics.</text>
+
+  <!-- ===================== Delivery ===================== -->
+  <rect class="zone" x="30" y="580" width="1220" height="280" rx="14" />
+  <g transform="translate(48 594)">
+    <circle class="ic" cx="5" cy="5" r="4" /><circle class="ic" cx="5" cy="21" r="4" /><circle class="ic" cx="21" cy="11" r="4" />
+    <path class="ic" d="M5 9 V17 M5 13 C 5 11, 17 13, 17 11" />
+  </g>
+  <text class="h2" x="88" y="611">Build and deploy · every push to main</text>
+
+  <!-- steps -->
+  <g>
+    <rect class="card" x="50" y="632" width="172" height="124" rx="10" />
+    <g transform="translate(64 644)"><circle class="ic" cx="10" cy="6" r="5.5" /><path class="ic" d="M0 24 C 0 15, 20 15, 20 24" /><path class="icf" d="M24 2 l2 4 l4 1 l-4 1 l-2 4 l-2 -4 l-4 -1 l4 -1 Z" /></g>
+    <text class="h3" x="64" y="690">Developer + Kiro</text>
+    <text class="tx" x="64" y="710">Specs, steering, hooks</text>
+    <text class="tx" x="64" y="725">in .kiro/; code written</text>
+    <text class="tx" x="64" y="740">with the Kiro IDE agent</text>
+
+    <rect class="card" x="250" y="632" width="172" height="124" rx="10" />
+    <g transform="translate(264 644)"><circle class="ic" cx="5" cy="4" r="3.5" /><circle class="ic" cx="5" cy="22" r="3.5" /><circle class="ic" cx="19" cy="9" r="3.5" /><path class="ic" d="M5 7.5 V18.5 M5 14 C 5 11, 19 15, 19 12.5" /></g>
+    <text class="h3" x="264" y="690">GitHub repository</text>
+    <text class="tx" x="264" y="710">Public, MIT licence,</text>
+    <text class="tx" x="264" y="725">branch main</text>
+
+    <rect class="card" x="450" y="632" width="172" height="124" rx="10" />
+    <g transform="translate(464 644)"><rect class="ic" x="0" y="0" width="24" height="24" rx="5" /><path class="ic" d="M6 12 L10.5 16.5 L18 8" /></g>
+    <text class="h3" x="464" y="690">Actions: test job</text>
+    <text class="tx" x="464" y="710">web + api: npm ci,</text>
+    <text class="tx" x="464" y="725">typecheck, lint, unit and</text>
+    <text class="tx" x="464" y="740">property tests, build</text>
+
+    <rect class="card" x="650" y="632" width="172" height="124" rx="10" />
+    <g transform="translate(664 642)"><path class="ic" d="M12 0 L23 4 V12 C 23 19, 18 24, 12 26 C 6 24, 1 19, 1 12 V4 Z" /><path class="ic" d="M8 13 L11 16 L16 10" /></g>
+    <text class="h3" x="664" y="690">Actions: deploy job</text>
+    <text class="tx" x="664" y="710">OIDC → IAM role,</text>
+    <text class="tx" x="664" y="725">short-lived credentials,</text>
+    <text class="tx" x="664" y="740">no stored keys</text>
+
+    <rect class="card" x="850" y="632" width="172" height="124" rx="10" />
+    <g transform="translate(864 644)"><rect class="ic" x="0" y="0" width="26" height="22" rx="3" /><path class="ic" d="M5 8 L9 11 L5 14 M12 15 H19" /></g>
+    <text class="h3" x="864" y="690">AWS Systems Manager</text>
+    <text class="tx" x="864" y="710">Run Command sends</text>
+    <text class="tx" x="864" y="725">remote-deploy.sh; no</text>
+    <text class="tx" x="864" y="740">SSH port open</text>
+
+    <rect class="card" x="1050" y="632" width="180" height="124" rx="10" />
+    <g transform="translate(1064 644)"><rect class="ic" x="0" y="0" width="26" height="9" rx="2" /><rect class="ic" x="0" y="13" width="26" height="9" rx="2" /><circle class="icf" cx="21" cy="4.5" r="1.4" /><circle class="icf" cx="21" cy="17.5" r="1.4" /></g>
+    <text class="h3" x="1064" y="690">EC2 instance</text>
+    <text class="tx" x="1064" y="710">git checkout of the commit,</text>
+    <text class="tx" x="1064" y="725">docker compose up --build,</text>
+    <text class="tx" x="1064" y="740">wait for /api/health</text>
+  </g>
+  <path class="ln" d="M222 694 H248" marker-end="url(#a)" />
+  <text class="lb" x="219" y="684">push</text>
+  <path class="ln" d="M422 694 H448" marker-end="url(#a)" />
+  <path class="ln" d="M622 694 H648" marker-end="url(#a)" />
+  <text class="lb" x="621" y="684">pass</text>
+  <path class="ln" d="M822 694 H848" marker-end="url(#a)" />
+  <path class="ln" d="M1022 694 H1048" marker-end="url(#a)" />
+
+  <!-- health check loop and restart -->
+  <path class="ln dash" d="M1140 756 V800 H736 V758" marker-end="url(#a)" />
+  <text class="lb" x="760" y="818">public health check: GET SITE_URL/api/health must answer, or the run fails</text>
+  <path class="lnr" d="M1240 694 H1262 V330 H1232" marker-end="url(#ar)" />
+  <text class="lb" x="1150" y="574">(re)starts both containers</text>
+  <text class="tx" x="50" y="846">A failing test job means no deploy: the live site keeps the last good build.</text>
+</svg>

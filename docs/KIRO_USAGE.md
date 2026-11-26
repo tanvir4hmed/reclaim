@@ -25,7 +25,7 @@ Running log for the required "How Kiro was used" write-up. Add an entry whenever
 
 ## MCP
 
-_(server, what it enabled that would otherwise be hard)_
+Not used in this project. The agent's built-in web fetch, shell and file tools covered research and verification.
 
 ## Property-based testing
 
@@ -87,6 +87,13 @@ _(which requirements, what it caught)_
   - **Teddy timing coupled, not tuned:** the sword stroke records when it went up on screen, and the bear is only cut a fixed time after that, so the blow is always seen first however late the overlay mounts.
   - **Screenshot review** with a burst capture inside the product view (now with a pre-Take frame and a console-error log) checked each Take; it led to thicker blood runs on the phone, a bigger and denser smoke ghost, and a doll that clearly looks away before it snaps round.
   - **Follow-up:** the telephone was rebuilt by a sub-agent after a reference photo (W48), the candle's smoke reduced to one straight column with a small face, and the product view now frames a model's `userData.frame` box from the start instead of zooming at the Take. Screenshots caught the phone's blood reading pale pink (a mirror-like clearcoat catching the studio light) and the camera rising out of place.
+- 2026-11-26, rounds 14–17.
+  - **Round 14:** the television replaced the radio, the doll, shoes, candle and teddy were rebuilt by sub-agents from reference images, and product sizes are now remembered across reloads (`gl/fit.ts`). Burst screenshots showed where the sub-agents' blind builds missed the references.
+  - **Credits running low:** Tanvir asked for develop-and-push without browser testing. The agent kept typecheck, lint and unit tests as a gate before every push, because a failing CI build blocks the deploy.
+  - **Rounds 15–17:** Tanvir tried a different final scare and then rolled it back. The agent reverted that commit, then restored exactly the parts he named from git history (the candle's smoke ghost and the globe's black hands) with `git checkout <sha> -- <file>`, instead of rewriting them. The last ghost now ends on black with "Forgive me, Lord, for I have sinned." written in blood.
+  - **Lesson:** one request, one change. A steering-style rule against unrequested edits matters most late in a project.
+- 2026-11-26, submission docs: the agent wrote `docs/ARCHITECTURE.md`, `docs/TECH_STACK.md`, `docs/SUBMISSION.md`, three SVG diagrams drawn by hand in code (`docs/diagrams/`) and `.env.example`, and rewrote the README. Facts were taken from the code (`package.json` files, the Dockerfiles, nginx config, the CI workflow, the API routes), and `git ls-files` confirmed there are no image or audio files.
+
 ## Agent hooks
 
 - `.kiro/hooks/core-property-tests.json` (PostFileSave on `web/src/core` and the Director's pure modules): runs the core and Director property tests on save.
@@ -96,8 +103,11 @@ _(which requirements, what it caught)_
 
 ## Kiro powers
 
-_(which powers, what they added)_
+Not used in this project.
 
 ## Custom agents
 
-_(agent, which Kiro app, impact)_
+No custom agent was defined. The Kiro IDE agent used built-in sub-agents:
+
+- **Scatter-gather builds:** product models were built in parallel from a shared written brief (rounds 12–14).
+- **Pollers:** some sub-agents were limited to reading files and polled long Playwright and CI runs while the main shell was busy.

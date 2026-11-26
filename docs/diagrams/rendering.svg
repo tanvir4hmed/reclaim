@@ -1,0 +1,161 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="820" viewBox="0 0 1280 820" role="img" aria-labelledby="t d">
+  <title id="t">How the browser draws Re:Claim without image files</title>
+  <desc id="d">TypeScript source is bundled by Vite. In the browser five pipelines produce every pixel: DOM and CSS, inline SVG, Canvas 2D painting, WebGL2 through three.js and React Three Fiber, and self-hosted fonts. They are stacked in a fixed layer order on screen.</desc>
+  <defs>
+    <style>
+      .bg { fill: #0e1420; }
+      .zone { fill: #141924; stroke: #a8894e; stroke-width: 1.5; }
+      .card { fill: #1c2230; stroke: #3a4258; stroke-width: 1.2; }
+      .lane { fill: #171c28; stroke: #2c3346; stroke-width: 1; }
+      .h1 { font: 700 26px Georgia, 'Times New Roman', serif; fill: #e6dccb; }
+      .h2 { font: 700 16px Georgia, 'Times New Roman', serif; fill: #c8a24c; }
+      .h3 { font: 700 13px 'Segoe UI', Inter, Helvetica, Arial, sans-serif; fill: #e6dccb; }
+      .tx { font: 400 11px 'Segoe UI', Inter, Helvetica, Arial, sans-serif; fill: #b9b0a2; }
+      .mono { font: 400 10.5px Consolas, 'Courier New', monospace; fill: #d8c79e; }
+      .lb { font: 600 11px 'Segoe UI', Inter, Helvetica, Arial, sans-serif; fill: #e0c27a; }
+      .ic { fill: none; stroke: #c8a24c; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+      .icf { fill: #c8a24c; }
+      .ln { fill: none; stroke: #c8a24c; stroke-width: 1.8; }
+    </style>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#c8a24c" />
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1280" height="820" />
+  <text class="h1" x="30" y="44">How the browser draws it · no image files</text>
+  <text class="tx" x="30" y="66">The repository has no PNG, JPG, SVG, GLB, HDR or audio files. Every picture, texture, model and "photo" is generated at runtime by code in web/src.</text>
+
+  <!-- source -->
+  <rect class="zone" x="30" y="90" width="190" height="560" rx="14" />
+  <g transform="translate(48 106)"><path class="ic" d="M8 6 L1 13 L8 20 M18 6 L25 13 L18 20 M15 3 L11 23" /></g>
+  <text class="h2" x="82" y="124">Source</text>
+  <text class="tx" x="48" y="152">TypeScript + TSX in web/src</text>
+  <text class="tx" x="48" y="170">CSS in web/src/styles</text>
+  <text class="tx" x="48" y="188">GLSL strings inside .ts files</text>
+  <rect class="card" x="44" y="210" width="162" height="120" rx="10" />
+  <g transform="translate(58 222)"><path class="ic" d="M2 2 L12 22 L22 2 M7 2 H17" /></g>
+  <text class="h3" x="90" y="238">Vite 8 build</text>
+  <text class="tx" x="58" y="262">Bundles JS + CSS with</text>
+  <text class="tx" x="58" y="277">hashed names into</text>
+  <text class="tx" x="58" y="292">/assets, copies font</text>
+  <text class="tx" x="58" y="307">.woff2 files from npm.</text>
+  <rect class="card" x="44" y="346" width="162" height="120" rx="10" />
+  <g transform="translate(58 358)"><rect class="ic" x="0" y="0" width="26" height="9" rx="2" /><rect class="ic" x="0" y="13" width="26" height="9" rx="2" /><circle class="icf" cx="21" cy="4.5" r="1.4" /><circle class="icf" cx="21" cy="17.5" r="1.4" /></g>
+  <text class="h3" x="92" y="374">nginx</text>
+  <text class="tx" x="58" y="398">Sends index.html, the</text>
+  <text class="tx" x="58" y="413">bundles and the fonts</text>
+  <text class="tx" x="58" y="428">from the same origin.</text>
+  <text class="tx" x="58" y="443">Nothing from a CDN.</text>
+  <rect class="card" x="44" y="482" width="162" height="150" rx="10" />
+  <g transform="translate(58 494)"><rect class="ic" x="0" y="0" width="28" height="20" rx="3" /><line class="ic" x1="0" y1="6" x2="28" y2="6" /></g>
+  <text class="h3" x="96" y="510">Browser start</text>
+  <text class="tx" x="58" y="534">main.tsx loads fonts and</text>
+  <text class="tx" x="58" y="549">styles, React mounts the</text>
+  <text class="tx" x="58" y="564">app. If WebGL2 exists</text>
+  <text class="tx" x="58" y="579">(and no ?nogl), the 3D</text>
+  <text class="tx" x="58" y="594">canvas is lazy-loaded.</text>
+  <text class="tx" x="58" y="609">Otherwise: names on velvet.</text>
+  <path class="ln" d="M125 330 V344" marker-end="url(#a)" />
+  <path class="ln" d="M125 466 V480" marker-end="url(#a)" />
+
+  <!-- pipelines -->
+  <rect class="zone" x="250" y="90" width="700" height="700" rx="14" />
+  <text class="h2" x="270" y="120">Five pipelines in the browser</text>
+
+  <!-- lane 1 DOM CSS -->
+  <rect class="lane" x="266" y="136" width="668" height="112" rx="10" />
+  <g transform="translate(280 150)"><rect class="ic" x="0" y="0" width="11" height="11" rx="2" /><rect class="ic" x="14" y="0" width="11" height="11" rx="2" /><rect class="ic" x="0" y="14" width="25" height="9" rx="2" /></g>
+  <text class="h3" x="316" y="164">1 · DOM + CSS (React 19)</text>
+  <text class="tx" x="280" y="188">Header, hero copy, cards, filters, cart drawer, checkout, receipt. Day and haunted palettes are CSS variables</text>
+  <text class="tx" x="280" y="204">written to :root from shop/tokens.ts, plus data-state on &lt;html&gt;. Gradients, shadows and keyframes draw the</text>
+  <text class="tx" x="280" y="220">fabric, glow, tremor, dust sheets and the blood-written confession. prefers-reduced-motion swaps motion for fades.</text>
+  <text class="mono" x="280" y="238">shop/*.tsx · styles/*.css · fx/Overlays.tsx · fx/ClosingTime.tsx</text>
+
+  <!-- lane 2 SVG -->
+  <rect class="lane" x="266" y="258" width="668" height="112" rx="10" />
+  <g transform="translate(280 272)"><path class="ic" d="M2 22 C 6 4, 20 4, 24 22 M2 22 H24" /><circle class="icf" cx="13" cy="9" r="2.2" /></g>
+  <text class="h3" x="316" y="286">2 · Inline SVG drawn by React components</text>
+  <text class="tx" x="280" y="310">The bats (hanging, flying, the lunge), the skeleton-hand cursor, the crawling hand, the found-footage scare, the</text>
+  <text class="tx" x="280" y="326">scarecrow, werewolf and grave skeletons, shoe prints, slash marks, the logo and every icon. Paths, gradients and</text>
+  <text class="tx" x="280" y="342">filters (feTurbulence grain, blur) are written in code; one CSS data-URI SVG makes the film grain.</text>
+  <text class="mono" x="280" y="360">fx/BatSvg.tsx · fx/SkeletonHand.tsx · fx/JumpScare.tsx · shop/world/*.tsx · shop/icons.tsx</text>
+
+  <!-- lane 3 Canvas 2D -->
+  <rect class="lane" x="266" y="380" width="668" height="128" rx="10" />
+  <g transform="translate(280 394)"><rect class="ic" x="0" y="0" width="24" height="20" rx="2" /><path class="ic" d="M4 16 C 8 6, 12 6, 14 12 C 16 16, 18 10, 21 6" /></g>
+  <text class="h3" x="316" y="408">3 · Canvas 2D painting (procedural images)</text>
+  <text class="tx" x="280" y="432">Seeded noise and drawing calls paint images once into off-screen canvases: wood, leather, fabric, knit, fur, paper,</text>
+  <text class="tx" x="280" y="448">metal, ceramic and wax surfaces (colour, bump and roughness maps); labels and price tags; the witch "photo" in the</text>
+  <text class="tx" x="280" y="464">letter and the camera print; the TV picture; the candle smoke; the haunted world behind the hero (sky, red moon,</text>
+  <text class="tx" x="280" y="480">ruined city, graveyard). Most become THREE.CanvasTexture; the backdrop is shown as a canvas element.</text>
+  <text class="mono" x="280" y="498">gl/surfaces.ts · gl/canvasTex.ts · gl/pumpkinTex.ts · shop/world/paint*.ts</text>
+
+  <!-- lane 4 WebGL -->
+  <rect class="lane" x="266" y="518" width="668" height="144" rx="10" />
+  <g transform="translate(280 532)"><rect class="ic" x="3" y="3" width="16" height="16" rx="2" /><path class="ic" d="M8 0 V3 M14 0 V3 M8 19 V22 M14 19 V22 M0 8 H3 M0 14 H3 M19 8 H22 M19 14 H22" /></g>
+  <text class="h3" x="316" y="546">4 · WebGL2: three.js + React Three Fiber + drei</text>
+  <text class="tx" x="280" y="570">24 products built as geometry in code (lathe profiles, tubes, extrusions, merged parts). One material factory with</text>
+  <text class="tx" x="280" y="586">a shared decay shader injected with onBeforeCompile: uDecay 0 → 1 burns, rots, dusts and tears them at the Reveal.</text>
+  <text class="tx" x="280" y="602">Custom GLSL for flame, smoke ghosts and the TV. Lighting from RoomEnvironment through PMREM (generated, no HDR).</text>
+  <text class="tx" x="280" y="618">Shop canvas: one canvas, many drei Views placed over card boxes, slid with the scroll. Inspection canvas: inside the</text>
+  <text class="tx" x="280" y="634">product &lt;dialog&gt;, with OrbitControls. Redraws only when something changes. Each 3D object has a DOM hit proxy.</text>
+  <text class="mono" x="280" y="652">gl/ShopCanvas.tsx · gl/InspectionCanvas.tsx · gl/decay.ts · gl/materials.ts · products/*/Model.tsx</text>
+
+  <!-- lane 5 fonts -->
+  <rect class="lane" x="266" y="672" width="668" height="102" rx="10" />
+  <g transform="translate(280 686)"><path class="ic" d="M2 22 L11 2 L20 22 M6 14 H16" /></g>
+  <text class="h3" x="316" y="700">5 · Fonts (the only binary assets, from npm)</text>
+  <text class="tx" x="280" y="724">Fraunces (display serif), Inter (UI sans) and Creepster (blood lettering), all SIL OFL 1.1, via @fontsource.</text>
+  <text class="tx" x="280" y="740">Bundled by Vite and served from our own host. Creepster is also drawn into canvas textures after document.fonts.load.</text>
+  <text class="mono" x="280" y="760">main.tsx · ASSETS.md</text>
+
+  <!-- screen stack -->
+  <rect class="zone" x="980" y="90" width="270" height="700" rx="14" />
+  <g transform="translate(998 104)"><rect class="ic" x="0" y="0" width="30" height="20" rx="2" /><path class="ic" d="M10 26 H20 M15 20 V26" /></g>
+  <text class="h2" x="1038" y="122">On screen</text>
+  <text class="tx" x="998" y="146">Layer order, top to bottom:</text>
+  <g>
+    <rect class="card" x="998" y="160" width="234" height="58" rx="8" fill="#241820" />
+    <text class="h3" x="1010" y="182">Scare + confession</text>
+    <text class="tx" x="1010" y="202">After Accept only (z 80–90)</text>
+    <rect class="card" x="998" y="228" width="234" height="58" rx="8" />
+    <text class="h3" x="1010" y="250">Product view &lt;dialog&gt;</text>
+    <text class="tx" x="1010" y="270">Browser top layer + inspection canvas</text>
+    <rect class="card" x="998" y="296" width="234" height="58" rx="8" />
+    <text class="h3" x="1010" y="318">Effects overlays</text>
+    <text class="tx" x="1010" y="338">Bats, hand, ghosts, Take scares</text>
+    <rect class="card" x="998" y="364" width="234" height="58" rx="8" />
+    <text class="h3" x="1010" y="386">Darkness overlay (z 4)</text>
+    <text class="tx" x="1010" y="406">Brownouts dim page and 3D together</text>
+    <rect class="card" x="998" y="432" width="234" height="58" rx="8" />
+    <text class="h3" x="1010" y="454">Shop canvas (WebGL)</text>
+    <text class="tx" x="1010" y="474">3D objects drawn into card boxes</text>
+    <rect class="card" x="998" y="500" width="234" height="58" rx="8" />
+    <text class="h3" x="1010" y="522">Page DOM</text>
+    <text class="tx" x="1010" y="542">Shelves, text, buttons, backdrop</text>
+  </g>
+  <text class="tx" x="998" y="586">Pointer and keyboard always reach</text>
+  <text class="tx" x="998" y="601">real DOM controls; the canvases</text>
+  <text class="tx" x="998" y="616">only paint.</text>
+  <text class="tx" x="998" y="644">Animation: GSAP timelines (bat</text>
+  <text class="tx" x="998" y="659">flight, lunge, sequences), CSS</text>
+  <text class="tx" x="998" y="674">keyframes, and per-frame updates</text>
+  <text class="tx" x="998" y="689">in R3F useFrame.</text>
+  <text class="tx" x="998" y="717">Sound: none in this build.</text>
+  <text class="tx" x="998" y="745">Network at runtime: same-origin</text>
+  <text class="tx" x="998" y="760">/api/echo only.</text>
+
+  <!-- arrows source -> lanes -> screen -->
+  <path class="ln" d="M220 560 C 236 560, 236 192, 264 192" marker-end="url(#a)" />
+  <path class="ln" d="M220 560 C 238 560, 238 314, 264 314" marker-end="url(#a)" />
+  <path class="ln" d="M220 560 C 240 560, 240 444, 264 444" marker-end="url(#a)" />
+  <path class="ln" d="M220 560 C 242 560, 242 590, 264 590" marker-end="url(#a)" />
+  <path class="ln" d="M220 560 C 244 560, 244 722, 264 722" marker-end="url(#a)" />
+  <path class="ln" d="M934 192 H978" marker-end="url(#a)" />
+  <path class="ln" d="M934 314 H978" marker-end="url(#a)" />
+  <path class="ln" d="M934 590 H978" marker-end="url(#a)" />
+  <path class="ln" d="M600 508 V516" marker-end="url(#a)" />
+  <text class="lb" x="608" y="515">CanvasTexture</text>
+  <path class="ln" d="M934 722 C 956 722, 956 230, 978 230" marker-end="url(#a)" />
+</svg>
