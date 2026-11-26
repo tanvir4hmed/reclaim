@@ -75,25 +75,6 @@
   50% { transform: scale(0.985); filter: brightness(0.6); }
 }
 
-.hidden-mitten {
-  position: absolute;
-  z-index: 5;
-  right: 9%;
-  top: calc(100% - 26px);
-  width: 22px;
-  height: 26px;
-  border: 0;
-  border-radius: 45% 45% 40% 40%;
-  background: #8a1a22;
-  box-shadow: inset -3px -3px 0 rgb(0 0 0 / 0.25);
-  opacity: 0.85;
-}
-
-.site-footer .hidden-mitten,
-.hero .hidden-mitten {
-  display: block;
-}
-
 .decal-mitten {
   fill: #8a1a22;
 }

@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 
-/** Body radii: the pumpkin is an ellipsoid pushed in along eight grooves. */
-export const RX = 0.93;
+/** Body height: the pumpkin is an ellipsoid pushed in along eight grooves. */
 export const RY = 0.78;
 
 /** Ribbed, squashed pumpkin body. */

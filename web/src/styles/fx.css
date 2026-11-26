@@ -86,18 +86,6 @@
   display: none;
 }
 
-.shoe-pool {
-  fill: rgb(62 4 7 / 0.92);
-  transform-box: fill-box;
-  transform-origin: 70% 40%;
-  animation: shoePoolSeep 1.8s ease-out both;
-}
-
-@keyframes shoePoolSeep {
-  from { transform: scale(0.08, 0.3); opacity: 0; }
-  to { transform: none; opacity: 1; }
-}
-
 .shoe-print {
   opacity: 0;
   animation: shoePrintIn 0.55s ease-out forwards;
@@ -107,7 +95,6 @@
   to { opacity: 1; }
 }
 
-.shoe-prints.is-still .shoe-pool,
 .shoe-prints.is-still .shoe-print {
   animation: none;
   opacity: 1;
@@ -115,7 +102,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .shoe-pool,
   .shoe-print {
     animation: none;
     opacity: 1;
@@ -261,10 +247,6 @@
   stroke: #d8cbb2;
   stroke-width: 1.1;
   stroke-linecap: round;
-}
-
-.bat .claw-fill {
-  fill: #cbbd9f;
 }
 
 .bat .leg {
@@ -768,53 +750,8 @@
   to { opacity: 0.85; transform: translate(-50%, -50%) scaleY(1); }
 }
 
-.dust-sheet {
-  position: absolute;
-  opacity: 0;
-  animation: drape 1.2s ease-out forwards;
-}
-
-@keyframes drape {
-  from { opacity: 0; transform: translateY(-30px) scaleY(0.6); }
-  to { opacity: 1; transform: none; }
-}
-
-.sheet-cloth {
-  fill: #ece7dd;
-  stroke: #bdb5a6;
-  stroke-width: 0.6;
-}
-
-.sheet-fold {
-  fill: none;
-  stroke: rgb(120 110 95 / 0.35);
-  stroke-width: 0.8;
-}
-
-.sheet-face {
-  fill: transparent;
-}
-
-.dust-sheet svg,
-.dust-sheet {
-  transform-origin: 50% 100%;
-}
-
-.dust-sheet.turned {
-  animation: drape 1.2s ease-out forwards, breathe 3s ease-in-out 1.2s infinite;
-}
-
-.dust-sheet.turned .sheet-face {
-  fill: rgb(60 50 40 / 0.18);
-  animation: turnFace 1.6s ease-in-out var(--turn-delay) both;
-}
-
 @keyframes breathe {
   50% { transform: scale(1.02, 1.035); }
-}
-
-@keyframes turnFace {
-  from { transform: translateX(-14px); fill: transparent; }
 }
 
 .sheet-ghost {

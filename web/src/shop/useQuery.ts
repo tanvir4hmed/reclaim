@@ -24,11 +24,6 @@ export function updateQuery(patch: Partial<Query>) {
   window.history.replaceState(window.history.state, '', `${pathname}${search ? `?${search}` : ''}${hash}`);
 }
 
-/** Re-reads the URL, e.g. after the router navigated to a link that carries a query. */
-export function syncQueryFromUrl() {
-  useQueryStore.setState({ query: fromUrl() });
-}
-
 export function currentSearch(): string {
   const s = toSearchParams(useQueryStore.getState().query).toString();
   return s ? `?${s}` : '';

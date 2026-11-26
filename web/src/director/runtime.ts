@@ -103,10 +103,6 @@ export function calmAmbient(): void {
   glBus.invalidate();
 }
 
-export function stageBusy(): boolean {
-  return stage.holder !== null;
-}
-
 /** Page-coordinate centre of an element (for decals that stay where they fell, Req 11.3b). */
 export function pageCenter(el: Element): { x: number; y: number } {
   const r = el.getBoundingClientRect();

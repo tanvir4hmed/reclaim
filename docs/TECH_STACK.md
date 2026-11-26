@@ -30,8 +30,6 @@ This page lists exactly what Re:Claim uses, with the versions pinned in the repo
 | CI/CD | GitHub Actions (`actions/checkout@v5`, `actions/setup-node@v5`, `aws-actions/configure-aws-credentials@v6.3.0`) | | MIT |
 | Built with | Kiro IDE (specs, steering, hooks, agent, sub-agents) | | Kiro terms |
 
-`postprocessing` 6.39.6 (zlib licence) is installed in `web/package.json` but no file imports it at the moment, so it is not in the bundle.
-
 All dependency versions are pinned exactly. Code libraries are only used under their open-source licences; nothing is called at runtime from a third-party server.
 
 ## Frontend: how it works in the browser

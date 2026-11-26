@@ -1,11 +1,5 @@
 import { useFx } from './fxStore';
 
-export interface HandPose {
-  x: number;
-  y: number;
-  stage: 'rise' | 'grip' | 'pull' | 'gone';
-}
-
 /** The severed hand (Requirement 11.3a): drawn in code, animated by the Director's sequence. */
 export function CrawlingHand() {
   const pose = useFx((s) => s.flags['hand-x'] !== undefined);

@@ -61,9 +61,8 @@ export function flyBox(x: number, y: number, k = 1) {
  * FLY_W). Kept in step with the `0.625` (1 / FLY_NEAR) in fx.css.
  */
 export const FLY_NEAR = 1.6;
-/** In the flying drawing: the face is 28 units above the centre; the open mouth about 19 below it. */
+/** In the flying drawing: the face is 28 units above the centre. */
 export const FLY_FACE_Y = -28;
-export const FLY_MOUTH_Y = -9;
 
 /*
  * Ears: half the original absolute length. The whole bat is already drawn at 0.8, so inside

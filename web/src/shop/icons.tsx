@@ -137,10 +137,3 @@ export const EnvelopeIcon = (p: IconProps) => (
     <path d="m3.5 6.5 8.5 7 8.5-7" />
   </Svg>
 );
-
-export const KeepsakeIcon = (p: IconProps) => (
-  <Svg {...p}>
-    <circle cx="12" cy="13" r="6.5" />
-    <path d="M12 9.5V13l2.3 1.5M10.5 4h3M12 4v2.5" />
-  </Svg>
-);

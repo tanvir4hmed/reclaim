@@ -121,7 +121,6 @@ Every push to `main` is tested by GitHub Actions. If the tests pass, it is deplo
 | React, React DOM, React Router, zustand, three.js, React Three Fiber, drei, Fastify, `@fastify/rate-limit`, Vite, Vitest, fast-check, ESLint, Prettier | MIT |
 | TypeScript, Playwright | Apache-2.0 |
 | GSAP | GSAP Standard "no charge" licence (https://gsap.com/standard-license), free for this use |
-| `postprocessing` (installed, not used in the current bundle) | zlib |
 
 **Fonts:** Fraunces, Inter and Creepster, all SIL Open Font License 1.1, self-hosted from `@fontsource` packages. See [ASSETS.md](ASSETS.md).
 
