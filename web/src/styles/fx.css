@@ -895,6 +895,103 @@
   animation: none;
 }
 
+.accepted-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* "Forgive me, Lord, for I have sinned.": large, in blood, in the middle of the dark. */
+.blood-words {
+  max-width: min(92vw, 1200px);
+  padding-bottom: 1.6em;
+  text-align: center;
+  font: 400 clamp(40px, 7.5vw, 110px) / 1.25 'Creepster', var(--serif), serif;
+  letter-spacing: 0.02em;
+  color: #c0161c;
+  text-shadow: 0 0 14px rgb(150 0 0 / 0.45), 0 2px 0 #3a0000;
+}
+
+/* Each word comes up in turn, as if being written, then its blood runs down from it. */
+.blood-word {
+  position: relative;
+  display: inline-block;
+  margin: 0 0.14em;
+  animation: bloodIn 0.7s ease-out var(--wd) both;
+}
+
+/* the trail */
+.blood-word::after {
+  content: '';
+  position: absolute;
+  left: var(--dx);
+  top: 72%;
+  width: 0.07em;
+  height: var(--dl);
+  border-radius: 0 0 0.04em 0.04em;
+  background: linear-gradient(#6a0507, #a8121a);
+  transform-origin: top;
+  transform: scaleY(0);
+  animation: bloodRun 1.8s cubic-bezier(0.3, 0, 0.5, 1) calc(var(--wd) + 0.4s) forwards;
+}
+
+/* the drop at its end, swelling as it goes */
+.blood-word::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--dx) - 0.035em);
+  top: calc(72% - 0.08em);
+  width: 0.14em;
+  height: 0.18em;
+  border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%;
+  background: #a8121a;
+  opacity: 0;
+  animation: bloodDrop 1.8s cubic-bezier(0.3, 0, 0.5, 1) calc(var(--wd) + 0.4s) forwards;
+}
+
+@keyframes bloodIn {
+  from { opacity: 0; filter: blur(4px); }
+}
+
+@keyframes bloodRun {
+  to { transform: scaleY(1); }
+}
+
+@keyframes bloodDrop {
+  8% { opacity: 1; }
+  to { opacity: 1; transform: translateY(var(--dl)); }
+}
+
+/* the room is quiet, but the blood still runs */
+[data-quiet] .accepted *,
+[data-quiet] .accepted *::before,
+[data-quiet] .accepted *::after {
+  animation-play-state: running !important;
+}
+
+/* Reduced motion: the words and their trails are simply there, and the whole fades in. */
+.accepted-still .blood-words {
+  animation: fadeIn 1s ease-out both;
+}
+
+.accepted-still .blood-word,
+.accepted-still .blood-word::after,
+.accepted-still .blood-word::before {
+  animation: none;
+}
+
+.accepted-still .blood-word::after {
+  transform: none;
+}
+
+.accepted-still .blood-word::before {
+  opacity: 1;
+  transform: translateY(var(--dl));
+}
+
 @keyframes fadeOut {
   to { opacity: 0; }
 }

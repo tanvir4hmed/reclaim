@@ -1,5 +1,6 @@
 import gsap from 'gsap';
-import { useLayoutEffect, useMemo, useRef } from 'react';
+import { useLayoutEffect, useMemo, useRef, type CSSProperties } from 'react';
+import { reducedMotion } from '../director/runtime';
 import { LUNGE_MS } from '../director/sequences';
 import { useHaunted } from '../store';
 import { BatSvg, FLY_FACE_Y, FLY_VB_W, FLY_W, HANG_ASPECT } from './BatSvg';
@@ -251,10 +252,36 @@ export function Accepted() {
   const shown = useFx((s) => s.acceptedShown);
   const leaving = useFx((s) => s.flags['accepted-leaving'] !== undefined);
   if (!shown) return null;
-  // Pure black, as the dark she came out of; it lifts straight off the Christmas shop.
+  // Pure black, as the dark she came out of. The confession is written large in the middle in
+  // blood, word by word, each word bleeding a trail down; then it all lifts off the Christmas
+  // shop. The order line stays for screen readers only.
   return (
-    <div className={`accepted${leaving ? ' leaving' : ''}`} role="alert" data-testid="accepted">
-      <p>Your order has been accepted.</p>
+    <div className={`accepted${leaving ? ' leaving' : ''}${reducedMotion() ? ' accepted-still' : ''}`}>
+      <span className="accepted-sr" role="alert" data-testid="accepted">
+        Your order has been accepted.
+      </span>
+      <div className="blood-words">
+        {BLOOD_WORDS.map(([w, dx, dl], i) => (
+          <span
+            key={w}
+            className="blood-word"
+            style={{ '--wd': `${0.3 + i * 0.25}s`, '--dx': `${dx}%`, '--dl': `${dl}em` } as CSSProperties}
+          >
+            {w}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
+
+/** The confession, word by word: [word, where its blood runs from (% across), how far (em)]. */
+const BLOOD_WORDS: [string, number, number][] = [
+  ['Forgive', 34, 1.1],
+  ['me,', 22, 0.55],
+  ['Lord,', 62, 1.4],
+  ['for', 40, 0.7],
+  ['I', 45, 1.25],
+  ['have', 70, 0.6],
+  ['sinned.', 28, 1.6],
+];
