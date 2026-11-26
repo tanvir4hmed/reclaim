@@ -249,11 +249,14 @@ export function DarkEvents() {
 /** The single tremor and the quiet after Accept (Req 22.7–22.8). */
 export function Accepted() {
   const shown = useFx((s) => s.acceptedShown);
-  const leaving = useFx((s) => s.flags['accepted-leaving'] !== undefined);
   if (!shown) return null;
-  // Pure black, as the dark she came out of; it lifts straight off the Christmas shop.
+  // Announced to screen readers only; on screen the priest's confession takes its place.
   return (
-    <div className={`accepted${leaving ? ' leaving' : ''}`} role="alert" data-testid="accepted">
+    <div
+      role="alert"
+      data-testid="accepted"
+      style={{ position: 'fixed', width: 1, height: 1, overflow: 'hidden', clipPath: 'inset(50%)', whiteSpace: 'nowrap' }}
+    >
       <p>Your order has been accepted.</p>
     </div>
   );

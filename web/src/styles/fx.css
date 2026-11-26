@@ -817,17 +817,21 @@
   from { transform: translateX(-14px); fill: transparent; }
 }
 
+/* It does not stop: it drifts straight across the screen, fast, and is gone. */
 .sheet-ghost {
   position: fixed;
   left: 50%;
   top: 52%;
   width: min(46vw, 360px);
   transform: translate(-50%, -50%);
-  animation: ghostRise 1.3s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: ghostPass 1.1s cubic-bezier(0.45, 0.05, 0.55, 0.95) both;
 }
 
-@keyframes ghostRise {
-  from { transform: translate(-50%, 10%) scale(0.4); opacity: 0; }
+@keyframes ghostPass {
+  0% { transform: translate(-50%, -50%) translateX(-75vw) translateY(4vh) rotate(-6deg); opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) translateX(75vw) translateY(-6vh) rotate(6deg); opacity: 0; }
 }
 
 .ghost-cloth {
@@ -851,8 +855,9 @@
 }
 
 /* It leaves: sinks a little, blurs and is gone. Nothing is left behind on screen. */
+/* already gone past: nothing comes back */
 .sheet-ghost.empty {
-  animation: ghostGone 0.7s ease-in forwards;
+  display: none;
 }
 
 @keyframes ghostGone {

@@ -86,8 +86,9 @@ export async function closingSequence(): Promise<void> {
     );
     if (s.aborted) return;
     // The sheet ghost rises out of the dark, close and silent, and lifts its hem.
+    // It drifts across fast and is gone; it does not stop on the screen.
     set({ closingStep: 'ghost', mains: 0.35 });
-    await wait(reduced ? 1400 : 2800, s);
+    await wait(reduced ? 1400 : 1150, s);
     if (s.aborted) return;
     set({ mains: 0 });
     await wait(600, s);
@@ -115,13 +116,12 @@ export async function acceptedSequence(): Promise<void> {
   }
   // The one jump scare in the game, and it is earned: the shop's last resident comes for the
   // visitor who just "bought" her things. Reduced motion shows her still, then a fade.
-  set({ scare: true });
+  set({ scare: true, cartRinging: false });
   await wait(reducedMotion() ? 1100 : 1650);
-  // Straight from her to black, in the same frame: the checkout is never shown again. The
-  // words come up in the dark; then, behind the black, the shop goes back to Christmas, and
-  // the black lifts off it.
-  set({ scare: false, quiet: true, acceptedShown: true, cartRinging: false });
-  await wait(4000);
+  // He stays, close, and his confession comes up over him. Then, behind him, the shop goes
+  // back to Christmas, and he and the dark lift off it.
+  set({ acceptedShown: true });
+  await wait(3800);
   const left = useStory.getState().story.leftBehind;
   markEnded();
   if (left) void sendEcho(left);
@@ -132,5 +132,5 @@ export async function acceptedSequence(): Promise<void> {
   set({ quiet: false, prints: [], batPerch: 'hero-echo', flags: { 'accepted-leaving': Date.now() } });
   glBus.invalidate();
   await wait(1000);
-  set({ acceptedShown: false, flags: {} });
+  set({ scare: false, acceptedShown: false, flags: {} });
 }

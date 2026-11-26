@@ -987,7 +987,7 @@ const SMOKE_H = GH / PX;
  * units). The face is about two thirds as wide as the candle is tall, and long.
  */
 const HEAD_AT = 0.36;
-const HEAD_RX = 0.17;
+const HEAD_RX = 0.145;
 const HEAD_RY = 0.22;
 /** The chin, as a share of the picture's height. */
 const CHIN_V = (HEAD_AT - HEAD_RY) / SMOKE_H;
@@ -1511,16 +1511,22 @@ function faceCameraY(o: THREE.Object3D, cam: THREE.Camera) {
  */
 function driveSmoke(root: THREE.Group | null, s: number, cam: THREE.Camera) {
   if (!root) return;
-  if (s < 0 || s === Infinity || s > TAKE.end) {
+  if (s === Infinity || s > TAKE.end) {
     root.visible = false;
     return;
   }
+  // Before the Take it is drawn, fully clear, so its shaders are ready: no stall (no jerk) the
+  // moment the flame goes out.
   root.visible = true;
   faceCamera(root, cam);
   const p = ghostParts();
+  if (s < 0) {
+    for (const u of [p.front, p.back, p.wisp]) setSmoke(u, { time: 0, front: 0, tail: -0.2, col: 0, head: 0, lift: 0, drift: 0, stretch: 0, brk: 0, ember: 0 });
+    return;
+  }
   const t = s;
   const front = 0.95 * clamp01((t - 0.12) / 2.3) ** 0.85;
-  const lift = 0.026 * t + 0.1 * Math.max(0, t - 3.0) ** 2;
+  const lift = 0.1 * Math.max(0, t - 3.0) ** 2;
   const drift = 0.012 * Math.sin(t * 0.8) + 0.04 * smooth((t - 1.8) / 3.0);
   const stretch = 0.7 * smooth((t - 3.3) / 1.7);
   const brk = smooth((t - 3.4) / 1.5);
@@ -1545,7 +1551,10 @@ function SmokeGhost({ since, scale }: { since: () => number; scale: number }) {
   const root = useRef<THREE.Group>(null);
   const camera = useThree((s) => s.camera);
   const p = ghostParts();
-  useFrame(() => driveSmoke(root.current, since() * 0.3, camera));
+  useFrame(() => {
+    const s = since();
+    driveSmoke(root.current, s < 0 || s === Infinity ? s : s * 1.4, camera);
+  });
   return (
     <group ref={root} position={OLD_TIP} scale={scale} visible={false} userData={{ extra: true }}>
       <mesh geometry={p.geo} material={p.mats.back} position-z={-0.02} scale={1.06} renderOrder={9} />
@@ -1724,11 +1733,12 @@ export default function Candle() {
         </group>
       </group>
       <pointLight ref={light} position={[at[0], at[1] + 0.1, 0.12]} intensity={base} distance={2.5} color="#ffb860" />
-      {taken && (
-        // the dark: over the candle and the room, under the ember and the smoke
+      {haunted && (
+        // the dark: over the candle and the room, under the ember and the smoke (clear until
+        // it is taken; mounted before, so its shader is ready and nothing stalls)
         <mesh geometry={vp.geo} material={vp.mat} renderOrder={5} frustumCulled={false} userData={{ extra: true }} />
       )}
-      {taken && (
+      {haunted && (
         // the wick glowing after it is blown out, then going dark
         <group ref={ember} position={OLD_TIP} visible={false} userData={{ extra: true }}>
           <mesh material={lp.emberMat} renderOrder={8}>
@@ -1737,7 +1747,7 @@ export default function Candle() {
           <mesh geometry={lp.emberHaloGeo} material={lp.emberHaloMat} renderOrder={8} />
         </group>
       )}
-      {taken && <SmokeGhost since={since} scale={onShelf ? SHELF_SMOKE : 1} />}
+      {haunted && <SmokeGhost since={since} scale={onShelf ? SHELF_SMOKE : 1} />}
       {haunted && (
         // not drawn: the room above the wick that the smoke and the face rise into; the product
         // view frames it from the start (userData.frame), so the view does not move when the
